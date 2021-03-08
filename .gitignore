@@ -1,3 +1,4 @@
+src/version.h
 games/
 test/test
 test/test.hh2
