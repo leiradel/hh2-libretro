@@ -12,14 +12,40 @@ else
 	CFLAGS += -O3 -DHH2_RELEASE -DNDEBUG
 endif
 
-OBJS = \
+LIBPNG_OBJ_FILES = \
+	src/libpng/png.o \
+	src/libpng/pngerror.o \
+	src/libpng/pngget.o \
+	src/libpng/pngmem.o \
+	src/libpng/pngread.o \
+	src/libpng/pngrio.o \
+	src/libpng/pngrtran.o \
+	src/libpng/pngrutil.o \
+	src/libpng/pngset.o \
+	src/libpng/pngtrans.o \
+	src/libpng/pngwio.o \
+	src/libpng/pngwrite.o \
+	src/libpng/pngwtran.o \
+	src/libpng/pngwutil.o
+
+ZLIB_OBJ_FILES = \
+	src/zlib/adler32.o \
+	src/zlib/crc32.o \
+	src/zlib/deflate.o \
+	src/zlib/inffast.o \
+	src/zlib/inflate.o \
+	src/zlib/inftrees.o \
+	src/zlib/trees.o \
+	src/zlib/zutil.o
+
+HH2_OBJS = \
 	src/djb2.o \
 	src/filesys.o \
 	src/log.o
 
 all: src/version.h hh2_libretro.so
 
-hh2_libretro.so: $(OBJS)
+hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/version.h: FORCE
@@ -38,8 +64,11 @@ test/test: test/main.o $(OBJS)
 		$(CC) -o $@ $+ $(LIBS)
 
 clean: FORCE
-	rm -f hh2_libretro.so $(OBJS)
+	rm -f hh2_libretro.so $(HH2_OBJS)
 	rm -f src/version.h
 	rm -f test/test test/main.o
+
+distclean: clean
+		rm -f $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES)
 
 .PHONY: FORCE
