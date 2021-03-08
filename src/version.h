@@ -1,9 +1,0 @@
-#ifndef HH2_VERSION_H__
-#define HH2_VERSION_H__
-
-#define HH2_PACKAGE "Handheld Electronic Engine 2"
-#define HH2_GITHASH "0000000000000000000000000000000000000000"
-#define HH2_VERSION "0.0.1"
-#define HH2_DATE "2021-03-07T22:35:35+00:00"
-
-#endif // HH2_VERSION_H__
