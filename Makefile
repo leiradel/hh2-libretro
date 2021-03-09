@@ -3,7 +3,7 @@
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
-INCLUDES = -Isrc
+INCLUDES = -Isrc -Isrc/libpng
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
@@ -41,6 +41,7 @@ ZLIB_OBJ_FILES = \
 HH2_OBJS = \
 	src/djb2.o \
 	src/filesys.o \
+	src/image.o \
 	src/log.o
 
 all: src/version.h hh2_libretro.so
