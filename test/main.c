@@ -1,5 +1,6 @@
 #include "../src/log.h"
 #include "../src/filesys.h"
+#include "../src/image.h"
 #include "../src/version.h"
 
 #include <stdio.h>
@@ -30,7 +31,7 @@ int main() {
     hh2_log(HH2_LOG_INFO, "version  %s", HH2_VERSION);
     hh2_log(HH2_LOG_INFO, "datatime %s", HH2_DATE);
 
-    FILE* file = fopen("../test.hh2", "rb");
+    FILE* file = fopen("test.hh2", "rb");
     size = fread(buffer, 1, sizeof(buffer), file);
     fclose(file);
 
@@ -50,6 +51,23 @@ int main() {
         printf("%s", buffer2);
         hh2_fileClose(mf);
     }
+
+    hh2_Image cp = hh2_imageRead(fs, "test/cryptopunk32.png");
+
+    unsigned const w = hh2_imageWidth(cp);
+    unsigned const h = hh2_imageHeight(cp);
+
+    FILE* const raw = fopen("cryptopunk32.data", "wb");
+
+    for (unsigned y = 0; y < h; y++) {
+        for (unsigned x = 0; x < w; x++) {
+            hh2_Pixel const p = hh2_getPixel(cp, x, y);
+            fwrite(&p, 1, 4, raw);
+        }
+    }
+
+    fclose(raw);
+    hh2_imageDestroy(cp);
 
     if (fs != NULL) {
         hh2_filesystemDestroy(fs);

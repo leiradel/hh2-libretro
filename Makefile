@@ -61,8 +61,11 @@ src/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-test/test: test/main.o $(OBJS)
-		$(CC) -o $@ $+ $(LIBS)
+test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(HH2_OBJS)
+	$(CC) -o $@ $+ $(LIBS)
+
+test/test.hh2: FORCE
+	lua etc/riff.lua $@ Makefile test/cryptopunk32.png
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
