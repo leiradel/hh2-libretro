@@ -355,6 +355,8 @@ size_t hh2_fileRead(hh2_File file, void* buffer, size_t size) {
     size_t const toread = size < available ? size : available;
 
     memcpy(buffer, file->data + file->pos, toread);
+    file->pos += toread;
+
     hh2_log(HH2_LOG_DEBUG, TAG "read from file %p to %p, %zu bytes", file, buffer, toread);
     return toread;
 }
