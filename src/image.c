@@ -175,6 +175,7 @@ hh2_Image hh2_imageSub(hh2_Image const parent, unsigned const x0, unsigned const
 }
 
 void hh2_imageDestroy(hh2_Image const image) {
+    hh2_log(HH2_LOG_INFO, TAG "destroying image %p", image);
     free(image);
 }
 
