@@ -94,7 +94,11 @@ error2:
 
     // Make sure we always get RGBA pixels
     if (bit_depth == 16) {
+#ifdef PNG_READ_SCALE_16_TO_8_SUPPORTED
+        png_set_scale_16(png);
+#else
         png_set_strip_16(png);
+#endif
     }
 
     if (color_type == PNG_COLOR_TYPE_PALETTE) {
