@@ -110,13 +110,13 @@ error2:
     }
 
     // Transform transparent color to alpha
-    if (png_get_valid(png, info, PNG_INFO_tRNS)) {
+    if (png_get_valid(png, info, PNG_INFO_tRNS) != 0) {
         png_set_tRNS_to_alpha(png);
     }
 
     // Set alpha to opaque if non-existent
     if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_PALETTE) {
-        png_set_filler(png, 0xff, PNG_FILLER_AFTER);
+        png_set_filler(png, 0xffff, PNG_FILLER_AFTER);
     }
 
     // Convert gray to RGB
@@ -124,10 +124,10 @@ error2:
         png_set_gray_to_rgb(png);
     }
 
-    png_read_update_info(png, info);
-
     // Turn on interlaced image support to read the PNG line by line
     int const num_passes = png_set_interlace_handling(png);
+
+    png_read_update_info(png, info);
 
     for (int i = 0; i < num_passes; i++) {
         for (unsigned y = 0; y < height; y++) {
@@ -135,6 +135,7 @@ error2:
         }
     }
     
+    png_read_end(png, info);
     png_destroy_read_struct(&png, &info, NULL);
     hh2_log(HH2_LOG_DEBUG, TAG "created image %p with dimensions (%u, %u)", image, width, height);
     return image;
