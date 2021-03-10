@@ -67,9 +67,9 @@ test/test.hh2: FORCE
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
 	rm -f src/version.h
-	rm -f test/test test/main.o
+	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-		rm -f $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES)
+	rm -f $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES)
 
 .PHONY: FORCE
