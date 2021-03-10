@@ -50,19 +50,16 @@ hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/version.h: FORCE
-	#cat etc/version.templ.h \
-	#	| sed s/\&HASH/`git rev-parse HEAD | tr -d "\n"`/g \
-	#	| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
-	#	| sed s/\&DATE/`date -Iseconds`/g \
-	#	> $@
 	cat etc/version.templ.h \
-		| sed s/\&HASH/0000000000000000000000000000000000000000/g \
-		| sed s/\&VERSION/0.0.1/g \
+		| sed s/\&HASH/`git rev-parse HEAD | tr -d "\n"`/g \
+		| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
 test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
+
+test/main.o: src/version.h
 
 test/test.hh2: FORCE
 	lua etc/riff.lua $@ Makefile test/cryptopunk32.png
