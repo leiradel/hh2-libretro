@@ -74,10 +74,11 @@ error2:
     png_set_read_fn(png, file, hh2_pngRead);
     png_read_info(png, info);
 
-    png_uint_32 const width = png_get_image_width(png, info);
-    png_uint_32 const height = png_get_image_height(png, info);
-    size_t const num_pixels = width * height;
+    png_uint_32 width, height;
+    int bit_depth, color_type;
+    png_get_IHDR(png, info, &width, &height, &bit_depth, &color_type, NULL, NULL, NULL);
 
+    size_t const num_pixels = width * height;
     image = malloc(sizeof(*image) + sizeof(image->data[0]) * (num_pixels - 1));
 
     if (image == NULL) {
@@ -92,9 +93,6 @@ error2:
     image->abgr = image->data;
 
     // Make sure we always get RGBA pixels
-    png_byte const bit_depth = png_get_bit_depth(png, info);
-    png_byte const color_type = png_get_color_type(png, info);
-
     if (bit_depth == 16) {
         png_set_strip_16(png);
     }
