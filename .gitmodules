@@ -4,3 +4,6 @@
 [submodule "src/zlib"]
 	path = src/zlib
 	url = https://github.com/madler/zlib.git
+[submodule "src/libjpeg-turbo"]
+	path = src/libjpeg-turbo
+	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
