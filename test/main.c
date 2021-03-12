@@ -52,22 +52,24 @@ int main() {
         hh2_fileClose(mf);
     }
 
-    hh2_Image cp = hh2_imageRead(fs, "test/cryptopunk32.png");
+    hh2_Image cp = hh2_imageRead(fs, "test/cryptopunk32.jpg");
 
-    unsigned const w = hh2_imageWidth(cp);
-    unsigned const h = hh2_imageHeight(cp);
+    if (cp != NULL) {
+        unsigned const w = hh2_imageWidth(cp);
+        unsigned const h = hh2_imageHeight(cp);
 
-    FILE* const raw = fopen("cryptopunk32.data", "wb");
+        FILE* const raw = fopen("cryptopunk32.data", "wb");
 
-    for (unsigned y = 0; y < h; y++) {
-        for (unsigned x = 0; x < w; x++) {
-            hh2_Pixel const p = hh2_getPixel(cp, x, y);
-            fwrite(&p, 1, 4, raw);
+        for (unsigned y = 0; y < h; y++) {
+            for (unsigned x = 0; x < w; x++) {
+                hh2_Pixel const p = hh2_getPixel(cp, x, y);
+                fwrite(&p, 1, 4, raw);
+            }
         }
-    }
 
-    fclose(raw);
-    hh2_imageDestroy(cp);
+        fclose(raw);
+        hh2_imageDestroy(cp);
+    }
 
     if (fs != NULL) {
         hh2_filesystemDestroy(fs);

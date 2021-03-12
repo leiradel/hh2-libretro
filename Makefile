@@ -3,7 +3,8 @@
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
-INCLUDES = -Isrc -Isrc/libpng
+DEFINES = -DWITH_MEM_SRCDST=0
+INCLUDES = -Isrc -Isrc/libpng -Isrc/libjpeg-turbo -Isrc/generated
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
@@ -13,30 +14,22 @@ else
 endif
 
 LIBPNG_OBJ_FILES = \
-	src/libpng/png.o \
-	src/libpng/pngerror.o \
-	src/libpng/pngget.o \
-	src/libpng/pngmem.o \
-	src/libpng/pngread.o \
-	src/libpng/pngrio.o \
-	src/libpng/pngrtran.o \
-	src/libpng/pngrutil.o \
-	src/libpng/pngset.o \
-	src/libpng/pngtrans.o \
-	src/libpng/pngwio.o \
-	src/libpng/pngwrite.o \
-	src/libpng/pngwtran.o \
-	src/libpng/pngwutil.o
+	src/libpng/pngerror.o  src/libpng/pngget.o  src/libpng/pngmem.o  src/libpng/png.o  src/libpng/pngread.o  src/libpng/pngrio.o \
+	src/libpng/pngrtran.o  src/libpng/pngrutil.o  src/libpng/pngset.o  src/libpng/pngtrans.o src/libpng/pngwio.o \
+	src/libpng/pngwrite.o src/libpng/pngwtran.o src/libpng/pngwutil.o
 
 ZLIB_OBJ_FILES = \
-	src/zlib/adler32.o \
-	src/zlib/crc32.o \
-	src/zlib/deflate.o \
-	src/zlib/inffast.o \
-	src/zlib/inflate.o \
-	src/zlib/inftrees.o \
-	src/zlib/trees.o \
-	src/zlib/zutil.o
+	src/zlib/adler32.o src/zlib/crc32.o src/zlib/deflate.o src/zlib/inffast.o src/zlib/inflate.o src/zlib/inftrees.o \
+	src/zlib/trees.o src/zlib/zutil.o
+
+LIBJPEG_OBJ_FILES = \
+	src/libjpeg-turbo/jaricom.o src/libjpeg-turbo/jcomapi.o src/libjpeg-turbo/jdapimin.o src/libjpeg-turbo/jdapistd.o \
+	src/libjpeg-turbo/jdarith.o src/libjpeg-turbo/jdcoefct.o src/libjpeg-turbo/jdcolor.o src/libjpeg-turbo/jddctmgr.o \
+	src/libjpeg-turbo/jdhuff.o src/libjpeg-turbo/jdinput.o src/libjpeg-turbo/jdmainct.o src/libjpeg-turbo/jdmarker.o \
+	src/libjpeg-turbo/jdmaster.o src/libjpeg-turbo/jdmerge.o src/libjpeg-turbo/jdphuff.o src/libjpeg-turbo/jdpostct.o \
+	src/libjpeg-turbo/jdsample.o src/libjpeg-turbo/jerror.o src/libjpeg-turbo/jidctflt.o src/libjpeg-turbo/jidctfst.o \
+	src/libjpeg-turbo/jidctint.o src/libjpeg-turbo/jidctred.o src/libjpeg-turbo/jmemmgr.o src/libjpeg-turbo/jmemnobs.o \
+	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
 HH2_OBJS = \
 	src/djb2.o \
@@ -46,7 +39,7 @@ HH2_OBJS = \
 
 all: src/version.h hh2_libretro.so
 
-hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(HH2_OBJS)
+hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/version.h: FORCE
@@ -56,13 +49,13 @@ src/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(HH2_OBJS)
+test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/version.h
 
 test/test.hh2: FORCE
-	lua etc/riff.lua $@ Makefile test/cryptopunk32.png
+	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
@@ -70,6 +63,6 @@ clean: FORCE
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-	rm -f $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES)
+	rm -f $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES)
 
 .PHONY: FORCE
