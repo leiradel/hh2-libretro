@@ -34,8 +34,8 @@ LIBJPEG_OBJ_FILES = \
 HH2_OBJS = \
 	src/djb2.o \
 	src/filesys.o \
-	src/image.o \
-	src/log.o
+	src/log.o \
+	src/pixelsrc.o \
 
 all: src/version.h hh2_libretro.so
 

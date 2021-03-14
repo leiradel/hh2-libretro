@@ -1,4 +1,4 @@
-#include "image.h"
+#include "pixelsrc.h"
 #include "log.h"
 
 #include <png.h>
@@ -7,16 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TAG "IMG "
+#define TAG "PXS "
 
-// PNG read is coded for 32 bpp, make sure the build fails if hh2_Pixel does not have 32 bits
+// Image read is coded for 32 bpp, make sure the build fails if hh2_Pixel does not have 32 bits
 typedef char hh2_staticAssertPixelMustHave32Bits[sizeof(hh2_Pixel) == 4 ? 1 : -1];
 
-struct hh2_Image {
+struct hh2_PixelSource {
     unsigned width;
     unsigned height;
     unsigned pitch;
-    hh2_Image parent;
+    hh2_PixelSource parent;
     hh2_Pixel* abgr;
     hh2_Pixel data[1];
 };
@@ -44,10 +44,10 @@ static void hh2_pngRead(png_structp const png, png_bytep const buffer, size_t co
     hh2_fileRead(file, buffer, count);
 }
 
-static hh2_Image hh2_imageReadPng(hh2_File const file) {
-    hh2_log(HH2_LOG_INFO, TAG "reading image from file %p", file);
+static hh2_PixelSource hh2_readPng(hh2_File const file) {
+    hh2_log(HH2_LOG_INFO, TAG "reading pixel source from file %p", file);
 
-    hh2_Image image = NULL;
+    hh2_PixelSource source = NULL;
     png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, hh2_pngError, hh2_pngWarn);
 
     if (png == NULL) {
@@ -62,8 +62,8 @@ static hh2_Image hh2_imageReadPng(hh2_File const file) {
     }
 
     if (setjmp(png_jmpbuf(png))) {
-        if (image != NULL) {
-            free(image);
+        if (source != NULL) {
+            free(source);
         }
 
         png_destroy_read_struct(&png, &info, NULL);
@@ -78,19 +78,19 @@ static hh2_Image hh2_imageReadPng(hh2_File const file) {
     png_get_IHDR(png, info, &width, &height, &bit_depth, &color_type, NULL, NULL, NULL);
 
     size_t const num_pixels = width * height;
-    image = malloc(sizeof(*image) + sizeof(image->data[0]) * (num_pixels - 1));
+    source = malloc(sizeof(*source) + sizeof(source->data[0]) * (num_pixels - 1));
 
-    if (image == NULL) {
+    if (source == NULL) {
         hh2_log(HH2_LOG_ERROR, TAG "out of memory");
         png_destroy_read_struct(&png, &info, NULL);
         return NULL;
     }
 
-    image->width = width;
-    image->height = height;
-    image->pitch = width;
-    image->parent = NULL;
-    image->abgr = image->data;
+    source->width = width;
+    source->height = height;
+    source->pitch = width;
+    source->parent = NULL;
+    source->abgr = source->data;
 
     // Make sure we always get RGBA pixels
     if (bit_depth == 16) {
@@ -131,14 +131,14 @@ static hh2_Image hh2_imageReadPng(hh2_File const file) {
 
     for (int i = 0; i < num_passes; i++) {
         for (unsigned y = 0; y < height; y++) {
-            png_read_row(png, (uint8_t*)(image->abgr + y * width), NULL);
+            png_read_row(png, (uint8_t*)(source->abgr + y * width), NULL);
         }
     }
     
     png_read_end(png, info);
     png_destroy_read_struct(&png, &info, NULL);
-    hh2_log(HH2_LOG_DEBUG, TAG "created image %p with dimensions (%u, %u)", image, width, height);
-    return image;
+    hh2_log(HH2_LOG_DEBUG, TAG "created pixel source %p with dimensions (%u, %u)", source, width, height);
+    return source;
 }
 
 //       ## ########  ########  ######   
@@ -211,7 +211,7 @@ static void hh2_jpegErr(j_common_ptr cinfo) {
     hh2_log(HH2_LOG_ERROR, TAG "%s", buffer);
 }
 
-static hh2_Image hh2_imageReadJpeg(hh2_File const file) {
+static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
     struct jpeg_decompress_struct cinfo;
     hh2_jpegError error;
 
@@ -245,24 +245,24 @@ static hh2_Image hh2_imageReadJpeg(hh2_File const file) {
     JDIMENSION width = cinfo.output_width;
     JDIMENSION height = cinfo.output_height;
     size_t const num_pixels = width * height;
-    hh2_Image const image = malloc(sizeof(*image) + sizeof(image->data[0]) * (num_pixels - 1));
+    hh2_PixelSource const source = malloc(sizeof(*source) + sizeof(source->data[0]) * (num_pixels - 1));
 
-    if (image == NULL) {
+    if (source == NULL) {
         hh2_log(HH2_LOG_ERROR, TAG "out of memory");
         jpeg_destroy_decompress(&cinfo);
         return NULL;
     }
 
-    image->width = width;
-    image->height = height;
-    image->pitch = width;
-    image->parent = NULL;
-    image->abgr = image->data;
+    source->width = width;
+    source->height = height;
+    source->pitch = width;
+    source->parent = NULL;
+    source->abgr = source->data;
 
     unsigned y = 0;
 
     while (cinfo.output_scanline < cinfo.output_height) {
-        JSAMPROW row = (uint8_t*)(image->abgr + y * width);
+        JSAMPROW row = (uint8_t*)(source->abgr + y * width);
         JSAMPARRAY const array = &row;
 
         jpeg_read_scanlines(&cinfo, array, 1);
@@ -271,11 +271,11 @@ static hh2_Image hh2_imageReadJpeg(hh2_File const file) {
 
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
-    return image;
+    return source;
 }
 
-hh2_Image hh2_imageRead(hh2_Filesys const filesys, char const* const path) {
-    hh2_log(HH2_LOG_INFO, TAG "reading image \"%s\" from filesys %p", path, filesys);
+hh2_PixelSource hh2_pixelSourceRead(hh2_Filesys const filesys, char const* const path) {
+    hh2_log(HH2_LOG_INFO, TAG "reading pixel source \"%s\" from filesys %p", path, filesys);
 
     hh2_File const file = hh2_fileOpen(filesys, path);
 
@@ -289,15 +289,15 @@ hh2_Image hh2_imageRead(hh2_Filesys const filesys, char const* const path) {
     bool const is_png = path_len >= 3 &&
         path[path_len - 4] == '.' && path[path_len - 3] == 'p' && path[path_len - 2] == 'n' && path[path_len - 1] == 'g';
 
-    hh2_Image const image = is_png ? hh2_imageReadPng(file) : hh2_imageReadJpeg(file);
+    hh2_PixelSource const source = is_png ? hh2_readPng(file) : hh2_readJpeg(file);
     hh2_fileClose(file);
-    return image;
+    return source;
 }
 
-hh2_Image hh2_imageSub(hh2_Image const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height) {
+hh2_PixelSource hh2_pixelSourceSub(hh2_PixelSource const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height) {
     hh2_log(
         HH2_LOG_INFO,
-        TAG "creating sub image from image %p at (%u, %u) with dimensions (%u, %u)",
+        TAG "creating sub pixel source from %p at (%u, %u) with dimensions (%u, %u)",
         parent, x0, y0, width, height
     );
 
@@ -313,39 +313,39 @@ hh2_Image hh2_imageSub(hh2_Image const parent, unsigned const x0, unsigned const
         return NULL;
     }
 
-    hh2_Image const image = malloc(sizeof(*image));
+    hh2_PixelSource const source = malloc(sizeof(*source));
 
-    if (image == NULL) {
+    if (source == NULL) {
         hh2_log(HH2_LOG_ERROR, TAG "out of memory");
         return NULL;
     }
 
-    image->width = width;
-    image->height = height;
-    image->pitch = parent->pitch;
-    image->abgr = parent->abgr + y0 * parent->pitch + x0;
-    image->parent = parent;
+    source->width = width;
+    source->height = height;
+    source->pitch = parent->pitch;
+    source->abgr = parent->abgr + y0 * parent->pitch + x0;
+    source->parent = parent;
 
-    hh2_log(HH2_LOG_DEBUG, TAG "create sub image %p", image);
-    return image;
+    hh2_log(HH2_LOG_DEBUG, TAG "create sub pixel source %p", source);
+    return source;
 }
 
-void hh2_imageDestroy(hh2_Image const image) {
-    hh2_log(HH2_LOG_INFO, TAG "destroying image %p", image);
-    free(image);
+void hh2_pixelSourceDestroy(hh2_PixelSource const source) {
+    hh2_log(HH2_LOG_INFO, TAG "destroying pixel source %p", source);
+    free(source);
 }
 
-unsigned hh2_imageWidth(hh2_Image const image) {
-    return image->width;
+unsigned hh2_pixelSourceWidth(hh2_PixelSource const source) {
+    return source->width;
 }
 
-unsigned hh2_imageHeight(hh2_Image const image) {
-    return image->height;
+unsigned hh2_pixelSourceHeight(hh2_PixelSource const source) {
+    return source->height;
 }
 
-hh2_Pixel hh2_getPixel(hh2_Image const image, unsigned const x, unsigned const y) {
-    if (x < image->width && y < image->height) {
-        return image->abgr[y * image->pitch + x];
+hh2_Pixel hh2_getPixel(hh2_PixelSource const source, unsigned const x, unsigned const y) {
+    if (x < source->width && y < source->height) {
+        return source->abgr[y * source->pitch + x];
     }
 
     return 0;

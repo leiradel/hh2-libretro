@@ -1,6 +1,6 @@
 #include "../src/log.h"
 #include "../src/filesys.h"
-#include "../src/image.h"
+#include "../src/pixelsrc.h"
 #include "../src/version.h"
 
 #include <stdio.h>
@@ -52,11 +52,11 @@ int main() {
         hh2_fileClose(mf);
     }
 
-    hh2_Image cp = hh2_imageRead(fs, "test/cryptopunk32.jpg");
+    hh2_PixelSource cp = hh2_pixelSourceRead(fs, "test/cryptopunk32.jpg");
 
     if (cp != NULL) {
-        unsigned const w = hh2_imageWidth(cp);
-        unsigned const h = hh2_imageHeight(cp);
+        unsigned const w = hh2_pixelSourceWidth(cp);
+        unsigned const h = hh2_pixelSourceHeight(cp);
 
         FILE* const raw = fopen("cryptopunk32.data", "wb");
 
@@ -68,7 +68,7 @@ int main() {
         }
 
         fclose(raw);
-        hh2_imageDestroy(cp);
+        hh2_pixelSourceDestroy(cp);
     }
 
     if (fs != NULL) {
