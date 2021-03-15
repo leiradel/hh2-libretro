@@ -59,23 +59,23 @@ static unsigned hh2_filesystemValidate(uint8_t const* const data, size_t const s
         if (chunk == end) {
             // RIFF must have at lest one entry
             if (count == 0) {
-                hh2_log(HH2_LOG_ERROR, TAG "empty RIFF");
+                HH2_LOG(HH2_LOG_ERROR, TAG "empty RIFF");
                 return 0;
             }
 
-            hh2_log(HH2_LOG_DEBUG, TAG "successfully reached the end of the RIFF buffer");
+            HH2_LOG(HH2_LOG_DEBUG, TAG "successfully reached the end of the RIFF buffer");
             return count;
         }
 
         // Check if we went past EOF
         if (chunk > end) {
-            hh2_log(HH2_LOG_ERROR, TAG "detected chunk past end of the buffer");
+            HH2_LOG(HH2_LOG_ERROR, TAG "detected chunk past end of the buffer");
             return 0;
         }
 
         // Check if there's enough space left for the chunk
         if (end - chunk < 8) {
-            hh2_log(HH2_LOG_ERROR, TAG "not enough space left for another chunk");
+            HH2_LOG(HH2_LOG_ERROR, TAG "not enough space left for another chunk");
             return 0;
         }
 
@@ -87,11 +87,11 @@ static unsigned hh2_filesystemValidate(uint8_t const* const data, size_t const s
             hh2_formatU8(chunk[2], d2);
             hh2_formatU8(chunk[3], d3);
 
-            hh2_log(HH2_LOG_ERROR, TAG "invalid chunk %s %s %s %s", d0, d1, d2, d3);
+            HH2_LOG(HH2_LOG_ERROR, TAG "invalid chunk %s %s %s %s", d0, d1, d2, d3);
             return 0;
         }
 
-        hh2_log(HH2_LOG_DEBUG, TAG "validating chunk %u", count);
+        HH2_LOG(HH2_LOG_DEBUG, TAG "validating chunk %u", count);
 
         uint32_t const chunk_size = chunk[4] | (uint32_t)chunk[5] << 8 | (uint32_t)chunk[6] << 16 | (uint32_t)chunk[7] << 24;
 
@@ -100,13 +100,13 @@ static unsigned hh2_filesystemValidate(uint8_t const* const data, size_t const s
 
         // Validate that the FILE chunk has a path and data (data could have 0 length though)
         if (total_path_len > chunk_size) {
-            hh2_log(HH2_LOG_ERROR, TAG "invalid FILE chunk");
+            HH2_LOG(HH2_LOG_ERROR, TAG "invalid FILE chunk");
             return 0;
         }
 
         // Validate that the path is terminated with a nul
         if (chunk[10 + path_len - 1] != 0) {
-            hh2_log(HH2_LOG_ERROR, TAG "path in FILE chunk is not nul terminated");
+            HH2_LOG(HH2_LOG_ERROR, TAG "path in FILE chunk is not nul terminated");
             return 0;
         }
 
@@ -114,7 +114,7 @@ static unsigned hh2_filesystemValidate(uint8_t const* const data, size_t const s
 
         // Validate that the content size fits in a long
         if (data_size > UINT32_MAX) {
-            hh2_log(HH2_LOG_ERROR, TAG "content size is too big: %" PRIu32, data_size);
+            HH2_LOG(HH2_LOG_ERROR, TAG "content size is too big: %" PRIu32, data_size);
             return 0;
         }
 
@@ -132,7 +132,7 @@ static void hh2_collectEntries(hh2_Filesys filesys) {
         filesys->entries[i].path = (char const*)(chunk + 10);
         filesys->entries[i].hash = hh2_djb2(filesys->entries[i].path);
 
-        hh2_log(
+        HH2_LOG(
             HH2_LOG_DEBUG,
             TAG "entry %u with hash " HH2_PRI_DJB2HASH ": \"%s\"",
             i, filesys->entries[i].hash, filesys->entries[i].path
@@ -148,7 +148,7 @@ static void hh2_collectEntries(hh2_Filesys filesys) {
         filesys->entries[i].size = chunk_size - total_path_len;
 
         if (filesys->entries[i].size == 0) {
-            hh2_log(HH2_LOG_WARN, TAG "entry %u has no data", i);
+            HH2_LOG(HH2_LOG_WARN, TAG "entry %u has no data", i);
         }
 
         uint32_t const total_chunk_size = chunk_size + 8 + (chunk_size & 1);
@@ -186,10 +186,10 @@ static hh2_Entry* hh2_fileFind(hh2_Filesys filesys, char const* path) {
     hh2_Entry* found = bsearch(&key, filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), hh2_compareEntries);
 
     if (found == NULL) {
-        hh2_log(HH2_LOG_INFO, TAG "file system %p does not contain path \"%s\"", filesys, path);
+        HH2_LOG(HH2_LOG_INFO, TAG "file system %p does not contain path \"%s\"", filesys, path);
     }
     else {
-        hh2_log(
+        HH2_LOG(
             HH2_LOG_INFO, TAG "file system %p does contain path \"%s\", data=%p, size=%ld, hash=" HH2_PRI_DJB2HASH,
             filesys, path, found->data, found->size, found->hash
         );
@@ -199,7 +199,7 @@ static hh2_Entry* hh2_fileFind(hh2_Filesys filesys, char const* path) {
 }
 
 hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
-    hh2_log(HH2_LOG_INFO, TAG "creating filesystem from buffer %p with size %zu", buffer, size);
+    HH2_LOG(HH2_LOG_INFO, TAG "creating filesystem from buffer %p with size %zu", buffer, size);
 
     uint8_t const* data = buffer;
 
@@ -207,7 +207,7 @@ hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
     if (size < 20) {
         // Sizes less than 20 can't contain the main chunk id (4 bytes), its size (4 bytes), the file id (4 bytes), and one empty
         // subchunk (id + size = 8 bytes)
-        hh2_log(HH2_LOG_ERROR, TAG "buffer to small for a RIFF file: %zu", size);
+        HH2_LOG(HH2_LOG_ERROR, TAG "buffer to small for a RIFF file: %zu", size);
         return NULL;
     }
 
@@ -220,7 +220,7 @@ hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
         hh2_formatU8(data[2], d2);
         hh2_formatU8(data[3], d3);
 
-        hh2_log(HH2_LOG_ERROR, TAG "buffer doesn't start with \"RIFF\": %s %s %s %s", d0, d1, d2, d3);
+        HH2_LOG(HH2_LOG_ERROR, TAG "buffer doesn't start with \"RIFF\": %s %s %s %s", d0, d1, d2, d3);
         return NULL;
     }
 
@@ -229,7 +229,7 @@ hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
 
     if (main_size + 8 != size) {
         // The main chunk size doesn't count for the id (4 bytes) and size (4 bytes)
-        hh2_log(HH2_LOG_ERROR, TAG "main chunk size plus 8 must be equal to the buffer size");
+        HH2_LOG(HH2_LOG_ERROR, TAG "main chunk size plus 8 must be equal to the buffer size");
         return NULL;
     }
 
@@ -242,13 +242,13 @@ hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
         hh2_formatU8(data[10], d10);
         hh2_formatU8(data[11], d11);
 
-        hh2_log(HH2_LOG_ERROR, TAG "buffer id is not \"HH2 \": %s %s %s %s", d8, d9, d10, d11);
+        HH2_LOG(HH2_LOG_ERROR, TAG "buffer id is not \"HH2 \": %s %s %s %s", d8, d9, d10, d11);
         return NULL;
     }
 
     // Validate structure
     unsigned const num_entries = hh2_filesystemValidate(data, size);
-    hh2_log(HH2_LOG_DEBUG, TAG "RIFF file has %u entries", num_entries);
+    HH2_LOG(HH2_LOG_DEBUG, TAG "RIFF file has %u entries", num_entries);
 
     if (num_entries == 0) {
         // Error already logged
@@ -258,7 +258,7 @@ hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
     hh2_Filesys const filesys = malloc(sizeof(*filesys) + sizeof(filesys->entries[0]) * (num_entries - 1));
 
     if (filesys == NULL) {
-        hh2_log(HH2_LOG_ERROR, TAG "out of memory");
+        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
         return NULL;
     }
 
@@ -270,12 +270,12 @@ hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
 
     // TODO(leiradel): remove qsort and use a NIH implementation
     qsort(filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), hh2_compareEntries);
-    hh2_log(HH2_LOG_DEBUG, TAG "created file system %p", filesys);
+    HH2_LOG(HH2_LOG_DEBUG, TAG "created file system %p", filesys);
     return filesys;
 }
 
 void hh2_filesystemDestroy(hh2_Filesys filesys) {
-    hh2_log(HH2_LOG_INFO, TAG "destroying file system %p", filesys);
+    HH2_LOG(HH2_LOG_INFO, TAG "destroying file system %p", filesys);
     free(filesys);
 }
 
@@ -295,7 +295,7 @@ long hh2_fileSize(hh2_Filesys filesys, char const* path) {
 }
 
 hh2_File hh2_fileOpen(hh2_Filesys filesys, char const* path) {
-    hh2_log(HH2_LOG_INFO, TAG "opening \"%s\" in file system %p", path, filesys);
+    HH2_LOG(HH2_LOG_INFO, TAG "opening \"%s\" in file system %p", path, filesys);
 
     hh2_Entry const* const found = hh2_fileFind(filesys, path);
 
@@ -306,7 +306,7 @@ hh2_File hh2_fileOpen(hh2_Filesys filesys, char const* path) {
     hh2_File file = malloc(sizeof(*file));
 
     if (file == NULL) {
-        hh2_log(HH2_LOG_ERROR, TAG "out of memory");
+        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
         return NULL;
     }
 
@@ -314,12 +314,12 @@ hh2_File hh2_fileOpen(hh2_Filesys filesys, char const* path) {
     file->size = found->size;
     file->pos = 0;
 
-    hh2_log(HH2_LOG_DEBUG, TAG "opened \"%s\" in file system %p as %p", path, filesys, file);
+    HH2_LOG(HH2_LOG_DEBUG, TAG "opened \"%s\" in file system %p as %p", path, filesys, file);
     return file;
 }
 
 int hh2_fileSeek(hh2_File file, long offset, int whence) {
-    hh2_log(HH2_LOG_INFO, TAG "seeking file %p to %ld based off %d", file, offset, whence);
+    HH2_LOG(HH2_LOG_INFO, TAG "seeking file %p to %ld based off %d", file, offset, whence);
 
     long pos = 0;
 
@@ -329,13 +329,13 @@ int hh2_fileSeek(hh2_File file, long offset, int whence) {
         case SEEK_END: pos = file->size - offset; break;
 
         default: {
-            hh2_log(HH2_LOG_ERROR, TAG "invalid base for seek: %d", whence);
+            HH2_LOG(HH2_LOG_ERROR, TAG "invalid base for seek: %d", whence);
             return -1;
         }
     }
 
     if (pos < 0 || pos > file->size) {
-        hh2_log(HH2_LOG_ERROR, TAG "invalid position to seek to: %ld", pos);
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid position to seek to: %ld", pos);
         return -1;
     }
 
@@ -344,12 +344,12 @@ int hh2_fileSeek(hh2_File file, long offset, int whence) {
 }
 
 long hh2_fileTell(hh2_File file) {
-    hh2_log(HH2_LOG_INFO, TAG "returning current position %ld for file %p", file->pos, file);
+    HH2_LOG(HH2_LOG_INFO, TAG "returning current position %ld for file %p", file->pos, file);
     return file->pos;
 }
 
 size_t hh2_fileRead(hh2_File file, void* buffer, size_t size) {
-    hh2_log(HH2_LOG_INFO, TAG "reading from file %p to %p, %zu bytes", file, buffer, size);
+    HH2_LOG(HH2_LOG_INFO, TAG "reading from file %p to %p, %zu bytes", file, buffer, size);
 
     size_t const available = file->size - file->pos;
     size_t const toread = size < available ? size : available;
@@ -357,11 +357,11 @@ size_t hh2_fileRead(hh2_File file, void* buffer, size_t size) {
     memcpy(buffer, file->data + file->pos, toread);
     file->pos += toread;
 
-    hh2_log(HH2_LOG_DEBUG, TAG "read from file %p to %p, %zu bytes", file, buffer, toread);
+    HH2_LOG(HH2_LOG_DEBUG, TAG "read from file %p to %p, %zu bytes", file, buffer, toread);
     return toread;
 }
 
 void hh2_fileClose(hh2_File file) {
-    hh2_log(HH2_LOG_INFO, TAG "closing file %p", file);
+    HH2_LOG(HH2_LOG_INFO, TAG "closing file %p", file);
     free(file);
 }

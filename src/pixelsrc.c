@@ -31,12 +31,12 @@ struct hh2_PixelSource {
 
 static void hh2_pngError(png_structp const png, png_const_charp const error) {
     (void)png;
-    hh2_log(HH2_LOG_ERROR, TAG "error reading PNG: %s", error);
+    HH2_LOG(HH2_LOG_ERROR, TAG "error reading PNG: %s", error);
 }
 
 static void hh2_pngWarn(png_structp const png, png_const_charp const error) {
     (void)png;
-    hh2_log(HH2_LOG_WARN, TAG "warning reading PNG: %s", error);
+    HH2_LOG(HH2_LOG_WARN, TAG "warning reading PNG: %s", error);
 }
 
 static void hh2_pngRead(png_structp const png, png_bytep const buffer, size_t const count) {
@@ -45,7 +45,7 @@ static void hh2_pngRead(png_structp const png, png_bytep const buffer, size_t co
 }
 
 static hh2_PixelSource hh2_readPng(hh2_File const file) {
-    hh2_log(HH2_LOG_INFO, TAG "reading pixel source from file %p", file);
+    HH2_LOG(HH2_LOG_INFO, TAG "reading pixel source from file %p", file);
 
     hh2_PixelSource source = NULL;
     png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, hh2_pngError, hh2_pngWarn);
@@ -81,7 +81,7 @@ static hh2_PixelSource hh2_readPng(hh2_File const file) {
     source = malloc(sizeof(*source) + sizeof(source->data[0]) * (num_pixels - 1));
 
     if (source == NULL) {
-        hh2_log(HH2_LOG_ERROR, TAG "out of memory");
+        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
         png_destroy_read_struct(&png, &info, NULL);
         return NULL;
     }
@@ -137,7 +137,7 @@ static hh2_PixelSource hh2_readPng(hh2_File const file) {
     
     png_read_end(png, info);
     png_destroy_read_struct(&png, &info, NULL);
-    hh2_log(HH2_LOG_DEBUG, TAG "created pixel source %p with dimensions (%u, %u)", source, width, height);
+    HH2_LOG(HH2_LOG_DEBUG, TAG "created pixel source %p with dimensions (%u, %u)", source, width, height);
     return source;
 }
 
@@ -208,7 +208,7 @@ static void hh2_jpegErr(j_common_ptr cinfo) {
     char buffer[JMSG_LENGTH_MAX];
 
     cinfo->err->format_message(cinfo, buffer);
-    hh2_log(HH2_LOG_ERROR, TAG "%s", buffer);
+    HH2_LOG(HH2_LOG_ERROR, TAG "%s", buffer);
 }
 
 static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
@@ -248,7 +248,7 @@ static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
     hh2_PixelSource const source = malloc(sizeof(*source) + sizeof(source->data[0]) * (num_pixels - 1));
 
     if (source == NULL) {
-        hh2_log(HH2_LOG_ERROR, TAG "out of memory");
+        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
         jpeg_destroy_decompress(&cinfo);
         return NULL;
     }
@@ -275,7 +275,7 @@ static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
 }
 
 hh2_PixelSource hh2_pixelSourceRead(hh2_Filesys const filesys, char const* const path) {
-    hh2_log(HH2_LOG_INFO, TAG "reading pixel source \"%s\" from filesys %p", path, filesys);
+    HH2_LOG(HH2_LOG_INFO, TAG "reading pixel source \"%s\" from filesys %p", path, filesys);
 
     hh2_File const file = hh2_fileOpen(filesys, path);
 
@@ -295,7 +295,7 @@ hh2_PixelSource hh2_pixelSourceRead(hh2_Filesys const filesys, char const* const
 }
 
 hh2_PixelSource hh2_pixelSourceSub(hh2_PixelSource const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height) {
-    hh2_log(
+    HH2_LOG(
         HH2_LOG_INFO,
         TAG "creating sub pixel source from %p at (%u, %u) with dimensions (%u, %u)",
         parent, x0, y0, width, height
@@ -316,7 +316,7 @@ hh2_PixelSource hh2_pixelSourceSub(hh2_PixelSource const parent, unsigned const 
     hh2_PixelSource const source = malloc(sizeof(*source));
 
     if (source == NULL) {
-        hh2_log(HH2_LOG_ERROR, TAG "out of memory");
+        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
         return NULL;
     }
 
@@ -326,12 +326,12 @@ hh2_PixelSource hh2_pixelSourceSub(hh2_PixelSource const parent, unsigned const 
     source->abgr = parent->abgr + y0 * parent->pitch + x0;
     source->parent = parent;
 
-    hh2_log(HH2_LOG_DEBUG, TAG "create sub pixel source %p", source);
+    HH2_LOG(HH2_LOG_DEBUG, TAG "create sub pixel source %p", source);
     return source;
 }
 
 void hh2_pixelSourceDestroy(hh2_PixelSource const source) {
-    hh2_log(HH2_LOG_INFO, TAG "destroying pixel source %p", source);
+    HH2_LOG(HH2_LOG_INFO, TAG "destroying pixel source %p", source);
     free(source);
 }
 

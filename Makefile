@@ -3,14 +3,14 @@
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
-DEFINES = -DWITH_MEM_SRCDST=0
+DEFINES = -DHH2_ENABLE_LOGGING -DWITH_MEM_SRCDST=0
 INCLUDES = -Isrc -Isrc/libpng -Isrc/libjpeg-turbo -Isrc/generated
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
-	CFLAGS += -O0 -g -DHH2_DEBUG
+	CFLAGS += -O0 -g -DHH2_DEBUG $(DEFINES)
 else
-	CFLAGS += -O3 -DHH2_RELEASE -DNDEBUG
+	CFLAGS += -O3 -DHH2_RELEASE -DNDEBUG $(DEFINES)
 endif
 
 LIBPNG_OBJ_FILES = \
