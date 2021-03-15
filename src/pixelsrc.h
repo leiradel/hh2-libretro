@@ -13,9 +13,9 @@
 typedef uint32_t hh2_Pixel;
 typedef struct hh2_PixelSource* hh2_PixelSource;
 
-hh2_PixelSource hh2_pixelSourceRead(hh2_Filesys filesys, char const* path);
-hh2_PixelSource hh2_pixelSourceSub(hh2_PixelSource parent, unsigned x0, unsigned y0, unsigned width, unsigned height);
-void hh2_pixelSourceDestroy(hh2_PixelSource source);
+hh2_PixelSource hh2_readPixelSource(hh2_Filesys filesys, char const* path);
+hh2_PixelSource hh2_subPixelSource(hh2_PixelSource parent, unsigned x0, unsigned y0, unsigned width, unsigned height);
+void hh2_destroyPixelSource(hh2_PixelSource source);
 
 unsigned hh2_pixelSourceWidth(hh2_PixelSource source);
 unsigned hh2_pixelSourceHeight(hh2_PixelSource source);

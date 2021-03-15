@@ -198,7 +198,7 @@ static hh2_Entry* hh2_fileFind(hh2_Filesys filesys, char const* path) {
     return found;
 }
 
-hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
+hh2_Filesys hh2_createFilesystem(void const* const buffer, size_t const size) {
     HH2_LOG(HH2_LOG_INFO, TAG "creating filesystem from buffer %p with size %zu", buffer, size);
 
     uint8_t const* data = buffer;
@@ -274,7 +274,7 @@ hh2_Filesys hh2_filesystemCreate(void const* const buffer, size_t const size) {
     return filesys;
 }
 
-void hh2_filesystemDestroy(hh2_Filesys filesys) {
+void hh2_destroyFilesystem(hh2_Filesys filesys) {
     HH2_LOG(HH2_LOG_INFO, TAG "destroying file system %p", filesys);
     free(filesys);
 }
@@ -294,7 +294,7 @@ long hh2_fileSize(hh2_Filesys filesys, char const* path) {
     return found->size;
 }
 
-hh2_File hh2_fileOpen(hh2_Filesys filesys, char const* path) {
+hh2_File hh2_openFile(hh2_Filesys filesys, char const* path) {
     HH2_LOG(HH2_LOG_INFO, TAG "opening \"%s\" in file system %p", path, filesys);
 
     hh2_Entry const* const found = hh2_fileFind(filesys, path);
@@ -318,7 +318,7 @@ hh2_File hh2_fileOpen(hh2_Filesys filesys, char const* path) {
     return file;
 }
 
-int hh2_fileSeek(hh2_File file, long offset, int whence) {
+int hh2_seek(hh2_File file, long offset, int whence) {
     HH2_LOG(HH2_LOG_INFO, TAG "seeking file %p to %ld based off %d", file, offset, whence);
 
     long pos = 0;
@@ -343,12 +343,12 @@ int hh2_fileSeek(hh2_File file, long offset, int whence) {
     return 0;
 }
 
-long hh2_fileTell(hh2_File file) {
+long hh2_tell(hh2_File file) {
     HH2_LOG(HH2_LOG_INFO, TAG "returning current position %ld for file %p", file->pos, file);
     return file->pos;
 }
 
-size_t hh2_fileRead(hh2_File file, void* buffer, size_t size) {
+size_t hh2_read(hh2_File file, void* buffer, size_t size) {
     HH2_LOG(HH2_LOG_INFO, TAG "reading from file %p to %p, %zu bytes", file, buffer, size);
 
     size_t const available = file->size - file->pos;
@@ -361,7 +361,7 @@ size_t hh2_fileRead(hh2_File file, void* buffer, size_t size) {
     return toread;
 }
 
-void hh2_fileClose(hh2_File file) {
+void hh2_close(hh2_File file) {
     HH2_LOG(HH2_LOG_INFO, TAG "closing file %p", file);
     free(file);
 }

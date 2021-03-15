@@ -24,7 +24,7 @@ static void logger(hh2_LogLevel level, char const* format, va_list ap) {
 }
 
 int main() {
-    hh2_setlogger(logger);
+    hh2_setLogger(logger);
 
     HH2_LOG(HH2_LOG_INFO, "package  %s", HH2_PACKAGE);
     HH2_LOG(HH2_LOG_INFO, "git hash %s", HH2_GITHASH);
@@ -35,24 +35,24 @@ int main() {
     size = fread(buffer, 1, sizeof(buffer), file);
     fclose(file);
 
-    hh2_Filesys fs = hh2_filesystemCreate(buffer, size);
+    hh2_Filesys fs = hh2_createFilesystem(buffer, size);
 
     HH2_LOG(HH2_LOG_INFO, "\"Makefile\" exists: %s", hh2_fileExists(fs, "Makefile") ? "true" : "false");
     HH2_LOG(HH2_LOG_INFO, "\"Makefile\" size: %ld", hh2_fileSize(fs, "Makefile"));
 
-    hh2_File mf = hh2_fileOpen(fs, "Makefile");
+    hh2_File mf = hh2_openFile(fs, "Makefile");
 
     if (mf != NULL) {
-        size_t const numread = hh2_fileRead(mf, buffer2, sizeof(buffer2));
+        size_t const numread = hh2_read(mf, buffer2, sizeof(buffer2));
         buffer2[numread] = 0;
 
         HH2_LOG(HH2_LOG_INFO, "read %zu bytes from \"Makefile\"", numread);
 
         printf("%s", buffer2);
-        hh2_fileClose(mf);
+        hh2_close(mf);
     }
 
-    hh2_PixelSource cp = hh2_pixelSourceRead(fs, "test/cryptopunk32.jpg");
+    hh2_PixelSource cp = hh2_readPixelSource(fs, "test/cryptopunk32.jpg");
 
     if (cp != NULL) {
         unsigned const w = hh2_pixelSourceWidth(cp);
@@ -68,11 +68,11 @@ int main() {
         }
 
         fclose(raw);
-        hh2_pixelSourceDestroy(cp);
+        hh2_destroyPixelSource(cp);
     }
 
     if (fs != NULL) {
-        hh2_filesystemDestroy(fs);
+        hh2_destroyFilesystem(fs);
     }
 
     return 0;

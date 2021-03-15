@@ -8,7 +8,7 @@ static void hh2_dummyLogger(hh2_LogLevel level, char const* format, va_list ap) 
 
 static hh2_Logger hh2_logger = hh2_dummyLogger;
 
-void hh2_setlogger(hh2_Logger logger) {
+void hh2_setLogger(hh2_Logger logger) {
     hh2_logger = logger;
 }
 

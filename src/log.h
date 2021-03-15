@@ -13,7 +13,7 @@ hh2_LogLevel;
 
 typedef void (*hh2_Logger)(hh2_LogLevel level, char const* format, va_list ap);
 
-void hh2_setlogger(hh2_Logger logger);
+void hh2_setLogger(hh2_Logger logger);
 
 #ifdef HH2_ENABLE_LOGGING
     #define HH2_LOG(...) do { hh2_log(__VA_ARGS__); } while (0)

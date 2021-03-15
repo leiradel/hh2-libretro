@@ -41,7 +41,7 @@ static void hh2_pngWarn(png_structp const png, png_const_charp const error) {
 
 static void hh2_pngRead(png_structp const png, png_bytep const buffer, size_t const count) {
     hh2_File const file = png_get_io_ptr(png);
-    hh2_fileRead(file, buffer, count);
+    hh2_read(file, buffer, count);
 }
 
 static hh2_PixelSource hh2_readPng(hh2_File const file) {
@@ -166,7 +166,7 @@ static void hh2_jpegDummy(j_decompress_ptr cinfo) {}
 
 static boolean hh2_jpegFill(j_decompress_ptr cinfo) {
     hh2_jpegReader* reader = (hh2_jpegReader*)cinfo->src;
-    reader->pub.bytes_in_buffer = hh2_fileRead(reader->file, reader->buffer, sizeof(reader->buffer));
+    reader->pub.bytes_in_buffer = hh2_read(reader->file, reader->buffer, sizeof(reader->buffer));
     reader->pub.next_input_byte = reader->buffer;
     return TRUE;
 }
@@ -181,7 +181,7 @@ static void hh2_jpegSkip(j_decompress_ptr cinfo, long num_bytes) {
     }
 
     while (num_bytes >= sizeof(reader->buffer)) {
-        size_t const num_read = hh2_fileRead(reader->file, reader->buffer, sizeof(reader->buffer));
+        size_t const num_read = hh2_read(reader->file, reader->buffer, sizeof(reader->buffer));
         reader->pub.bytes_in_buffer = num_read;
 
         if (num_read == 0) {
@@ -274,10 +274,10 @@ static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
     return source;
 }
 
-hh2_PixelSource hh2_pixelSourceRead(hh2_Filesys const filesys, char const* const path) {
+hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const path) {
     HH2_LOG(HH2_LOG_INFO, TAG "reading pixel source \"%s\" from filesys %p", path, filesys);
 
-    hh2_File const file = hh2_fileOpen(filesys, path);
+    hh2_File const file = hh2_openFile(filesys, path);
 
     if (file == NULL) {
         // Error already logged
@@ -290,11 +290,11 @@ hh2_PixelSource hh2_pixelSourceRead(hh2_Filesys const filesys, char const* const
         path[path_len - 4] == '.' && path[path_len - 3] == 'p' && path[path_len - 2] == 'n' && path[path_len - 1] == 'g';
 
     hh2_PixelSource const source = is_png ? hh2_readPng(file) : hh2_readJpeg(file);
-    hh2_fileClose(file);
+    hh2_close(file);
     return source;
 }
 
-hh2_PixelSource hh2_pixelSourceSub(hh2_PixelSource const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height) {
+hh2_PixelSource hh2_subPixelSource(hh2_PixelSource const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height) {
     HH2_LOG(
         HH2_LOG_INFO,
         TAG "creating sub pixel source from %p at (%u, %u) with dimensions (%u, %u)",
@@ -330,7 +330,7 @@ hh2_PixelSource hh2_pixelSourceSub(hh2_PixelSource const parent, unsigned const 
     return source;
 }
 
-void hh2_pixelSourceDestroy(hh2_PixelSource const source) {
+void hh2_destroyPixelSource(hh2_PixelSource const source) {
     HH2_LOG(HH2_LOG_INFO, TAG "destroying pixel source %p", source);
     free(source);
 }
