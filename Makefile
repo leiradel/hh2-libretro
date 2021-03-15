@@ -32,10 +32,7 @@ LIBJPEG_OBJ_FILES = \
 	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
 HH2_OBJS = \
-	src/djb2.o \
-	src/filesys.o \
-	src/log.o \
-	src/pixelsrc.o \
+	src/canvas.o src/djb2.o src/filesys.o src/log.o src/pixelsrc.o
 
 all: src/version.h hh2_libretro.so
 
