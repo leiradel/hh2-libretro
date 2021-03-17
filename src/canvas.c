@@ -70,3 +70,7 @@ void hh2_clear(hh2_Canvas const canvas, hh2_Color const color) {
         pixel = (hh2_Color*)((uint8_t*)pixel + pitch);
     }
 }
+
+hh2_Color* hh2_canvasPixel(hh2_Canvas canvas, unsigned x, unsigned y) {
+    return (hh2_Color*)((uint8_t*)canvas->pixels + y * canvas->pitch) + x;
+}
