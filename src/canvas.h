@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define HH2_COLOR(r, g, b) (((hh2_Color)(r) << 8 | (hh2_Color)(b) >> 3) & 0xf81fU | ((hh2_Color)(g) << 3) & 0x07e0U)
+#define HH2_COLOR(r, g, b) ((((hh2_Color)(r) << 8 | (hh2_Color)(b) >> 3) & 0xf81fU) | (((hh2_Color)(g) << 3) & 0x07e0U))
 
 typedef uint16_t hh2_Color;
 typedef struct hh2_Canvas* hh2_Canvas;
