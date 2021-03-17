@@ -5,10 +5,10 @@
 
 #include <stdint.h>
 
-#define HH2_R(p) (((p) >> 32) & 255)
-#define HH2_G(p) (((p) >> 24) & 255)
-#define HH2_B(p) (((p) >>  8) & 255)
-#define HH2_A(p) (((p) >>  0) & 255)
+#define HH2_RED(p) (((p) >> 24) & 255)
+#define HH2_GREEN(p) (((p) >> 16) & 255)
+#define HH2_BLUE(p) (((p) >>  8) & 255)
+#define HH2_ALPHA(p) (((p) >>  0) & 255)
 
 typedef uint32_t hh2_Pixel;
 typedef struct hh2_PixelSource* hh2_PixelSource;
