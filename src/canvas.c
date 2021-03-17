@@ -5,6 +5,9 @@
 
 #define TAG "CNV "
 
+// Image blit is coded for 16 bpp, make sure the build fails if hh2_Color does not have 16 bits
+typedef char hh2_staticAssertColorMustHave16Bits[sizeof(hh2_Color) == 2 ? 1 : -1];
+
 struct hh2_Canvas {
     unsigned width;
     unsigned height;
