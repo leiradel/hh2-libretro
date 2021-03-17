@@ -1,7 +1,7 @@
-#include "../src/log.h"
-#include "../src/filesys.h"
-#include "../src/pixelsrc.h"
-#include "../src/version.h"
+#include "log.h"
+#include "filesys.h"
+#include "pixelsrc.h"
+#include "version.h"
 
 #include <stdio.h>
 #include <stdint.h>

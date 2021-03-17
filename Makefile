@@ -4,7 +4,7 @@
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 DEFINES = -DHH2_ENABLE_LOGGING -DWITH_MEM_SRCDST=0
-INCLUDES = -Isrc -Isrc/libpng -Isrc/libjpeg-turbo -Isrc/generated
+INCLUDES = -Isrc -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/zlib
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
@@ -32,7 +32,7 @@ LIBJPEG_OBJ_FILES = \
 	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
 HH2_OBJS = \
-	src/canvas.o src/djb2.o src/filesys.o src/image.o src/log.o src/pixelsrc.o
+	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o src/engine/pixelsrc.o
 
 all: src/version.h hh2_libretro.so
 
