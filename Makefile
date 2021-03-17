@@ -34,12 +34,12 @@ LIBJPEG_OBJ_FILES = \
 HH2_OBJS = \
 	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o src/engine/pixelsrc.o
 
-all: src/version.h hh2_libretro.so
+all: src/generated/version.h hh2_libretro.so
 
 hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
-src/version.h: FORCE
+src/generated/version.h: FORCE
 	cat etc/version.templ.h \
 		| sed s/\&HASH/`git rev-parse HEAD | tr -d "\n"`/g \
 		| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
@@ -49,14 +49,14 @@ src/version.h: FORCE
 test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
-test/main.o: src/version.h
+test/main.o: src/generated/version.h
 
 test/test.hh2: FORCE
 	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
-	rm -f src/version.h
+	rm -f src/generated/version.h
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
