@@ -33,7 +33,7 @@ hh2_Canvas hh2_createCanvas(unsigned const width, unsigned const height) {
 
     canvas->width = width;
     canvas->height = height;
-    canvas->pitch = canvas->pitch;
+    canvas->pitch = pitch;
 
     HH2_LOG(HH2_LOG_DEBUG, TAG "created canvas %p", canvas);
     return canvas;
