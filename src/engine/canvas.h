@@ -16,7 +16,7 @@ unsigned hh2_canvasWidth(hh2_Canvas canvas);
 unsigned hh2_canvasHeight(hh2_Canvas canvas);
 size_t hh2_canvasPitch(hh2_Canvas canvas);
 
-void hh2_clear(hh2_Canvas canvas, hh2_Color color);
+void hh2_clearCanvas(hh2_Canvas canvas, hh2_Color color);
 
 hh2_Color* hh2_canvasPixel(hh2_Canvas canvas, unsigned x, unsigned y);
 

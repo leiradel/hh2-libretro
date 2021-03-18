@@ -56,7 +56,7 @@ size_t hh2_canvasPitch(hh2_Canvas const canvas) {
     return canvas->pitch;
 }
 
-void hh2_clear(hh2_Canvas const canvas, hh2_Color const color) {
+void hh2_clearCanvas(hh2_Canvas const canvas, hh2_Color const color) {
     unsigned const width = canvas->width;
     unsigned const height = canvas->height;
     size_t const pitch = canvas->pitch;
