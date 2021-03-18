@@ -5,12 +5,12 @@
 
 #include <stdint.h>
 
-#define HH2_RED(p) (((p) >> 24) & 255)
-#define HH2_GREEN(p) (((p) >> 16) & 255)
-#define HH2_BLUE(p) (((p) >>  8) & 255)
-#define HH2_ALPHA(p) (((p) >>  0) & 255)
+#define HH2_ARGB8888_A(p) (((p) >> 24) & 255)
+#define HH2_ARGB8888_B(p) (((p) >> 16) & 255)
+#define HH2_ARGB8888_G(p) (((p) >> 8) & 255)
+#define HH2_ARGB8888_R(p) (((p) >> 0) & 255)
 
-typedef uint32_t hh2_Pixel;
+typedef uint32_t hh2_ARGB8888;
 typedef struct hh2_PixelSource* hh2_PixelSource;
 
 hh2_PixelSource hh2_readPixelSource(hh2_Filesys filesys, char const* path);
@@ -19,6 +19,6 @@ void hh2_destroyPixelSource(hh2_PixelSource source);
 
 unsigned hh2_pixelSourceWidth(hh2_PixelSource source);
 unsigned hh2_pixelSourceHeight(hh2_PixelSource source);
-hh2_Pixel hh2_getPixel(hh2_PixelSource, unsigned x, unsigned y);
+hh2_ARGB8888 hh2_getPixel(hh2_PixelSource, unsigned x, unsigned y);
 
 #endif // HH2_PIXELSRC_H__

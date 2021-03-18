@@ -9,16 +9,16 @@
 
 #define TAG "PXS "
 
-// Image read is coded for 32 bpp, make sure the build fails if hh2_Pixel does not have 32 bits
-typedef char hh2_staticAssertPixelMustHave32Bits[sizeof(hh2_Pixel) == 4 ? 1 : -1];
+// Image read is coded for 32 bpp, make sure the build fails if hh2_ARGB8888 does not have 32 bits
+typedef char hh2_staticAssertPixelMustHave32Bits[sizeof(hh2_ARGB8888) == 4 ? 1 : -1];
 
 struct hh2_PixelSource {
     unsigned width;
     unsigned height;
     unsigned pitch;
     hh2_PixelSource parent;
-    hh2_Pixel* abgr;
-    hh2_Pixel data[1];
+    hh2_ARGB8888* abgr;
+    hh2_ARGB8888 data[1];
 };
 
 // ########  ##    ##  ######   
@@ -343,7 +343,7 @@ unsigned hh2_pixelSourceHeight(hh2_PixelSource const source) {
     return source->height;
 }
 
-hh2_Pixel hh2_getPixel(hh2_PixelSource const source, unsigned const x, unsigned const y) {
+hh2_ARGB8888 hh2_getPixel(hh2_PixelSource const source, unsigned const x, unsigned const y) {
     if (x < source->width && y < source->height) {
         return source->abgr[y * source->pitch + x];
     }

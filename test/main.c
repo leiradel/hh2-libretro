@@ -62,7 +62,7 @@ int main() {
 
         for (unsigned y = 0; y < h; y++) {
             for (unsigned x = 0; x < w; x++) {
-                hh2_Pixel const p = hh2_getPixel(cp, x, y);
+                hh2_ARGB8888 const p = hh2_getPixel(cp, x, y);
                 fwrite(&p, 1, 4, raw);
             }
         }
