@@ -262,7 +262,7 @@ static bool hh2_clip(
     }
 
     if (*x0 + *width > canvas_width) {
-        *width -= canvas_width - *x0;
+        *width = canvas_width - *x0;
     }
 
     if (*y0 < 0) {
@@ -271,7 +271,7 @@ static bool hh2_clip(
     }
 
     if (*y0 + *height > canvas_height) {
-        *height -= canvas_height - *y0;
+        *height = canvas_height - *y0;
     }
 
     return true;
