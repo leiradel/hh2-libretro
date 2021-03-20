@@ -15,7 +15,7 @@ typedef char hh2_staticAssertPixelMustHave32Bits[sizeof(hh2_ARGB8888) == 4 ? 1 :
 struct hh2_PixelSource {
     unsigned width;
     unsigned height;
-    unsigned pitch;
+    size_t pitch;
     hh2_PixelSource parent;
     hh2_ARGB8888* abgr;
     hh2_ARGB8888 data[1];
