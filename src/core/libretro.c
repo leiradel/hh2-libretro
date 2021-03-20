@@ -5,6 +5,7 @@
 #include "image.h"
 #include "log.h"
 #include "pixelsrc.h"
+#include "sprite.h"
 #include "version.h"
 
 #include <stdio.h>
@@ -49,6 +50,9 @@ static void* hh2c_content;
 static hh2_Filesys hh2c_filesys;
 static hh2_Canvas hh2c_canvas;
 static hh2_Image hh2c_image;
+static hh2_Sprite hh2c_sprite;
+static int hh2c_x, hh2c_y, hh2c_dx, hh2c_dy;
+static bool hh2c_unblit;
 
 // The logger function to hh2_setLogger
 static void hh2c_logger(hh2_LogLevel const level, char const* const format, va_list ap) {
@@ -166,11 +170,26 @@ bool retro_load_game(struct retro_game_info const* const info) {
     }
 
     hh2_destroyPixelSource(source);
+    hh2c_sprite = hh2_createSprite();
+
+    if (hh2c_sprite == NULL) {
+        // error already logged
+        hh2_destroyImage(hh2c_image);
+        hh2_destroyFilesystem(hh2c_filesys);
+        free(hh2c_content);
+        return false;
+    }
+
+    hh2_setLayer(hh2c_sprite, 0);
+    hh2_setImage(hh2c_sprite, hh2c_image);
+    hh2_setVisibility(hh2c_sprite, true);
 
     hh2c_canvas = hh2_createCanvas(256, 192);
     hh2_clearCanvas(hh2c_canvas, HH2_COLOR_RGB565(0x84, 0xb0, 0x95));
 
-    hh2_stamp(hh2c_image, hh2c_canvas, -12, -12);
+    hh2c_x = hh2c_y = 0;
+    hh2c_dx = hh2c_dy = 1;
+    hh2c_unblit = false;
 
     return true;
 }
@@ -207,7 +226,28 @@ void* retro_get_memory_data(unsigned id) {
 }
 
 void retro_run() {
+    if (hh2c_unblit) {
+        hh2_unblitSprites(hh2c_canvas);
+    }
+
+    hh2c_x += hh2c_dx;
+
+    if (hh2c_x < -24 || hh2c_x > 256) {
+        hh2c_dx = -hh2c_dx;
+    }
+
+    hh2c_y += hh2c_dy;
+
+    if (hh2c_y < -24 || hh2c_y > 192) {
+        hh2c_dy = -hh2c_dy;
+    }
+
     hh2c_input_poll_cb();
+
+    hh2_setPosition(hh2c_sprite, hh2c_x, hh2c_y);
+
+    hh2_blitSprites(hh2c_canvas);
+    hh2c_unblit = true;
 
     hh2_RGB565 const* const framebuffer = hh2_canvasPixel(hh2c_canvas, 0, 0);
     size_t const pitch = hh2_canvasPitch(hh2c_canvas);

@@ -32,7 +32,8 @@ LIBJPEG_OBJ_FILES = \
 	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
 HH2_ENGINE_OBJS = \
-	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o src/engine/pixelsrc.o
+	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o src/engine/pixelsrc.o \
+	src/engine/sprite.o
 
 HH2_CORE_OBJS = \
 	src/core/libretro.o
