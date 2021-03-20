@@ -13,8 +13,8 @@ unsigned hh2_imageWidth(hh2_Image image);
 unsigned hh2_imageHeight(hh2_Image image);
 size_t hh2_changedPixels(hh2_Image image);
 
-hh2_Color* hh2_blit(hh2_Image image, hh2_Canvas canvas, int x0, int y0, hh2_Color* bg);
-void hh2_unblit(hh2_Image image, hh2_Canvas canvas, int x0, int y0, hh2_Color const* bg);
+hh2_RGB565* hh2_blit(hh2_Image image, hh2_Canvas canvas, int x0, int y0, hh2_RGB565* bg);
+void hh2_unblit(hh2_Image image, hh2_Canvas canvas, int x0, int y0, hh2_RGB565 const* bg);
 
 void hh2_stamp(hh2_Image image, hh2_Canvas canvas, int x0, int y0);
 

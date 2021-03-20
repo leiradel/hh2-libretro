@@ -6,41 +6,17 @@
 
 #define TAG "IMG "
 
-enum {
-    HH2_RLE_SKIP = 0,
-    HH2_RLE_BLIT = 1,
-    HH2_RLE_COMPOSE = 2
-};
-
-typedef union {
-    struct {
-        uint16_t length: 14;
-        uint16_t code: 2;
-    }
-    skip;
-
-    struct {
-        uint16_t length: 14;
-        uint16_t code: 2;
-    }
-    blit;
-
-    struct {
-        uint16_t inv_alpha: 6;
-        uint16_t length: 8;
-        uint16_t code: 2;
-    }
-    compose;
-
-    struct {
-        uint16_t dummy: 14;
-        uint16_t code: 2;
-    }
-    common;
-
-    hh2_Color color;
+typedef enum {
+    HH2_RLE_COMPOSE = 0,
+    HH2_RLE_SKIP,
+    HH2_RLE_BLIT,
 }
-hh2_Rle;
+hh2_RleOp;
+
+typedef uint16_t hh2_Rle;
+
+// Make sure the build fails if hh2_Rle is not big enough for a hh2_RGB565
+typedef char hh2_staticAssertRleMustBeBigEnoughForRGB565[sizeof(hh2_Rle) >= sizeof(hh2_RGB565) ? 1 : -1];
 
 struct hh2_Image {
     unsigned width;
@@ -50,6 +26,22 @@ struct hh2_Image {
     hh2_Rle const* rows[1];
 };
 
+static hh2_Rle hh2_rle(hh2_RleOp const op, uint16_t const length, uint8_t const inv_alpha) {
+    return op | (length - 1) << 2 | (uint16_t)inv_alpha << 10;
+}
+
+static hh2_RleOp hh2_rleOp(hh2_Rle const rle) {
+    return rle & 3;
+}
+
+static uint16_t hh2_rleLength(hh2_Rle const rle) {
+    return ((rle >> 2) & (hh2_rleOp(rle) == 0 ? 255 : -1)) + 1;
+}
+
+static uint8_t hh2_rleInvAlpha(hh2_Rle const rle) {
+    return rle >> 10;
+}
+
 static size_t hh2_rleRowDryRun(size_t* const pixels_used, hh2_PixelSource const source, int const y) {
     unsigned const width = hh2_pixelSourceWidth(source);
 
@@ -57,30 +49,34 @@ static size_t hh2_rleRowDryRun(size_t* const pixels_used, hh2_PixelSource const 
     *pixels_used = 0;
 
     for (unsigned x = 0; x < width;) {
-        hh2_Pixel const pixel = hh2_getPixel(source, x, y);
-        uint8_t const alpha = HH2_ALPHA(pixel);
-        unsigned const remaining = width - x;
+        hh2_ARGB8888 const pixel = hh2_getPixel(source, x, y);
+        uint8_t const alpha = HH2_ARGB8888_A(pixel);
+        unsigned xx = x + 1;
+
+        for (; xx < width; xx++) {
+            hh2_ARGB8888 const pixel2 = hh2_getPixel(source, xx, y);
+            uint8_t const alpha2 = HH2_ARGB8888_A(pixel2);
+
+            if (alpha2 != alpha) {
+                break;
+            }
+        }
+
+        unsigned const length = xx - x;
 
         if (alpha == 0) {
-            // 0bnnnnnnnn 0bnnnnnn00 Skip n + 1 pixels (alpha 0)
-            unsigned const length = remaining <= 16384 ? remaining : 16384;
-            words++;
-            x += length;
+            words += (length + 16383) / 16384;
         }
         else if (alpha == 255) {
-            // 0xnnnnnnnn 0bnnnnnn01 Blit n + 1 pixels (alpha 255)
-            unsigned const length = remaining <= 16384 ? remaining : 16384;
-            words += 1 + length;
-            *pixels_used += length;
-            x += length;
+            words += (length + 16383) / 16384;
+            words += length;
         }
         else {
-            // 0baaaaaann 0bnnnnnn10 Blit n + 1 pixels with alpha aaaaaa in the [0,32] range (inclusive)
-            unsigned const length = remaining <= 256 ? remaining : 256;
-            words += 1 + length;
-            *pixels_used += length;
-            x += length;
+            words += (length + 255) / 256;
+            words += length;
         }
+
+        x = xx;
     }
 
     return words;
@@ -92,60 +88,76 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
     size_t words = 0;
 
     for (unsigned x = 0; x < width;) {
-        hh2_Pixel const pixel = hh2_getPixel(source, x, y);
-        uint8_t const alpha = HH2_ALPHA(pixel);
-        unsigned const remaining = width - x;
+        hh2_ARGB8888 const pixel = hh2_getPixel(source, x, y);
+        uint8_t const alpha = HH2_ARGB8888_A(pixel);
+        unsigned xx = x + 1;
+
+        for (; xx < width; xx++) {
+            hh2_ARGB8888 const pixel2 = hh2_getPixel(source, xx, y);
+            uint8_t const alpha2 = HH2_ARGB8888_A(pixel2);
+
+            if (alpha2 != alpha) {
+                break;
+            }
+        }
+
+        unsigned length = xx - x;
 
         if (alpha == 0) {
-            rle->skip.length = (remaining <= 16384 ? remaining : 16384) - 1;
-            rle->skip.code = HH2_RLE_SKIP;
-            rle++, words++;
-            x += rle->skip.length;
+            words += (length + 16383) / 16384;
+
+            while (length != 0) {
+                unsigned const count = length < 16384 ? length : 16384;
+                *rle++ = hh2_rle(HH2_RLE_SKIP, count, 0);
+                length -= count;
+            }
         }
         else if (alpha == 255) {
-            rle->blit.length = (remaining <= 16384 ? remaining : 16384) - 1;
-            rle->blit.code = HH2_RLE_BLIT;
-            rle++;
+            words += (length + 16383) / 16384;
+            words += length;
 
-            for (unsigned i = 0; i < rle->blit.length; i++) {
-                hh2_Pixel const pixel = hh2_getPixel(source, x + i, y);
+            while (length != 0) {
+                unsigned const count = length < 16384 ? length : 16384;
+                *rle++ = hh2_rle(HH2_RLE_BLIT, count, 0);
 
-                uint8_t const r = HH2_RED(pixel);
-                uint8_t const g = HH2_GREEN(pixel);
-                uint8_t const b = HH2_BLUE(pixel);
+                for (unsigned i = 0; i < count; i++) {
+                    hh2_ARGB8888 const pixel2 = hh2_getPixel(source, x + i, y);
+                    uint8_t const r = HH2_ARGB8888_R(pixel2);
+                    uint8_t const g = HH2_ARGB8888_G(pixel2);
+                    uint8_t const b = HH2_ARGB8888_B(pixel2);
+                    *rle++ = HH2_COLOR_RGB565(r, g, b);
+                }
 
-                rle->color = HH2_COLOR(r, g, b);
-                rle++;
+                length -= count;
             }
-
-            words += 1 + rle->blit.length;
-            x += rle->blit.length;
         }
         else {
-            rle->compose.inv_alpha = 32 - (((uint16_t)alpha + 4) >> 3);
-            rle->compose.length = (remaining <= 256 ? remaining : 256) - 1;
-            rle->compose.code = HH2_RLE_COMPOSE;
+            words += (length + 255) / 256;
+            words += length;
 
-            for (unsigned i = 0; i < rle->compose.length; i++) {
-                hh2_Pixel const pixel = hh2_getPixel(source, x + i, y);
+            while (length != 0) {
+                unsigned const count = length < 256 ? length : 256;
+                *rle++ = hh2_rle(HH2_RLE_COMPOSE, count, 32 - (((uint16_t)alpha + 4) >> 3));
 
-                uint8_t const r = HH2_ALPHA(pixel) * alpha / 255;
-                uint8_t const g = HH2_ALPHA(pixel) * alpha / 255;
-                uint8_t const b = HH2_ALPHA(pixel) * alpha / 255;
+                for (unsigned i = 0; i < count; i++) {
+                    hh2_ARGB8888 const pixel2 = hh2_getPixel(source, x + i, y);
+                    uint8_t const r = HH2_ARGB8888_R(pixel2);
+                    uint8_t const g = HH2_ARGB8888_G(pixel2);
+                    uint8_t const b = HH2_ARGB8888_B(pixel2);
+                    *rle++ = HH2_COLOR_RGB565(r, g, b);
+                }
 
-                rle->color = HH2_COLOR(r, g, b);
-                rle++;
+                length -= count;
             }
-
-            words += 1 + rle->compose.length;
-            x += rle->compose.length;
         }
+
+        x = xx;
     }
 
     return words;
 }
 
-static hh2_Color hh2_compose(hh2_Color const src, hh2_Color const dst, uint8_t const inv_alpha) {
+static hh2_RGB565 hh2_compose(hh2_RGB565 const src, hh2_RGB565 const dst, uint8_t const inv_alpha) {
     uint32_t const src32 = (src & 0xf81fU) | (uint32_t)(src & 0x07e0U) << 16;
     uint32_t const dst32 = (dst & 0xf81fU) | (uint32_t)(dst & 0x07e0U) << 16;
     uint32_t const composed = (src32 + dst32 * inv_alpha) / 32;
@@ -223,8 +235,22 @@ static bool hh2_clip(
     unsigned const canvas_width = hh2_canvasWidth(canvas);
     unsigned const canvas_height = hh2_canvasHeight(canvas);
 
-    if (*x0 < -image_width || *x0 >= canvas_width || *y0 < -image_height || *y0 >= canvas_height) {
-        return false; // no visible pixels
+    if (*x0 < 0) {
+        if ((unsigned)-*x0 > image_width) {
+            return false;
+        }
+    }
+    else if ((unsigned)*x0 >= canvas_width) {
+        return false;
+    }
+
+    if (*y0 < 0) {
+        if ((unsigned)-*y0 > image_height) {
+            return false;
+        }
+    }
+    else if ((unsigned)*y0 >= canvas_height) {
+        return false;
     }
 
     *width = image_width;
@@ -251,7 +277,7 @@ static bool hh2_clip(
     return true;
 }
 
-hh2_Color* hh2_blit(hh2_Image const image, hh2_Canvas const canvas, int const x0, int const y0, hh2_Color* bg) {
+hh2_RGB565* hh2_blit(hh2_Image const image, hh2_Canvas const canvas, int const x0, int const y0, hh2_RGB565* bg) {
     int new_x0 = x0, new_y0 = y0;
     unsigned width, height;
     
@@ -261,17 +287,20 @@ hh2_Color* hh2_blit(hh2_Image const image, hh2_Canvas const canvas, int const x0
     }
 
     // Evaluate the pixel on the canvas to blit to
-    hh2_Color* pixel = hh2_canvasPixel(canvas, new_x0, new_y0);
+    hh2_RGB565* pixel = hh2_canvasPixel(canvas, new_x0, new_y0);
+    size_t const pitch = hh2_canvasPitch(canvas);
 
     for (unsigned y = 0; y < height; y++) {
+        hh2_RGB565* const saved_pixel = pixel;
         hh2_Rle const* rle = image->rows[new_y0 - y0 + y];
 
-        uint16_t op = rle->common.code;
-        uint16_t length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+        hh2_RleOp op = hh2_rleOp(*rle);
+        unsigned length = hh2_rleLength(*rle);
+        uint8_t inv_alpha = hh2_rleInvAlpha(*rle);
         rle++;
 
-        for (unsigned to_skip = new_x0 - x0;;) {
-            uint16_t const count = length <= to_skip ? length : to_skip;
+        for (unsigned skip = new_x0 - x0; skip != 0;) {
+            unsigned const count = length <= skip ? length : skip;
 
             if (op != HH2_RLE_SKIP) {
                 rle += count;
@@ -280,36 +309,30 @@ hh2_Color* hh2_blit(hh2_Image const image, hh2_Canvas const canvas, int const x0
             length -= count;
 
             if (length == 0) {
-                op = rle->common.code;
-                length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+                op = hh2_rleOp(*rle);
+                length = hh2_rleLength(*rle);
+                inv_alpha = hh2_rleInvAlpha(*rle);
                 rle++;
             }
 
-            to_skip -= count;
-
-            if (to_skip == 0) {
-                break;
-            }
+            skip -= count;
         }
 
-        for (unsigned remaining = width;;) {
-            uint16_t const count = length <= remaining ? length : remaining;
+        for (unsigned remaining = width; remaining != 0;) {
+            unsigned const count = length <= remaining ? length : remaining;
 
             if (op == HH2_RLE_BLIT) {
-                size_t const bytes = count * sizeof(*pixel);
-
-                memcpy(bg, pixel, bytes);
+                memcpy(bg, pixel, count * sizeof(*bg));
                 bg += count;
-
-                memcpy(pixel, rle, bytes);
+                memcpy(pixel, rle, count * sizeof(*pixel));
                 rle += count;
             }
             else if (op == HH2_RLE_COMPOSE) {
-                memcpy(bg, pixel, count * sizeof(*pixel));
+                memcpy(bg, pixel, count * sizeof(*bg));
                 bg += count;
 
                 for (unsigned i = 0; i < count; i++) {
-                    pixel[i] = hh2_compose(rle->color, pixel[i], rle->compose.inv_alpha);
+                    pixel[i] = hh2_compose(*rle, pixel[i], inv_alpha);
                     rle++;
                 }
             }
@@ -318,23 +341,22 @@ hh2_Color* hh2_blit(hh2_Image const image, hh2_Canvas const canvas, int const x0
             length -= count;
 
             if (length == 0) {
-                op = rle->common.code;
-                length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+                op = hh2_rleOp(*rle);
+                length = hh2_rleLength(*rle);
+                inv_alpha = hh2_rleInvAlpha(*rle);
                 rle++;
             }
 
             remaining -= count;
-
-            if (remaining == 0) {
-                break;
-            }
         }
+
+        pixel = (hh2_RGB565*)((uint8_t*)saved_pixel + pitch);
     }
 
     return bg;
 }
 
-void hh2_unblit(hh2_Image const image, hh2_Canvas const canvas, int const x0, int const y0, hh2_Color const* bg) {
+void hh2_unblit(hh2_Image const image, hh2_Canvas const canvas, int const x0, int const y0, hh2_RGB565 const* bg) {
     int new_x0 = x0, new_y0 = y0;
     unsigned width, height;
     
@@ -344,17 +366,19 @@ void hh2_unblit(hh2_Image const image, hh2_Canvas const canvas, int const x0, in
     }
 
     // Evaluate the pixel on the canvas to blit to
-    hh2_Color* pixel = hh2_canvasPixel(canvas, x0, y0);
+    hh2_RGB565* pixel = hh2_canvasPixel(canvas, new_x0, new_y0);
+    size_t const pitch = hh2_canvasPitch(canvas);
 
     for (unsigned y = 0; y < height; y++) {
+        hh2_RGB565* const saved_pixel = pixel;
         hh2_Rle const* rle = image->rows[new_y0 - y0 + y];
 
-        uint16_t op = rle->common.code;
-        uint16_t length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+        hh2_RleOp op = hh2_rleOp(*rle);
+        unsigned length = hh2_rleLength(*rle);
         rle++;
 
-        for (unsigned to_skip = new_x0 - x0;;) {
-            uint16_t const count = length <= to_skip ? length : to_skip;
+        for (unsigned skip = new_x0 - x0; skip != 0;) {
+            unsigned const count = length <= skip ? length : skip;
 
             if (op != HH2_RLE_SKIP) {
                 rle += count;
@@ -363,41 +387,36 @@ void hh2_unblit(hh2_Image const image, hh2_Canvas const canvas, int const x0, in
             length -= count;
 
             if (length == 0) {
-                op = rle->common.code;
-                length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+                op = hh2_rleOp(*rle);
+                length = hh2_rleLength(*rle);
                 rle++;
             }
 
-            to_skip -= count;
-
-            if (to_skip == 0) {
-                break;
-            }
+            skip -= count;
         }
 
-        for (unsigned remaining = width;;) {
-            uint16_t const count = length <= remaining ? length : remaining;
+        for (unsigned remaining = width; remaining != 0;) {
+            unsigned const count = length <= remaining ? length : remaining;
 
-            if (op == HH2_RLE_BLIT || op == HH2_RLE_COMPOSE) {
-                memcpy(pixel, bg, count * sizeof(*pixel));
+            if (op != HH2_RLE_SKIP) {
+                memcpy(pixel, bg, count * sizeof(*bg));
                 bg += count;
+                rle += count;
             }
 
             pixel += count;
             length -= count;
 
             if (length == 0) {
-                op = rle->common.code;
-                length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+                op = hh2_rleOp(*rle);
+                length = hh2_rleLength(*rle);
                 rle++;
             }
 
             remaining -= count;
-
-            if (remaining == 0) {
-                break;
-            }
         }
+
+        pixel = (hh2_RGB565*)((uint8_t*)saved_pixel + pitch);
     }
 }
 
@@ -411,17 +430,20 @@ void hh2_stamp(hh2_Image const image, hh2_Canvas const canvas, int const x0, int
     }
 
     // Evaluate the pixel on the canvas to blit to
-    hh2_Color* pixel = hh2_canvasPixel(canvas, new_x0, new_y0);
+    hh2_RGB565* pixel = hh2_canvasPixel(canvas, new_x0, new_y0);
+    size_t const pitch = hh2_canvasPitch(canvas);
 
     for (unsigned y = 0; y < height; y++) {
+        hh2_RGB565* const saved_pixel = pixel;
         hh2_Rle const* rle = image->rows[new_y0 - y0 + y];
 
-        uint16_t op = rle->common.code;
-        uint16_t length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+        hh2_RleOp op = hh2_rleOp(*rle);
+        unsigned length = hh2_rleLength(*rle);
+        uint8_t inv_alpha = hh2_rleInvAlpha(*rle);
         rle++;
 
-        for (unsigned to_skip = new_x0 - x0;;) {
-            uint16_t const count = length <= to_skip ? length : to_skip;
+        for (unsigned skip = new_x0 - x0; skip != 0;) {
+            unsigned const count = length <= skip ? length : skip;
 
             if (op != HH2_RLE_SKIP) {
                 rle += count;
@@ -430,20 +452,17 @@ void hh2_stamp(hh2_Image const image, hh2_Canvas const canvas, int const x0, int
             length -= count;
 
             if (length == 0) {
-                op = rle->common.code;
-                length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+                op = hh2_rleOp(*rle);
+                length = hh2_rleLength(*rle);
+                inv_alpha = hh2_rleInvAlpha(*rle);
                 rle++;
             }
 
-            to_skip -= count;
-
-            if (to_skip == 0) {
-                break;
-            }
+            skip -= count;
         }
 
-        for (unsigned remaining = width;;) {
-            uint16_t const count = length <= remaining ? length : remaining;
+        for (unsigned remaining = width; remaining != 0;) {
+            unsigned const count = length <= remaining ? length : remaining;
 
             if (op == HH2_RLE_BLIT) {
                 memcpy(pixel, rle, count * sizeof(*pixel));
@@ -451,7 +470,7 @@ void hh2_stamp(hh2_Image const image, hh2_Canvas const canvas, int const x0, int
             }
             else if (op == HH2_RLE_COMPOSE) {
                 for (unsigned i = 0; i < count; i++) {
-                    pixel[i] = hh2_compose(rle->color, pixel[i], rle->compose.inv_alpha);
+                    pixel[i] = hh2_compose(*rle, pixel[i], inv_alpha);
                     rle++;
                 }
             }
@@ -460,16 +479,15 @@ void hh2_stamp(hh2_Image const image, hh2_Canvas const canvas, int const x0, int
             length -= count;
 
             if (length == 0) {
-                op = rle->common.code;
-                length = op == HH2_RLE_SKIP ? rle->skip.length : op == HH2_RLE_BLIT ? rle->blit.length : rle->compose.length;
+                op = hh2_rleOp(*rle);
+                length = hh2_rleLength(*rle);
+                inv_alpha = hh2_rleInvAlpha(*rle);
                 rle++;
             }
 
             remaining -= count;
-
-            if (remaining == 0) {
-                break;
-            }
         }
+
+        pixel = (hh2_RGB565*)((uint8_t*)saved_pixel + pitch);
     }
 }
