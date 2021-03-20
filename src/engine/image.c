@@ -70,10 +70,12 @@ static size_t hh2_rleRowDryRun(size_t* const pixels_used, hh2_PixelSource const 
         else if (alpha == 255) {
             words += (length + 16383) / 16384;
             words += length;
+            *pixels_used += length;
         }
         else {
             words += (length + 255) / 256;
             words += length;
+            *pixels_used += length;
         }
 
         x = xx;
