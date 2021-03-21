@@ -61,7 +61,7 @@ test/test: test/main.o $(LIBJPEG_OBJ_FILES) $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES
 test/main.o: src/generated/version.h
 
 test/test.hh2: FORCE
-	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg
+	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg test/tick.wav
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)

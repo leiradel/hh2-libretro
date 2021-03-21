@@ -6,6 +6,7 @@ test/test.hh2
 test/cryptopunk32.png
 test/cryptopunk32.jpg
 test/cryptopunk32.data
+test/tick.wav
 
 # Created by https://www.toptal.com/developers/gitignore/api/lua,c
 # Edit at https://www.toptal.com/developers/gitignore?templates=lua,c

@@ -5,6 +5,7 @@
 #include "image.h"
 #include "log.h"
 #include "pixelsrc.h"
+#include "sound.h"
 #include "sprite.h"
 #include "version.h"
 
@@ -53,6 +54,8 @@ static hh2_Image hh2c_image;
 static hh2_Sprite hh2c_sprite;
 static int hh2c_x, hh2c_y, hh2c_dx, hh2c_dy;
 static bool hh2c_unblit;
+static hh2_Pcm hh2c_pcm;
+static unsigned hh2c_frame;
 
 // The logger function to hh2_setLogger
 static void hh2c_logger(hh2_LogLevel const level, char const* const format, va_list ap) {
@@ -188,6 +191,17 @@ bool retro_load_game(struct retro_game_info const* const info) {
     hh2c_dx = hh2c_dy = 1;
     hh2c_unblit = false;
 
+    hh2c_pcm = hh2_readPcm(hh2c_filesys, "test/tick.wav");
+
+    if (hh2c_pcm == NULL) {
+        // error already logged
+        hh2_destroyCanvas(hh2c_canvas);
+        hh2_destroyImage(hh2c_image);
+        hh2_destroyFilesystem(hh2c_filesys);
+        free(hh2c_content);
+        return false;
+    }
+
     return true;
 }
 
@@ -246,14 +260,17 @@ void retro_run() {
     hh2_blitSprites(hh2c_canvas);
     hh2c_unblit = true;
 
+    if (((hh2c_frame++) & 127) == 0) {
+        hh2_playPcm(hh2c_pcm);
+    }
+
     hh2_RGB565 const* const framebuffer = hh2_canvasPixel(hh2c_canvas, 0, 0);
     size_t const pitch = hh2_canvasPitch(hh2c_canvas);
-
     hh2c_video_refresh_cb(framebuffer, 256, 192, pitch);
 
-    int16_t samples[44100 / 60 * 2];
-    memset(samples, 0, sizeof(samples));
-    hh2c_audio_sample_batch_cb(samples, 44100 / 60);
+    size_t frames;
+    int16_t const* samples = hh2_soundMix(&frames);
+    hh2c_audio_sample_batch_cb(samples, frames);
 }
 
 void retro_set_controller_port_device(unsigned const port, unsigned const device) {
@@ -286,7 +303,11 @@ void retro_cheat_set(unsigned const a, bool const b, char const* const c) {
 }
 
 void retro_unload_game() {
+    hh2_destroyPcm(hh2c_pcm);
     hh2_destroyCanvas(hh2c_canvas);
+    hh2_destroyImage(hh2c_image);
+    hh2_destroyFilesystem(hh2c_filesys);
+    free(hh2c_content);
 }
 
 void retro_deinit() {}
