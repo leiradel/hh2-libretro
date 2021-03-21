@@ -81,6 +81,7 @@ static size_t hh2_rleRowDryRun(size_t* const pixels_used, hh2_PixelSource const 
         x = xx;
     }
 
+    HH2_LOG(HH2_LOG_DEBUG, TAG, "row %d needs %zu words for RLE and changes %zu pixels", words, *pixels_used);
     return words;
 }
 
@@ -178,8 +179,6 @@ hh2_Image hh2_createImage(hh2_PixelSource const source) {
         size_t pixels_used;
         size_t const words = hh2_rleRowDryRun(&pixels_used, source, y);
 
-        HH2_LOG(HH2_LOG_DEBUG, TAG "row %u needs %zu bytes for RLE data, and changes %zu pixels when blit", words * 2, pixels_used);
-
         total_words += words;
         total_pixels_used += pixels_used;
     }
@@ -208,6 +207,7 @@ hh2_Image hh2_createImage(hh2_PixelSource const source) {
         rle += words;
     }
 
+    HH2_LOG(HH2_LOG_DEBUG, TAG "created image %p", image);
     return image;
 }
 
