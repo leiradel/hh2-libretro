@@ -2,18 +2,23 @@
 #include "filesys.h"
 #include "log.h"
 
+#include <speex_resampler.h>
+
 #define DR_WAV_IMPLEMENTATION
 #include <dr_wav.h>
 
-#define HH2_SAMPLES_PER_VIDEO_FRAME 735 // 44,100 Hz / 60 Hz
+#define HH2_SAMPLE_RATE 44100
+#define HH2_SAMPLES_PER_VIDEO_FRAME (HH2_SAMPLE_RATE / 60)
 #define HH2_MAX_CHANNELS 8
 
 #define TAG "SND "
 
 typedef int16_t hh2_Sample;
 
-// Image blit is coded for 16 bpp, make sure the build fails if hh2_RGB565 does not have 16 bits
+// Make sure our sample has 16 bits
 typedef char hh2_staticAssertSoundSampleMustBeInt16[sizeof(hh2_Sample) == sizeof(int16_t) ? 1 : -1];
+// Make sure Speex sample has the same number of bits as we have
+typedef char hh2_staticAssertSpeexSampleMustBeHh2Sample[sizeof(spx_int16_t) == sizeof(hh2_Sample) ? 1 : -1];
 
 struct hh2_Pcm {
     size_t sample_count;
@@ -99,6 +104,32 @@ static char const* hh2_wavError(drwav_result const error) {
     }
 }
 
+static bool hh2_resample(
+    spx_uint32_t const in_rate,
+    spx_int16_t const* const in_data, spx_uint32_t in_samples,
+    spx_int16_t* const out_data, spx_uint32_t out_samples) {
+
+    int error;
+    SpeexResamplerState* const resampler = speex_resampler_init(
+        1, in_rate, HH2_SAMPLE_RATE, SPEEX_RESAMPLER_QUALITY_DEFAULT, &error);
+
+    if (resampler == NULL) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "error initializing resampler: %s", speex_resampler_strerror(error));
+        return false;
+    }
+
+    error = speex_resampler_process_int(resampler, 0, in_data, &in_samples, out_data, &out_samples);
+
+    if (error != RESAMPLER_ERR_SUCCESS) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "error resampling: %s", speex_resampler_strerror(error));
+        speex_resampler_destroy(resampler);
+        return false;
+    }
+
+    speex_resampler_destroy(resampler);
+    return true;
+}
+
 hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
     HH2_LOG(HH2_LOG_INFO, TAG "creating PCM \"%s\" from filesys %p", path, filesys);
 
@@ -123,7 +154,8 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
         return NULL;
     }
 
-    hh2_Pcm pcm = (hh2_Pcm)malloc(sizeof(*pcm) + (wav.totalPCMFrameCount - 1) * sizeof(hh2_Sample));
+    size_t const sample_count = wav.totalPCMFrameCount * wav.sampleRate / HH2_SAMPLE_RATE;
+    hh2_Pcm pcm = (hh2_Pcm)malloc(sizeof(*pcm) + (sample_count - 1) * sizeof(hh2_Sample));
 
     if (pcm != NULL) {
         HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
@@ -132,9 +164,15 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
         return NULL;
     }
 
-    pcm->sample_count = wav.totalPCMFrameCount;
+    pcm->sample_count = sample_count;
+    hh2_Sample* samples = pcm->samples;
 
-    for (drwav_uint64 i = 0; i < wav.totalPCMFrameCount; i++) {
+    if (wav.sampleRate != HH2_SAMPLE_RATE) {
+        hh2_Sample* const temp = (hh2_Sample*)malloc(wav.totalPCMFrameCount * sizeof(hh2_Sample));
+        samples = temp;
+    }
+
+    for (size_t i = 0; i < sample_count; i++) {
         drwav_int32 samples[HH2_MAX_CHANNELS];
         drwav_uint64 const num_read = drwav_read_pcm_frames_s32(&wav, 1, samples);
 
@@ -145,11 +183,22 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
             return NULL;
         }
 
-        pcm->samples[i] = (hh2_Sample)samples[0]; // We only support mono, get the first sample
+        samples[i] = (hh2_Sample)samples[0]; // We only support mono, get the first sample
     }
 
     drwav_uninit(&wav);
     hh2_close(file);
+
+    if (wav.sampleRate != HH2_SAMPLE_RATE) {
+        if (!hh2_resample(wav.sampleRate, samples, wav.totalPCMFrameCount, pcm->samples, sample_count)) {
+            // Error already logged
+            free(samples);
+            free(pcm);
+            return NULL;
+        }
+
+        free(samples);
+    }
 
     HH2_LOG(HH2_LOG_DEBUG, TAG "created pcm %p", pcm);
     return pcm;

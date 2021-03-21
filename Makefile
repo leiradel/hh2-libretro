@@ -3,8 +3,13 @@
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
-DEFINES = -DHH2_ENABLE_LOGGING -DWITH_MEM_SRCDST=0
-INCLUDES = -Isrc -Isrc/engine -Isrc/generated -Isrc/dr_libs -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/zlib
+
+DEFINES = \
+	-DHH2_ENABLE_LOGGING \
+	-DWITH_MEM_SRCDST=0 \
+	-DOUTSIDE_SPEEX -DRANDOM_PREFIX=speex -DEXPORT= -D_USE_SSE -D_USE_SSE2 -DFLOATING_POINT
+
+INCLUDES = -Isrc -Isrc/dr_libs -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/speex -Isrc/zlib
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
@@ -12,15 +17,6 @@ ifeq ($(DEBUG), 1)
 else
 	CFLAGS += -O3 -DHH2_RELEASE -DNDEBUG $(DEFINES)
 endif
-
-LIBPNG_OBJ_FILES = \
-	src/libpng/pngerror.o  src/libpng/pngget.o  src/libpng/pngmem.o  src/libpng/png.o  src/libpng/pngread.o  src/libpng/pngrio.o \
-	src/libpng/pngrtran.o  src/libpng/pngrutil.o  src/libpng/pngset.o  src/libpng/pngtrans.o src/libpng/pngwio.o \
-	src/libpng/pngwrite.o src/libpng/pngwtran.o src/libpng/pngwutil.o
-
-ZLIB_OBJ_FILES = \
-	src/zlib/adler32.o src/zlib/crc32.o src/zlib/deflate.o src/zlib/inffast.o src/zlib/inflate.o src/zlib/inftrees.o \
-	src/zlib/trees.o src/zlib/zutil.o
 
 LIBJPEG_OBJ_FILES = \
 	src/libjpeg-turbo/jaricom.o src/libjpeg-turbo/jcomapi.o src/libjpeg-turbo/jdapimin.o src/libjpeg-turbo/jdapistd.o \
@@ -31,13 +27,25 @@ LIBJPEG_OBJ_FILES = \
 	src/libjpeg-turbo/jidctint.o src/libjpeg-turbo/jidctred.o src/libjpeg-turbo/jmemmgr.o src/libjpeg-turbo/jmemnobs.o \
 	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
+LIBPNG_OBJ_FILES = \
+	src/libpng/pngerror.o  src/libpng/pngget.o  src/libpng/pngmem.o  src/libpng/png.o  src/libpng/pngread.o  src/libpng/pngrio.o \
+	src/libpng/pngrtran.o  src/libpng/pngrutil.o  src/libpng/pngset.o  src/libpng/pngtrans.o src/libpng/pngwio.o \
+	src/libpng/pngwrite.o src/libpng/pngwtran.o src/libpng/pngwutil.o
+
+ZLIB_OBJ_FILES = \
+	src/zlib/adler32.o src/zlib/crc32.o src/zlib/deflate.o src/zlib/inffast.o src/zlib/inflate.o src/zlib/inftrees.o \
+	src/zlib/trees.o src/zlib/zutil.o
+
+SPEEX_OBJ_FILES = \
+	src/speex/resample.o
+
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
 	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 
-hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
+hh2_libretro.so: $(LIBJPEG_OBJ_FILES) $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(SPEEX_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
@@ -47,7 +55,7 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
+test/test: test/main.o $(LIBJPEG_OBJ_FILES) $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(SPEEX_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/generated/version.h
