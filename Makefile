@@ -33,7 +33,7 @@ LIBJPEG_OBJ_FILES = \
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
-	src/engine/pixelsrc.o src/engine/sprite.o src/version.o
+	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 
