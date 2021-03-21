@@ -120,21 +120,21 @@ void retro_set_audio_sample_batch(retro_audio_sample_batch_t const cb) {
 
 bool retro_load_game(struct retro_game_info const* const info) {
     if (info == NULL) {
-        hh2_log(HH2_LOG_ERROR, TAG "retro_game_info is NULL");
+        HH2_LOG(HH2_LOG_ERROR, TAG "retro_game_info is NULL");
         return false;
     }
 
     enum retro_pixel_format pixel_format = RETRO_PIXEL_FORMAT_RGB565;
 
     if (!hh2c_environment_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &pixel_format)) {
-        hh2_log(HH2_LOG_ERROR, TAG "front-end does not support RGB565");
+        HH2_LOG(HH2_LOG_ERROR, TAG "front-end does not support RGB565");
         return false;
     }
 
     hh2c_content = malloc(info->size);
 
     if (hh2c_content == NULL) {
-        hh2_log(HH2_LOG_ERROR, TAG "out of memory");
+        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
         return false;
     }
 
