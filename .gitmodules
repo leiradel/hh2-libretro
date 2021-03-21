@@ -7,3 +7,6 @@
 [submodule "src/libjpeg-turbo"]
 	path = src/libjpeg-turbo
 	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
+[submodule "src/dr_libs"]
+	path = src/dr_libs
+	url = https://github.com/mackron/dr_libs.git
