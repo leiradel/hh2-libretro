@@ -6,4 +6,6 @@
 #define HH2_VERSION "&VERSION"
 #define HH2_DATE "&DATE"
 
+void hh2_logVersions(void);
+
 #endif // HH2_VERSION_H__

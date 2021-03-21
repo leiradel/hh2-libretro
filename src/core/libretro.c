@@ -95,10 +95,7 @@ unsigned retro_api_version() {
 }
 
 void retro_init() {
-    hh2_log(HH2_LOG_INFO, TAG "Core:    %s", HH2_PACKAGE);
-    hh2_log(HH2_LOG_INFO, TAG "Version: %s", HH2_VERSION);
-    hh2_log(HH2_LOG_INFO, TAG "Date:    %s", HH2_DATE);
-    hh2_log(HH2_LOG_INFO, TAG "Commit:  %s", HH2_GITHASH);
+    hh2_logVersions();
 }
 
 void retro_set_input_poll(retro_input_poll_t const cb) {

@@ -4,7 +4,7 @@
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 DEFINES = -DHH2_ENABLE_LOGGING -DWITH_MEM_SRCDST=0
-INCLUDES = -Isrc -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/zlib
+INCLUDES = -Isrc -Isrc/engine -Isrc/generated -Isrc/dr_libs -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/zlib
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
@@ -31,16 +31,13 @@ LIBJPEG_OBJ_FILES = \
 	src/libjpeg-turbo/jidctint.o src/libjpeg-turbo/jidctred.o src/libjpeg-turbo/jmemmgr.o src/libjpeg-turbo/jmemnobs.o \
 	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
-HH2_ENGINE_OBJS = \
-	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o src/engine/pixelsrc.o \
-	src/engine/sprite.o
-
-HH2_CORE_OBJS = \
-	src/core/libretro.o
+HH2_OBJS = \
+	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
+	src/engine/pixelsrc.o src/engine/sprite.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 
-hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_ENGINE_OBJS) $(HH2_CORE_OBJS)
+hh2_libretro.so: $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
@@ -50,7 +47,7 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_ENGINE_OBJS)
+test/test: test/main.o $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/generated/version.h
@@ -59,7 +56,7 @@ test/test.hh2: FORCE
 	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg
 
 clean: FORCE
-	rm -f hh2_libretro.so $(HH2_ENGINE_OBJS) $(HH2_CORE_OBJS)
+	rm -f hh2_libretro.so $(HH2_OBJS)
 	rm -f src/generated/version.h
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
