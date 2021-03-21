@@ -1,3 +1,4 @@
+.vscode/
 src/generated/version.h
 games/
 test/test
