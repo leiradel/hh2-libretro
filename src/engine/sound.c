@@ -243,7 +243,7 @@ static void hh2_mixPcm(int32_t* const buffer, hh2_Voice* const voice) {
 }
 
 int16_t const* hh2_soundMix(size_t* const frames) {
-    int32_t buffer[HH2_SAMPLES_PER_VIDEO_FRAME * 2];
+    int32_t buffer[HH2_SAMPLES_PER_VIDEO_FRAME];
 
     memset(buffer, 0, sizeof(buffer));
 
@@ -251,12 +251,12 @@ int16_t const* hh2_soundMix(size_t* const frames) {
         hh2_mixPcm(buffer, &hh2_voice);
     }
 
-    for (size_t i = 0; i < HH2_SAMPLES_PER_VIDEO_FRAME * 2; i++) {
+    for (size_t i = 0, j = 0; i < HH2_SAMPLES_PER_VIDEO_FRAME; i++, j += 2) {
         int32_t const s32 = buffer[i];
         int16_t const s16 = s32 < -32768 ? -32768 : s32 > 32767 ? 32767 : s32;
 
-        hh2_audioFrames[i] = s16;
-        hh2_audioFrames[i + 1] = s16;
+        hh2_audioFrames[j] = s16;
+        hh2_audioFrames[j + 1] = s16;
     }
 
     *frames = HH2_SAMPLES_PER_VIDEO_FRAME;
