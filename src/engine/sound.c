@@ -157,7 +157,7 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
     size_t const sample_count = wav.totalPCMFrameCount * wav.sampleRate / HH2_SAMPLE_RATE;
     hh2_Pcm pcm = (hh2_Pcm)malloc(sizeof(*pcm) + (sample_count - 1) * sizeof(hh2_Sample));
 
-    if (pcm != NULL) {
+    if (pcm == NULL) {
         HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
         drwav_uninit(&wav);
         hh2_close(file);
@@ -173,8 +173,8 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
     }
 
     for (size_t i = 0; i < sample_count; i++) {
-        drwav_int32 samples[HH2_MAX_CHANNELS];
-        drwav_uint64 const num_read = drwav_read_pcm_frames_s32(&wav, 1, samples);
+        drwav_int16 frame[HH2_MAX_CHANNELS];
+        drwav_uint64 const num_read = drwav_read_pcm_frames_s16(&wav, 1, frame);
 
         if (num_read != 1) {
             HH2_LOG(HH2_LOG_ERROR, TAG "error reading samples: %s", hh2_wavError(drwav_uninit(&wav)));
@@ -183,7 +183,7 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
             return NULL;
         }
 
-        samples[i] = (hh2_Sample)samples[0]; // We only support mono, get the first sample
+        samples[i] = frame[0]; // We only support mono, get the first sample
     }
 
     drwav_uninit(&wav);
