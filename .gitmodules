@@ -10,3 +10,6 @@
 [submodule "src/dr_libs"]
 	path = src/dr_libs
 	url = https://github.com/mackron/dr_libs.git
+[submodule "src/lua"]
+	path = src/lua
+	url = https://github.com/lua/lua.git
