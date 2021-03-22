@@ -109,6 +109,8 @@ static bool hh2_resample(
     spx_int16_t const* const in_data, spx_uint32_t in_samples,
     spx_int16_t* const out_data, spx_uint32_t out_samples) {
 
+    HH2_LOG(HH2_LOG_INFO, TAG "resampling from %u Hz to %d", in_rate, HH2_SAMPLE_RATE);
+
     int error;
     SpeexResamplerState* const resampler = speex_resampler_init(
         1, in_rate, HH2_SAMPLE_RATE, SPEEX_RESAMPLER_QUALITY_DEFAULT, &error);
@@ -168,8 +170,7 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
     hh2_Sample* samples = pcm->samples;
 
     if (wav.sampleRate != HH2_SAMPLE_RATE) {
-        hh2_Sample* const temp = (hh2_Sample*)malloc(wav.totalPCMFrameCount * sizeof(hh2_Sample));
-        samples = temp;
+        samples = (hh2_Sample*)malloc(wav.totalPCMFrameCount * sizeof(hh2_Sample));
     }
 
     for (size_t i = 0; i < sample_count; i++) {
