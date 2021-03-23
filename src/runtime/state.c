@@ -34,7 +34,7 @@ static bool hh2_pcall(lua_State* const L, int const num_args, int const num_resu
 }
 
 static int hh2_bootstrap(lua_State* const L) {
-    hh2_State* state = (hh2_State*)lua_touserdata(L, 1);
+    hh2_State* state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
 
     // Load the bootstrap code
     int const res = luaL_loadbufferx(L, bootstrap_lua, sizeof(bootstrap_lua), "bootstrap.lua", "t");
@@ -102,10 +102,10 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
         lua_pop(state->L, 1);
     }
 
-    lua_pushcfunction(state->L, hh2_bootstrap);
     lua_pushlightuserdata(state->L, (void*)state);
+    lua_pushcclosure(state->L, hh2_bootstrap, 1);
 
-    if (!hh2_pcall(state->L, 1, 0)) {
+    if (!hh2_pcall(state->L, 0, 0)) {
         lua_close(state->L);
         memset(state, 0, sizeof(*state));
         return false;
