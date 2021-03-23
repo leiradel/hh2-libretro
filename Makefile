@@ -5,11 +5,7 @@
 	echo "static char const " > "$@"
 	basename "$<" | sed "s/\./_/" >> "$@"
 	echo "[] = {" >> "$@"
-	cat "$<" | xxd -i \
-		| sed "s/src_lua_//" \
-		| sed "s/unsigned char/static const char/" \
-		| sed "s/unsigned int/static const size_t/" \
-		>> $@
+	cat "$<" | xxd -i >> $@
 	echo "};" >> "$@"
 
 CC ?= gcc
