@@ -7,6 +7,7 @@ CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 DEFINES = \
 	-DHH2_ENABLE_LOGGING \
 	-DWITH_MEM_SRCDST=0 \
+	-DLUA_USE_JUMPTABLE=0 \
 	-DOUTSIDE_SPEEX -DRANDOM_PREFIX=speex -DEXPORT= -D_USE_SSE -D_USE_SSE2 -DFLOATING_POINT
 
 INCLUDES = -Isrc -Isrc/dr_libs -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/speex -Isrc/zlib
@@ -18,7 +19,7 @@ else
 	CFLAGS += -O3 -DHH2_RELEASE -DNDEBUG $(DEFINES)
 endif
 
-LIBJPEG_OBJ_FILES = \
+LIBJPEG_OBJS = \
 	src/libjpeg-turbo/jaricom.o src/libjpeg-turbo/jcomapi.o src/libjpeg-turbo/jdapimin.o src/libjpeg-turbo/jdapistd.o \
 	src/libjpeg-turbo/jdarith.o src/libjpeg-turbo/jdcoefct.o src/libjpeg-turbo/jdcolor.o src/libjpeg-turbo/jddctmgr.o \
 	src/libjpeg-turbo/jdhuff.o src/libjpeg-turbo/jdinput.o src/libjpeg-turbo/jdmainct.o src/libjpeg-turbo/jdmarker.o \
@@ -27,17 +28,23 @@ LIBJPEG_OBJ_FILES = \
 	src/libjpeg-turbo/jidctint.o src/libjpeg-turbo/jidctred.o src/libjpeg-turbo/jmemmgr.o src/libjpeg-turbo/jmemnobs.o \
 	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
-LIBPNG_OBJ_FILES = \
+LIBPNG_OBJS = \
 	src/libpng/pngerror.o  src/libpng/pngget.o  src/libpng/pngmem.o  src/libpng/png.o  src/libpng/pngread.o  src/libpng/pngrio.o \
 	src/libpng/pngrtran.o  src/libpng/pngrutil.o  src/libpng/pngset.o  src/libpng/pngtrans.o src/libpng/pngwio.o \
 	src/libpng/pngwrite.o src/libpng/pngwtran.o src/libpng/pngwutil.o
 
-ZLIB_OBJ_FILES = \
+LUA_OBJS = \
+    src/lua/lapi.o src/lua/lcode.o src/lua/lctype.o src/lua/ldebug.o  src/lua/ldo.o src/lua/ldump.o src/lua/lfunc.o src/lua/lgc.o \
+    src/lua/llex.o src/lua/lmem.o src/lua/lobject.o src/lua/lopcodes.o src/lua/lparser.o  src/lua/lstate.o src/lua/lstring.o \
+    src/lua/ltable.o src/lua/ltm.o src/lua/lundump.o src/lua/lvm.o src/lua/lzio.o src/lua/lauxlib.o src/lua/lbaselib.o \
+    src/lua/lcorolib.o  src/lua/lmathlib.o src/lua/lstrlib.o src/lua/ltablib.o src/lua/lutf8lib.o src/lua/loadlib.o src/lua/linit.o
+
+SPEEX_OBJS = \
+	src/speex/resample.o
+
+ZLIB_OBJS = \
 	src/zlib/adler32.o src/zlib/crc32.o src/zlib/deflate.o src/zlib/inffast.o src/zlib/inflate.o src/zlib/inftrees.o \
 	src/zlib/trees.o src/zlib/zutil.o
-
-SPEEX_OBJ_FILES = \
-	src/speex/resample.o
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
@@ -45,7 +52,7 @@ HH2_OBJS = \
 
 all: src/generated/version.h hh2_libretro.so
 
-hh2_libretro.so: $(LIBJPEG_OBJ_FILES) $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(SPEEX_OBJ_FILES) $(HH2_OBJS)
+hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
@@ -55,7 +62,7 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-test/test: test/main.o $(LIBJPEG_OBJ_FILES) $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(SPEEX_OBJ_FILES) $(HH2_OBJS)
+test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/generated/version.h
@@ -69,6 +76,6 @@ clean: FORCE
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-	rm -f $(LIBPNG_OBJ_FILES) $(ZLIB_OBJ_FILES) $(LIBJPEG_OBJ_FILES)
+	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 .PHONY: FORCE
