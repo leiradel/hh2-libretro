@@ -44,7 +44,8 @@ LUA_OBJS = \
     src/lua/lapi.o src/lua/lcode.o src/lua/lctype.o src/lua/ldebug.o  src/lua/ldo.o src/lua/ldump.o src/lua/lfunc.o src/lua/lgc.o \
     src/lua/llex.o src/lua/lmem.o src/lua/lobject.o src/lua/lopcodes.o src/lua/lparser.o  src/lua/lstate.o src/lua/lstring.o \
     src/lua/ltable.o src/lua/ltm.o src/lua/lundump.o src/lua/lvm.o src/lua/lzio.o src/lua/lauxlib.o src/lua/lbaselib.o \
-    src/lua/lcorolib.o  src/lua/lmathlib.o src/lua/lstrlib.o src/lua/ltablib.o src/lua/lutf8lib.o src/lua/loadlib.o src/lua/linit.o
+    src/lua/lcorolib.o src/lua/ldblib.o src/lua/liolib.o src/lua/lmathlib.o src/lua/loslib.o src/lua/lstrlib.o src/lua/ltablib.o \
+    src/lua/lutf8lib.o src/lua/loadlib.o src/lua/linit.o
 
 SPEEX_OBJS = \
 	src/speex/resample.o
