@@ -1,6 +1,7 @@
 #include "log.h"
 #include "filesys.h"
 #include "pixelsrc.h"
+#include "state.h"
 #include "version.h"
 
 #include <stdio.h>
@@ -69,6 +70,12 @@ int main() {
 
         fclose(raw);
         hh2_destroyPixelSource(cp);
+    }
+
+    hh2_State state;
+
+    if (hh2_initState(&state, fs)) {
+        hh2_destroyState(&state);
     }
 
     if (fs != NULL) {
