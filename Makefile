@@ -1,5 +1,16 @@
 %.o: %.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
+	$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
+
+%.lua.h : %.lua
+	echo "static char const " > "$@"
+	basename "$<" | sed "s/\./_/" >> "$@"
+	echo "[] = {" >> "$@"
+	cat "$<" | xxd -i \
+		| sed "s/src_lua_//" \
+		| sed "s/unsigned char/static const char/" \
+		| sed "s/unsigned int/static const size_t/" \
+		>> $@
+	echo "};" >> "$@"
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
@@ -48,7 +59,7 @@ ZLIB_OBJS = \
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
-	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/version.o
+	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/searcher.o src/runtime/state.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 
@@ -62,6 +73,8 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
+src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
+
 test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
@@ -72,7 +85,7 @@ test/test.hh2: FORCE
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
-	rm -f src/generated/version.h
+	rm -f src/generated/version.h src/runtime/bootstrap.lua.h
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
