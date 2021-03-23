@@ -17,7 +17,10 @@ DEFINES = \
 	-DLUA_USE_JUMPTABLE=0 \
 	-DOUTSIDE_SPEEX -DRANDOM_PREFIX=speex -DEXPORT= -D_USE_SSE -D_USE_SSE2 -DFLOATING_POINT
 
-INCLUDES = -Isrc -Isrc/dr_libs -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/lua -Isrc/speex -Isrc/zlib
+INCLUDES = \
+	-Isrc -Isrc/dr_libs -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/lua -Isrc/speex -Isrc/runtime \
+	-Isrc/zlib
+
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
