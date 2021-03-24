@@ -1,36 +1,34 @@
 return function(hh2)
-    -- Register the native searcher for native modules and Lua modules embedded in C code
+    -- Register our searcher
     local searchers = package.searchers
 
     for i = #searchers, 2, -1 do
-        searchers[i + 3] = searchers[i]
+        searchers[i + 1] = searchers[i]
     end
 
-    searchers[2] = hh2.nativeSearcher
-
-    -- Register a seacher for the hh2 module
-    searchers[3] = function(modname)
+    searchers[2] = function(modname)
+        -- See if it's the hh2 module
         if modname == 'hh2' then
             return function()
                 return hh2
             end
         end
 
-        return 'module not found'
-    end
+        -- Try the native searcher
+        local module = hh2.nativeSearcher(modname)
 
-    -- Register a searcher that loads BS data from the HH2 file
-    local contentLoader = hh2.contentLoader
-    local bsDecoder = hh2.bsDecoder
+        if type(module) ~= 'string' then
+            return module
+        end
 
-    searchers[4] = function(modname)
-        local content, err = pcall(contentLoader, modname .. '.bs')
+        -- Try to load content from the hh2 file
+        local content, err = pcall(hh2.contentLoader, modname .. '.bs')
 
         if not content then
             return err
         end
 
-        local code = bsDecoder(content)
+        local code = hh2.bsDecoder(content)
         local chunk, err = load(code, modname, 't')
         return chunk or err
     end
