@@ -68,8 +68,8 @@ LUA_HEADERS = \
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
-	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/bsreader.o src/runtime/searcher.o \
-	src/runtime/state.o src/version.o
+	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/bsreader.o src/runtime/module.o \
+	src/runtime/searcher.o src/runtime/state.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 

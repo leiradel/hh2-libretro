@@ -61,7 +61,7 @@ static const hh2_Module hh2_modules[] = {
 #undef HH2_MODL
 #undef HH2_MODC
 
-static int hh2_searcher(lua_State* const L) {
+int hh2_searcher(lua_State* const L) {
     char const* const mod_name = lua_tostring(L, 1);
     HH2_LOG(HH2_LOG_INFO, TAG "searching for module \"%s\"", mod_name);
 
@@ -88,10 +88,7 @@ static int hh2_searcher(lua_State* const L) {
     }
 
     // Oops
+    HH2_LOG(HH2_LOG_DEBUG, TAG "couldn't find module \"%s\"", mod_name);
     lua_pushfstring(L, "unknown module \"%s\"", mod_name);
     return 1;
-}
-
-void hh2_pushSearcher(lua_State* const L) {
-    lua_pushcfunction(L, hh2_searcher);
 }

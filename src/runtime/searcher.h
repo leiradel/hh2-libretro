@@ -3,6 +3,6 @@
 
 #include <lua.h>
 
-void hh2_pushSearcher(lua_State* L);
+int hh2_searcher(lua_State* L);
 
 #endif // HH2_SEARCHER_H__

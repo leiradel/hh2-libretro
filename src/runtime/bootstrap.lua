@@ -3,16 +3,27 @@ return function(hh2)
     local searchers = package.searchers
 
     for i = #searchers, 2, -1 do
-        searchers[i + 2] = searchers[i]
+        searchers[i + 3] = searchers[i]
     end
 
     searchers[2] = hh2.nativeSearcher
+
+    -- Register a seacher for the hh2 module
+    searchers[3] = function(modname)
+        if modname == 'hh2' then
+            return function()
+                return hh2
+            end
+        end
+
+        return 'module not found'
+    end
 
     -- Register a searcher that loads BS data from the HH2 file
     local contentLoader = hh2.contentLoader
     local bsDecoder = hh2.bsDecoder
 
-    searchers[3] = function(modname)
+    searchers[4] = function(modname)
         local content, err = pcall(contentLoader, modname .. '.bs')
 
         if not content then
