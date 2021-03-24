@@ -26,11 +26,7 @@ static void logger(hh2_LogLevel level, char const* format, va_list ap) {
 
 int main() {
     hh2_setLogger(logger);
-
-    HH2_LOG(HH2_LOG_INFO, "package  %s", HH2_PACKAGE);
-    HH2_LOG(HH2_LOG_INFO, "git hash %s", HH2_GITHASH);
-    HH2_LOG(HH2_LOG_INFO, "version  %s", HH2_VERSION);
-    HH2_LOG(HH2_LOG_INFO, "datatime %s", HH2_DATE);
+    hh2_logVersions();
 
     FILE* file = fopen("test.hh2", "rb");
     size = fread(buffer, 1, sizeof(buffer), file);
