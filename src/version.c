@@ -4,6 +4,7 @@
 #include <dr_wav.h>
 #include <stdio.h> // for jpeglib.h
 #include <jpeglib.h>
+#include <lua.h>
 #include <png.h>
 #include <zlib.h>
 
@@ -22,5 +23,7 @@ void hh2_logVersions(void) {
     );
 
     HH2_LOG(HH2_LOG_INFO, TAG "libpng:        %s", PNG_LIBPNG_VER_STRING);
+    HH2_LOG(HH2_LOG_INFO, TAG "Lua:           %s.%s.%s", LUA_VERSION_MAJOR, LUA_VERSION_MINOR, LUA_VERSION_RELEASE);
+    HH2_LOG(HH2_LOG_INFO, TAG "Speex:         ?");
     HH2_LOG(HH2_LOG_INFO, TAG "zlib:          %s", ZLIB_VERSION);
 }
