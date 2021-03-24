@@ -6,6 +6,9 @@
 	cat "$<" | xxd -i >> $@
 	echo "};" >> "$@"
 
+%.bs: %.lua
+	$(LUA) etc/bsenc.lua $< $@
+
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 
