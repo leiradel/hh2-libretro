@@ -1,10 +1,8 @@
 %.o: %.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
 
-%.lua.h : %.lua
-	echo "static char const " > "$@"
-	basename "$<" | sed "s/\./_/" >> "$@"
-	echo "[] = {" >> "$@"
+%.lua.h: %.lua
+	echo "static char const `basename '$<' | sed 's/\./_/'`[] = {" > "$@"
 	cat "$<" | xxd -i >> $@
 	echo "};" >> "$@"
 
