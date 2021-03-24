@@ -20,6 +20,7 @@ INCLUDES = \
 	-Isrc/zlib
 
 LIBS = -lm
+LUA ?= lua
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -O0 -g -DHH2_DEBUG $(DEFINES)
@@ -55,9 +56,17 @@ ZLIB_OBJS = \
 	src/zlib/adler32.o src/zlib/crc32.o src/zlib/deflate.o src/zlib/inffast.o src/zlib/inflate.o src/zlib/inftrees.o \
 	src/zlib/trees.o src/zlib/zutil.o
 
+LUA_HEADERS = \
+	src/runtime/units/classes.lua.h src/runtime/units/controls.lua.h src/runtime/units/dialogs.lua.h \
+	src/runtime/units/extctrls.lua.h src/runtime/units/fmod.lua.h src/runtime/units/fmodtypes.lua.h src/runtime/units/forms.lua.h \
+	src/runtime/units/graphics.lua.h src/runtime/units/jpeg.lua.h src/runtime/units/math.lua.h src/runtime/units/messages.lua.h \
+	src/runtime/units/registry.lua.h src/runtime/units/stdctrls.lua.h src/runtime/units/sysutils.lua.h \
+	src/runtime/units/windows.lua.h
+
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
-	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/searcher.o src/runtime/state.o src/version.o
+	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/bsreader.o src/runtime/searcher.o \
+	src/runtime/state.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 
@@ -73,17 +82,19 @@ src/generated/version.h: FORCE
 
 src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
+src/runtime/searcher.o: $(LUA_HEADERS)
+
 test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/generated/version.h
 
 test/test.hh2: FORCE
-	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg test/tick.wav
+	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg test/tick.wav test/bsenc.bs
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
-	rm -f src/generated/version.h src/runtime/bootstrap.lua.h
+	rm -f src/generated/version.h src/runtime/bootstrap.lua.h $(LUA_HEADERS)
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean

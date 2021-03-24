@@ -6,16 +6,32 @@
 
 #include <string.h>
 
+#include "units/classes.lua.h"
+#include "units/controls.lua.h"
+#include "units/dialogs.lua.h"
+#include "units/extctrls.lua.h"
+#include "units/fmod.lua.h"
+#include "units/fmodtypes.lua.h"
+#include "units/forms.lua.h"
+#include "units/graphics.lua.h"
+#include "units/jpeg.lua.h"
+#include "units/math.lua.h"
+#include "units/messages.lua.h"
+#include "units/registry.lua.h"
+#include "units/stdctrls.lua.h"
+#include "units/sysutils.lua.h"
+#include "units/windows.lua.h"
+
 #define TAG "SRH "
 
 #define HH2_MODL(name, array) {name, {array}, sizeof(array)}
 #define HH2_MODC(name, openf) {name, {(char*)openf}, 0}
 
 typedef struct {
-    const char* name;
+    char const* name;
 
     union {
-        const char* source;
+        char const* source;
         lua_CFunction openf;
     }
     data;
@@ -24,8 +40,22 @@ typedef struct {
 }
 hh2_Module;
 
-static const hh2_Module hh2_modules[1] = {
-    HH2_MODL("test", "return nil")
+static const hh2_Module hh2_modules[] = {
+    HH2_MODL("classes", classes_lua),
+    HH2_MODL("controls", controls_lua),
+    HH2_MODL("dialogs", dialogs_lua),
+    HH2_MODL("extctrls", extctrls_lua),
+    HH2_MODL("fmod", fmod_lua),
+    HH2_MODL("fmodtypes", fmodtypes_lua),
+    HH2_MODL("forms", forms_lua),
+    HH2_MODL("graphics", graphics_lua),
+    HH2_MODL("jpeg", jpeg_lua),
+    HH2_MODL("math", math_lua),
+    HH2_MODL("messages", messages_lua),
+    HH2_MODL("registry", registry_lua),
+    HH2_MODL("stdctrls", stdctrls_lua),
+    HH2_MODL("sysutils", sysutils_lua),
+    HH2_MODL("windows", windows_lua)
 };
 
 #undef HH2_MODL
