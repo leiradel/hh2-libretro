@@ -1,6 +1,6 @@
-local hh2 = require 'hh2'
+local M = {}
 
-return {
-    timage = hh2.newImage,
-    ttimer = hh2.newTimer
-}
+M.timage = system.newimage
+M.ttimer = system.newtimer
+
+return M

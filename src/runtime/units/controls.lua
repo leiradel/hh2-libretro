@@ -1,7 +1,9 @@
-return {
-    tmousebutton = 0,
-    mbleft = 0,
-    crhelp = 0,
-    crhandpoint = 0,
-    crdefault = 0
-}
+local M = {}
+
+M.tmousebutton = 0
+M.mbleft = 0
+M.crhelp = 0
+M.crhandpoint = 0
+M.crdefault = 0
+
+return M

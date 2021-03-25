@@ -1,17 +1,17 @@
-uses 'graphics'
+local class = system.loadunit 'class'
+local graphics = system.loadunit 'graphics'
 
-return {
-    tlabel = {
-        new = function()
-            return {
-                font = tfont.new()
-            }
-        end
-    },
+local M = {}
 
-    tscrollbar = {
-        new = function()
-            return {}
-        end
-    }
-}
+M.tlabel = class.new()
+
+function M.tlabel:new()
+  self.font = graphics.tfont()
+end
+
+M.tscrollbar = class.new()
+
+function M.tscrollbar:new()
+end
+
+return M

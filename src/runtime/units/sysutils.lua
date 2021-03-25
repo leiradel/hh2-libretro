@@ -1,12 +1,12 @@
-local hh2 = require 'hh2'
+local M = {}
 
-return {
-    now = hh2.now,
-    decodetime = hh2.splitTime,
-    inttostr = hh2.intToStr,
+M.now = system.now
+M.decodetime = system.splittime
+M.inttostr = system.inttostr
 
-    decodedate = function(time)
-        local hour, min, sec, msec, day, month, year = hh2.splitTime(time)
-        return day, month, year
-    end
-}
+function M.decodedate( time )
+  local hour, min, sec, msec, day, month, year = system.splittime( time )
+  return day, month, year
+end
+
+return M

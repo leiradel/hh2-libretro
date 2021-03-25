@@ -1,6 +1,8 @@
 local math = require 'math'
 
-return {
-    floor = math.floor,
-    abs = math.abs
-}
+local M = {}
+
+M.floor = math.floor
+M.abs = math.abs
+
+return M

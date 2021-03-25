@@ -1,50 +1,52 @@
-uses 'graphics'
-uses 'stdctrls'
+local class = system.loadunit 'class'
+local graphics = system.loadunit 'graphics'
+local stdctrls = system.loadunit 'stdctrls'
 
-return {
-    new = function new()
-        local self = {
-            --popupmenu = M.tform(),
-            font = tfont(),
-            horzscrollbar = tscrollbar(),
-            vertscrollbar = tscrollbar(),
+local M = {}
 
-            show = function()
-            end,
+M.tform = class.new()
 
-            onactivate = function()
-            end,
+function M.tform:new()
+  --self.popupmenu = M.tform()
+  self.font = graphics.tfont()
+  self.horzscrollbar = stdctrls.tscrollbar()
+  self.vertscrollbar = stdctrls.tscrollbar()
+end
 
-            onclose = function()
-            end,
+function M.tform:show()
+end
 
-            oncreate = function()
-            end,
+function M.tform:onactivate()
+end
 
-            onkeydown = function()
-            end,
+function M.tform:onclose()
+end
 
-            onkeyup = function()
-            end,
+function M.tform:oncreate()
+end
 
-            tcloseaction = {
-                new = function()
-                    return {}
-                end
-            }
+function M.tform:onkeydown()
+end
 
-            cafree = 0,
-            bsnone = 0,
-            ponone = 0,
-            poscreencenter = 1,
-            vk_up = -1,
-            vk_down = -2,
-            vk_left = -3,
-            vk_right = -4,
-            vk_control = -5,
-            vk_menu = -6,
-            vk_shift = -7,
-            vk_insert = -8
-        }
-    end
-}
+function M.tform:onkeyup()
+end
+
+M.tcloseaction = class.new()
+
+function M.tcloseaction:new()
+end
+
+M.cafree = 0
+M.bsnone = 0
+M.ponone = 0
+M.poscreencenter = 1
+M.vk_up = -1
+M.vk_down = -2
+M.vk_left = -3
+M.vk_right = -4
+M.vk_control = -5
+M.vk_menu = -6
+M.vk_shift = -7
+M.vk_insert = -8
+
+return M

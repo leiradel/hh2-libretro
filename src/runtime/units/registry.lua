@@ -1,17 +1,22 @@
-local hh2 = require 'hh2'
+local class = system.loadunit 'class'
 
-return {
-    treginifile = {
-        create = function()
-            return {
-                treginifile readinteger = function(arg1, key, value)
-                    return hh2.loadvalue(key:lower()) or value
-                end
+local M = {}
 
-                treginifile writeinteger = function(arg1, key, value)
-                    hh2.savevalue( key:lower(), value )
-                end
-            }
-        end
-    }
-}
+M.treginifile = class.new()
+
+function M.treginifile:new()
+end
+
+function M.treginifile:create()
+  return M.treginifile()
+end
+
+function M.treginifile:readinteger( arg1, key, value )
+  return system.loadvalue( key:lower() ) or value
+end
+
+function M.treginifile:writeinteger( arg1, key, value)
+  system.savevalue( key:lower(), value )
+end
+
+return M
