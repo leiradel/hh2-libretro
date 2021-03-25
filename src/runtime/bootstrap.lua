@@ -1,10 +1,6 @@
 return function(hh2)
-    -- Register our searcher
+    -- Register our searcher after the cache searcher
     local searchers = package.searchers
-
-    for i = #searchers, 2, -1 do
-        searchers[i + 1] = searchers[i]
-    end
 
     searchers[2] = function(modname)
         -- See if it's the hh2 module
@@ -17,7 +13,7 @@ return function(hh2)
         -- Try the native searcher
         local module = hh2.nativeSearcher(modname)
 
-        if type(module) ~= 'string' then
+        if type(module) == 'function' then
             return module
         end
 
