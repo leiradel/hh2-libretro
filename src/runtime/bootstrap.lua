@@ -29,6 +29,10 @@ return function(hh2)
         return chunk or err
     end
 
+    -- Remove the other searchers
+    searchers[3] = nil
+    searchers[4] = nil
+
     -- Creates the global 'uses' function
     uses = function(unitname)
         local unit = require(unitname)
