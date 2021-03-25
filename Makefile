@@ -4,6 +4,10 @@
 %.lua.h: %.lua
 	echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
+%.luagz.h: %.lua
+	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
+	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `wc -c "$<" | sed 's/ .*//'`;" >> "$@"
+
 %.bs: %.lua
 	$(LUA) etc/bsenc.lua $< $@
 
@@ -39,16 +43,15 @@ LIBJPEG_OBJS = \
 	src/libjpeg-turbo/jquant1.o src/libjpeg-turbo/jquant2.o src/libjpeg-turbo/jsimd_none.o src/libjpeg-turbo/jutils.o
 
 LIBPNG_OBJS = \
-	src/libpng/pngerror.o  src/libpng/pngget.o  src/libpng/pngmem.o  src/libpng/png.o  src/libpng/pngread.o  src/libpng/pngrio.o \
-	src/libpng/pngrtran.o  src/libpng/pngrutil.o  src/libpng/pngset.o  src/libpng/pngtrans.o src/libpng/pngwio.o \
+	src/libpng/pngerror.o src/libpng/pngget.o src/libpng/pngmem.o src/libpng/png.o src/libpng/pngread.o src/libpng/pngrio.o \
+	src/libpng/pngrtran.o src/libpng/pngrutil.o src/libpng/pngset.o src/libpng/pngtrans.o src/libpng/pngwio.o \
 	src/libpng/pngwrite.o src/libpng/pngwtran.o src/libpng/pngwutil.o
 
 LUA_OBJS = \
-    src/lua/lapi.o src/lua/lcode.o src/lua/lctype.o src/lua/ldebug.o  src/lua/ldo.o src/lua/ldump.o src/lua/lfunc.o src/lua/lgc.o \
-    src/lua/llex.o src/lua/lmem.o src/lua/lobject.o src/lua/lopcodes.o src/lua/lparser.o  src/lua/lstate.o src/lua/lstring.o \
-    src/lua/ltable.o src/lua/ltm.o src/lua/lundump.o src/lua/lvm.o src/lua/lzio.o src/lua/lauxlib.o src/lua/lbaselib.o \
-    src/lua/lcorolib.o src/lua/ldblib.o src/lua/liolib.o src/lua/lmathlib.o src/lua/loslib.o src/lua/lstrlib.o src/lua/ltablib.o \
-    src/lua/lutf8lib.o src/lua/loadlib.o src/lua/linit.o
+    src/lua/lapi.o src/lua/lauxlib.o src/lua/lbaselib.o src/lua/lcode.o src/lua/lcorolib.o src/lua/lctype.o src/lua/ldebug.o \
+    src/lua/ldo.o src/lua/ldump.o src/lua/lfunc.o src/lua/lgc.o src/lua/llex.o src/lua/lmathlib.o src/lua/lmem.o src/lua/loadlib.o \
+    src/lua/lobject.o src/lua/lopcodes.o src/lua/lparser.o src/lua/lstate.o src/lua/lstring.o src/lua/lstrlib.o src/lua/ltable.o \
+    src/lua/ltablib.o src/lua/ltm.o src/lua/lundump.o src/lua/lutf8lib.o src/lua/lvm.o src/lua/lzio.o
 
 SPEEX_OBJS = \
 	src/speex/resample.o
@@ -58,11 +61,12 @@ ZLIB_OBJS = \
 	src/zlib/trees.o src/zlib/zutil.o
 
 LUA_HEADERS = \
-	src/runtime/units/classes.lua.h src/runtime/units/controls.lua.h src/runtime/units/dialogs.lua.h \
-	src/runtime/units/extctrls.lua.h src/runtime/units/fmod.lua.h src/runtime/units/fmodtypes.lua.h src/runtime/units/forms.lua.h \
-	src/runtime/units/graphics.lua.h src/runtime/units/jpeg.lua.h src/runtime/units/math.lua.h src/runtime/units/messages.lua.h \
-	src/runtime/units/registry.lua.h src/runtime/units/stdctrls.lua.h src/runtime/units/sysutils.lua.h \
-	src/runtime/units/windows.lua.h
+	src/runtime/class.luagz.h src/runtime/units/classes.luagz.h src/runtime/units/controls.luagz.h \
+	src/runtime/units/dialogs.luagz.h src/runtime/units/extctrls.luagz.h src/runtime/units/fmod.luagz.h \
+	src/runtime/units/fmodtypes.luagz.h src/runtime/units/forms.luagz.h src/runtime/units/graphics.luagz.h \
+	src/runtime/units/jpeg.luagz.h src/runtime/units/math.luagz.h src/runtime/units/messages.luagz.h \
+	src/runtime/units/registry.luagz.h src/runtime/units/stdctrls.luagz.h src/runtime/units/sysutils.luagz.h \
+	src/runtime/units/windows.luagz.h
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
