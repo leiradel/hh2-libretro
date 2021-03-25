@@ -2,9 +2,7 @@
 	$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
 
 %.lua.h: %.lua
-	echo "static char const `basename '$<' | sed 's/\./_/'`[] = {" > "$@"
-	cat "$<" | xxd -i >> $@
-	echo "};" >> "$@"
+	echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 %.bs: %.lua
 	$(LUA) etc/bsenc.lua $< $@
