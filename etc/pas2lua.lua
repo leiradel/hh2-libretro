@@ -527,16 +527,16 @@ local function newParser(path)
 
     function parser:parseTypedConstant()
         local current = self.current
-        local type = pcall(self.parseRecordConstant, self)
+        local ok, type = pcall(self.parseRecordConstant, self)
 
-        if type then
+        if ok then
             return type
         end
 
         self.current = current
-        type = pcall(self.parseArrayConstant, self)
+        ok, type = pcall(self.parseArrayConstant, self)
 
-        if type then
+        if ok then
             return type
         end
 
