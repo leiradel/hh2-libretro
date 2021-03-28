@@ -499,7 +499,7 @@ local function newParser(path)
 
         -- ConstantDecl
         while self:token() == '<id>' do
-            local const = {id = self:lexeme()}
+            local const = {type = 'const', id = self:lexeme()}
             self:match('<id>')
 
             if self:token() == '=' then
@@ -507,7 +507,7 @@ local function newParser(path)
                 const.value = self:parseConstExpr()
             elseif self:token() == ':' then
                 self:match(':')
-                const.type = self:parseType()
+                const.subtype = self:parseType()
                 self:match('=')
                 const.value = self:parseTypedConstant()
             else
