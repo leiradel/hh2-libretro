@@ -374,7 +374,16 @@ local function newParser(path)
 
     function parser:parseInterfaceSection()
         self:match('interface')
-        local interface = {type = 'interface', uses = {}, consts = {}, types = {}, vars = {}, procedures = {}, functions = {}}
+
+        local interface = {
+            type = 'interface',
+            uses = {},
+            consts = {},
+            types = {},
+            vars = {},
+            procedures = {},
+            declarations = {}
+        }
 
         if self:token() == 'uses' then
             interface.uses = self:parseUsesClause()
@@ -383,13 +392,21 @@ local function newParser(path)
         -- InterfaceDecl
         while true do
             if self:token() == 'const' then
-                append(interface.consts, self:parseConstSection())
+                local list = self:parseConstSection()
+                append(interface.consts, list)
+                append(interface.declarations, list)
             elseif self:token() == 'type' then
-                append(interface.types, self:parseTypeSection())
+                local list = self:parseTypeSection()
+                append(interface.types, list)
+                append(interface.declarations, list)
             elseif self:token() == 'var' then
-                append(interface.vars, self:parseVarSection())
+                local list = self:parseVarSection()
+                append(interface.vars, list)
+                append(interface.declarations, list)
             elseif self:token() == 'procedure' or self:token() == 'function' then
-                interface.procedures[#interface.procedures + 1] = self:parseExportedHeading()
+                local heading = self:parseExportedHeading()
+                interface.procedures[#interface.procedures + 1] = heading
+                interface.declarations[#interface.declarations + 1] = heading
             else
                 break
             end
@@ -408,7 +425,7 @@ local function newParser(path)
             types = {},
             vars = {},
             procedures = {},
-            functions = {}
+            declarations = {}
         }
 
         if self:token() == 'uses' then
@@ -417,13 +434,21 @@ local function newParser(path)
 
         while true do
             if self:token() == 'const' then
-                append(implementation.consts, self:parseConstSection())
+                local list = self:parseConstSection()
+                append(implementation.consts, list)
+                append(implementation.declarations, list)
             elseif self:token() == 'type' then
-                append(implementation.types, self:parseTypeSection())
+                local list =self:parseTypeSection()
+                append(implementation.types, list)
+                append(implementation.declarations, list)
             elseif self:token() == 'var' then
-                append(implementation.vars, self:parseVarSection())
+                local list = self:parseVarSection()
+                append(implementation.vars, list)
+                append(implementation.declarations, list)
             elseif self:token() == 'procedure' or self:token() == 'function' then
-                implementation.procedures[#implementation.procedures + 1] = self:parseProcedureDeclSection()
+                local decl = self:parseProcedureDeclSection()
+                implementation.procedures[#implementation.procedures + 1] = decl
+                implementation.declarations[#implementation.declarations + 1] = decl
             else
                 break
             end
