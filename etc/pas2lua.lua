@@ -123,6 +123,7 @@ local function newParser(path)
     end
 
     function parser:parseProgram()
+        self:error(self:line(), 'Only units are supported')
     end
 
     function parser:parseUnit()
@@ -135,9 +136,6 @@ local function newParser(path)
         unit.interface = self:parseInterfaceSection()
         unit.implementation = self:parseImplementationSection()
         unit.initialization = self:parseInitSection()
-
-        unit.interface.types = nil
-        unit.interface.consts = nil
 
         self:match('.')
         return unit
