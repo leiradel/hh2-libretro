@@ -985,7 +985,7 @@ local function newParser(path)
 
     function parser:parseRestrictedType()
         self:match('class')
-        local class = {consts = {}, types = {}, vars = {}, procedures = {}, functions = {}, fields = {}}
+        local class = {type = 'class', consts = {}, types = {}, vars = {}, procedures = {}, functions = {}, fields = {}}
 
         -- ClassHeritage
         if self:token() == '(' then
