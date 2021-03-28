@@ -10,7 +10,6 @@ end
 
 local function append(dest, source)
     for i = 1, #source do
-        --print(string.format('dest[%d] = source[%d]', #dest + 1, i))
         dest[#dest + 1] = source[i]
     end
 end
@@ -288,9 +287,8 @@ local function newParser(path)
             'longint', 'int64', 'word', 'boolean', 'char', 'widechar', 'longword', 'pchar',
             'div', 'mod', 'and', 'or', 'in', 'is',
             'unit', 'interface', 'uses', 'type', 'true', 'false', 'class', 'end', 'procedure', 'function', 'var', 'const', 'array',
-            'initialization',
-            'of', 'record', 'implementation', 'begin', 'not',
-            'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case'
+            'initialization', 'of', 'record', 'implementation', 'begin', 'not', 'if', 'then', 'else', 'for', 'to', 'downto', 'do',
+            'while', 'case'
         }
     }
 
@@ -1261,5 +1259,11 @@ local function newParser(path)
     return parser
 end
 
+local function generate(ast)
+
+end
+
 local parser = newParser('games/popeye/unit1.pas')
-parser:parse()
+local ast = parser:parse()
+dump(ast)
+generate(ast)
