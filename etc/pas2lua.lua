@@ -31,6 +31,238 @@ local function dump(t, i)
     end
 end
 
+local function newDfmParser(path)
+    -- https://www.davidghoyle.co.uk/WordPress/?page_id=1391
+
+    local input, err = io.open(path, 'r')
+
+    if not input then
+        fatal(path, 0, 'Error opening input file: %s', err)
+    end
+
+    local source = input:read('*a')
+    input:close()
+
+    local lexer = ddlt.newLexer{
+        source = source,
+        file = path,
+        language = 'pas',
+        symbols = {':', '=', '<', '>', '[', ']', '(', ')', ',', '.', '-'},
+        keywords = {'object', 'end', 'item', 'true', 'false'}
+    }
+
+    local tokens = {}
+    local la
+
+    repeat
+        repeat
+            local err
+            la, err = lexer:next({})
+
+            if not la then
+                io.stderr:write(err)
+                os.exit(1)
+            end
+
+            if la.token == '<blockcomment>' then
+                -- dfm files use block comments for binary data
+                la.token = '<data>'
+            end
+        until la.token ~= '<linecomment>' and la.token ~= '<blockdirective>'
+
+        tokens[#tokens + 1] = la
+    until la.token == '<eof>'
+
+    local parser = {
+        tokens = tokens,
+        current = 1
+    }
+
+    function parser:error(line, format, ...)
+        fatal(path, line, format, ...)
+    end
+
+    function parser:token(offset)
+        return self.tokens[self.current + (offset or 0)].token
+    end
+
+    function parser:lexeme(offset)
+        return self.tokens[self.current + (offset or 0)].lexeme
+    end
+
+    function parser:line(offset)
+        return self.tokens[self.current + (offset or 0)].line
+    end
+
+    function parser:match(token)
+        if token ~= self:token() then
+            self:error(self:line(), '"%s" expected, found "%s"', token, self:token())
+        end
+
+        self.current = self.current + 1
+    end
+
+    function parser:parse()
+        local ast = self:parseGoal()
+        self:match('<eof>')
+        return ast
+    end
+
+    function parser:parseGoal()
+        return self:parseObject()
+    end
+
+    function parser:parseObject()
+        self:match('object')
+        local object = {type = 'object', id = self:lexeme(), children = {}, properties = {}}
+        self:match('<id>')
+        self:match(':')
+        object.type = self:lexeme()
+        self:match('<id>')
+
+        if self:token() == '[' then
+            self:match('[')
+            object.index = self:parseNumber()
+            self:match(']')
+        end
+
+        while self:token() ~= 'end' do
+            if self:token() == 'object' then
+                object.children[#object.children + 1] = self:parseObject()
+            elseif self:token() == '<id>' then
+                object.properties[#object.properties + 1] = self:parseProperty()
+            else
+                self:error(self:line(), '"object" or "<id>" expected, "%s" found', self:token())
+            end
+        end
+
+        self:match('end')
+        return object
+    end
+
+    function parser:parseNumber()
+        local negative = self:token() == '-'
+
+        if negative then
+            self:match('-')
+        end
+
+        local tk = self:token()
+
+        if tk == '<binary>' or tk == '<octal>' or tk == '<decimal>' or tk == '<hexadecimal>' or tk == '<float>' then
+            local value = self:lexeme()
+            self:match(tk)
+            return {type = 'number', subtype = tk, value = value, negative = negative}
+        else
+            self:error(self:line(), '"<number>" expected, "%s" found', self:token())
+        end
+    end
+
+    function parser:parseProperty()
+        -- QualifiedIdent
+        local id = {self:lexeme()}
+        self:match('<id>')
+
+        while self:token() == '.' do
+            self:match('.')
+            id[#id + 1] = self:lexeme()
+            self:match('<id>')
+        end
+
+        self:match('=')
+        return {id = id, value = self:parsePropertyValue()}
+    end
+
+    function parser:parsePropertyValue()
+        local tk = self:token()
+
+        if tk == '<id>' then
+            local value = self:lexeme()
+            self:match('<id>')
+            return {type = 'id', value = value}
+        elseif tk == '<string>' then
+            local value = self:lexeme()
+            self:match('<string>')
+            return {type = 'string', value = value}
+        elseif tk == '<binary>' or tk == '<octal>' or tk == '<decimal>' or tk == '<hexadecimal>' or tk == '<float>'
+            or tk == '-' then
+            return self:parseNumber()
+        elseif tk == 'true' or tk == 'false' then
+            local value = self:lexeme()
+            self:match(tk)
+            return {type = 'boolean', value = value}
+        elseif tk == '[' then
+            return self:parseSet()
+        elseif tk == '<' then
+            return self:parseItemList()
+        elseif tk == '(' then
+            return self:parsePositionData()
+        elseif tk == '<data>' then
+            local value = self:lexeme()
+            self:match('<data>')
+            return {type = 'data', value = value}
+        else
+            self:error(self:line(), '"<value>" expected, "%s" found', self:token())
+        end
+    end
+
+    function parser:parseSet()
+        self:match('[')
+        local list = {}
+
+        if self:token() == '<id>' then
+            -- IdentList
+            list[#list + 1] = self:lexeme()
+            self:match('<id>')
+
+            while self:token() == ',' do
+                self:match(',')
+                list[#list + 1] = self:lexeme()
+                self:match('<id>')
+            end
+        end
+
+        self:match(']')
+        return {type = 'set', value = list}
+    end
+
+    function parser:parseItemList()
+        self:match('<')
+        local list = {}
+
+        while self:token() == 'item' do
+            self:match('item')
+            local properties = {}
+
+            while self:token() == '<id>' do
+                properties[#properties + 1] = self:parseProperty()
+            end
+
+            self:match('end')
+            list[#list + 1] = properties
+        end
+
+        self:match('>')
+        return {type = 'items', value = list}
+    end
+
+    function parser:parsePositionData()
+        self:match('(')
+        local list = {}
+        local tk = self:token()
+
+        while tk == '<binary>' or tk == '<octal>' or tk == '<decimal>' or tk == '<hexadecimal>' or tk == '<float>' or tk == '-' do
+            list[#list + 1] = self:parseNumber()
+            tk = self:token()
+        end
+
+        self:match(')')
+        return {type = 'position', value = list}
+    end
+
+    return parser
+end
+
 local function newParser(path)
     -- http://www.davidghoyle.co.uk/WordPress/?page_id=1389
 
