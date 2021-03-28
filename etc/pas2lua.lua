@@ -757,7 +757,7 @@ local function newParser(path)
             list[#list + 1] = type
         end
 
-        return list
+        return {type = 'types', types = list}
     end
 
     function parser:parseExportedHeading()
