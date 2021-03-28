@@ -10,7 +10,6 @@ end
 
 local function append(dest, source)
     for i = 1, #source do
-        --print(string.format('dest[%d] = source[%d]', #dest + 1, i))
         dest[#dest + 1] = source[i]
     end
 end
@@ -1260,6 +1259,3 @@ local function newParser(path)
 
     return parser
 end
-
-local parser = newParser('games/popeye/unit1.pas')
-parser:parse()
