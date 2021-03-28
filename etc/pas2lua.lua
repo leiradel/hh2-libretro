@@ -360,7 +360,7 @@ local function newParser(path)
     function parser:parseUnit()
         self:match('unit');
 
-        local unit = {id = self:lexeme()}
+        local unit = {type = 'unit', id = self:lexeme()}
         self:match('<id>')
         self:match(';')
 
