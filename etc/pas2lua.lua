@@ -1065,12 +1065,12 @@ local function newParser(path)
 
         -- VarDecl
         while self:token() == '<id>' do
-            local list = self:parseIdentList()
+            local ids = self:parseIdentList()
             self:match(':')
             local type = self:parseType()
 
-            for i = 1, #list do
-                local id = list[i]
+            for i = 1, #ids do
+                local id = ids[i]
 
                 list[i] = {
                     type = 'var',
@@ -1079,7 +1079,7 @@ local function newParser(path)
                 }
             end
 
-            if #list == 1 and self:token() == '=' then
+            if #ids == 1 and self:token() == '=' then
                 self:match('=')
                 list[1].value = self:parseConstExpr()
             end
