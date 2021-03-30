@@ -1284,3 +1284,174 @@ local function newParser(path)
 
     return parser
 end
+
+local function newGenerator(ast)
+    local generator = {}
+
+    local out = function(format, ...)
+        io.write(string.format(format, ...))
+    end
+
+    function generator:error(line, format, ...)
+        fatal(path, line, format, ...)
+    end
+
+    function generator:generate()
+        self:generateUnit(ast)
+    end
+
+    function generator:generateUnit(node)
+        if node.type ~= 'unit' then
+            self:error(0, 'Can only generate code for Pascal units')
+        end
+
+        out('local M = {}\n\n')
+
+        for _, unit in ipairs(node.interface.uses) do
+            out('uses \'%s\'\n', unit:lower())
+        end
+
+        for _, unit in ipairs(node.implementation.uses) do
+            out('uses \'%s\'\n', unit:lower())
+        end
+
+        out('\n')
+        self:generateDeclarations(node.interface.declarations)
+    end
+
+    function generator:generateDeclarations(node)
+        for _, decl in ipairs(node) do
+            if decl.type == 'const' then
+                self:generateConst(decl)
+            elseif decl.type == 'var' then
+                self:generateVariable(decl)
+            else
+                dump(decl)
+                fatal(0, 'Unhandled declaration')
+            end
+        end
+    end
+
+    function generator:findIdentifier(qid)
+        for _, decl in ipairs(ast.interface.declarations) do
+            if decl.id == qid then
+                return decl.value, decl.value.subtype
+            end
+        end
+
+        fatal(0, 'Identifier not found: "%s"', qid)
+    end
+
+    function generator:generateValue(node)
+        if node.type == 'literal' then
+            if node.subtype == '<string>' then
+                local value = node.value
+                value = value:gsub('^\'', '')
+                value = value:gsub('\'$', '')
+
+                value = value:gsub('\'#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+                value = value:gsub('#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+                value = value:gsub('\'#(%d+)', function(x) return string.char(tonumber(x)) end)
+
+                return string.format('%q', value), '<string>'
+            elseif node.subtype == '<decimal>' then
+                local value = node.value:gsub('[^%d]', '')
+                return string.format('%d', tonumber(value)), 'number'
+            end
+        elseif node.type == 'variable' then
+            local qid = table.concat(node.qid.id, '.')
+            local value, type = self:findIdentifier(qid)
+            return string.format('M.%s', qid), type
+        elseif node.type == '+' then
+            local v1, t1 = self:generateValue(node.left)
+            local v2, t2 = self:generateValue(node.right)
+
+            if t1 == '<string>' or t2 == '<string>' then
+                if t1 ~= '<string>' then
+                    return string.format('(tostring(%s) .. %s)', v1, v2)
+                elseif t2 ~= '<string>' then
+                    return string.format('(%s .. tostring(%s))', v1, v2)
+                else
+                    return string.format('(%s .. %s)', v1, v2)
+                end
+            elseif t1 == 'number' and t2 == 'number' then
+                return string.format('(%s + %s)', v1, v2)
+            end
+        end
+
+        dump(node)
+        fatal(0, 'unhandled node in generateValue')
+    end
+
+    function generator:generateConst(node)
+        if node.subtype and node.subtype.type == 'arraytype' then
+            local limits = {}
+
+            for _, limit in ipairs(node.subtype.limits) do
+                if limit.min.type ~= 'literal' or limit.max.type ~= 'literal' then
+                    self:error(0, 'Array limits are not constant')
+                end
+
+                limits[#limits + 1] = {
+                    min = tonumber(limit.min.value),
+                    max = tonumber(limit.max.value),
+                    current = tonumber(limit.min.value)
+                }
+            end
+
+            out('do\n')
+            out('    local a = {}\n')
+
+            local set = {}
+
+            while true do
+                local indices = {}
+
+                for i, limit in ipairs(limits) do
+                    indices[#indices + 1] = tostring(limit.current)
+
+                    local j = table.concat(indices, '][')
+
+                    if i ~= #limits and not set[j] then
+                        out('    a[%s] = {}\n', j)
+                        set[j] = true
+                    end
+                end
+
+                local value = node.value.value
+
+                for i = 1, #limits - 1 do
+                    value = value[limits[i].current].value
+                end
+
+                out('    a[%s] = %s\n', table.concat(indices, ']['), self:generateValue(value[limits[#limits].current]))
+
+                for i = #limits, 1, -1 do
+                    limits[i].current = limits[i].current + 1
+
+                    if limits[i].current <= limits[i].max then
+                        break
+                    end
+
+                    limits[i].current = limits[i].min
+
+                    if i == 1 then
+                        goto out
+                    end
+                end
+            end
+
+            ::out::
+            out('    M.%s = a\n', node.id)
+            out('end\n')
+        else
+            out('M.%s = %s\n', node.id, self:generateValue(node.value))
+        end
+    end
+
+    function generator:generateVariable(node)
+        out('M.%s = nil\n', node.id)
+    end
+
+    return generator
+end
