@@ -898,7 +898,7 @@ local function newParser(path)
 
     function parser:parseRecType()
         self:match('record')
-        local class = {consts = {}, types = {}, vars = {}, procedures = {}, functions = {}, fields = {}}
+        local class = {type = 'rectype', consts = {}, types = {}, vars = {}, procedures = {}, functions = {}, fields = {}}
 
         -- ClassHeritage
         if self:token() == '(' then
@@ -908,15 +908,7 @@ local function newParser(path)
         end
 
         while true do
-            if self:token() == 'const' then
-                append(class.consts, self:parseConstSection())
-            elseif self:token() == 'type' then
-                append(class.types, self:parseTypeSection())
-            elseif self:token() == 'var' then
-                append(class.vars, self:parseVarSection())
-            elseif self:token() == 'procedure' or self:token() == 'function' then
-                class.procedures[#class.procedures + 1] = self:parseExportedHeading()
-            elseif self:token() == '<id>' then
+            if self:token() == '<id>' then
                 append(class.fields, self:parseFieldList())
             else
                 break
