@@ -1375,6 +1375,68 @@ local function newGenerator(ast)
         fatal(0, 'unhandled node in generateValue')
     end
 
+    function generator:generateDefaultValue(node)
+        if node.type == 'ordident' then
+            if node.subtype == 'boolean' then
+                return 'false'
+            elseif node.subtype == 'char' or node.subtype == 'widechar' then
+                return '"\0"'
+            elseif node.subtype == 'pchar' then
+                return nil
+            else
+                return '0'
+            end
+        elseif node.type == 'realtype' then
+            return '0'
+        elseif node.type == 'stringtype' then
+            return '""'
+        elseif node.type == 'typeid' then
+            return string.format('%s()', node.id)
+        elseif node.type == 'arraytype' then
+            local code = {
+                '(function()',
+                '    local a1 = {}'
+            }
+
+            local value = self:generateDefaultValue(node.subtype)
+
+            for i = 1, #node.limits do
+                local limit = node.limits[i]
+                local min = limit.min.type == 'literal' and limit.min.value or table.concat(limit.min.qid.id, '.')
+                local max = limit.max.type == 'literal' and limit.max.value or table.concat(limit.max.qid.id, '.')
+
+                local ident = string.rep('    ', i)
+                code[#code + 1] = string.format('%sfor i%d = %s, %s do', ident, i, min, max)
+
+                if i < #node.limits then
+                    code[#code + 1] = string.format('%s    local a%d = {}', ident, i + 1)
+                    code[#code + 1] = string.format('%s    a%d[i%d] = a%d', ident, i, i, i + 1)
+                else
+                    code[#code + 1] = string.format('%s    a%d[i%d] = %s', ident, i, i, value)
+                end
+            end
+
+            for i = #node.limits, 1, -1 do
+                code[#code + 1] = string.format('%send', string.rep('    ', i))
+            end
+
+            code[#code + 1] = '    return a1'
+            code[#code + 1] = 'end)()'
+            return table.concat(code, '\n')
+        elseif node.type == 'rectype' then
+            local code = {}
+
+            for _, field in ipairs(node.fields) do
+                code[#code + 1] = string.format('%s = %s', field.id, self:generateDefaultValue(field.subtype))
+            end
+
+            return string.format('{%s}', table.concat(code, ', '))
+        end
+
+        dump(node)
+        fatal('', 0, 'unhandled node in generateDefaultValue')
+    end
+
     function generator:generateConst(node)
         if node.subtype and node.subtype.type == 'arraytype' then
             local limits = {}
@@ -1442,7 +1504,11 @@ local function newGenerator(ast)
     end
 
     function generator:generateVariable(node)
-        out('M.%s = nil\n', node.id)
+        if node.value then
+            out('M.%s = %s\n', node.id, self:generateValue(node.value))
+        else
+            out('M.%s = %s\n', node.id, self:generateDefaultValue(node.subtype))
+        end
     end
 
     return generator
