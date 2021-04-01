@@ -284,7 +284,7 @@ local function newParser(path)
 
         keywords = {
             'real48', 'real', 'single', 'double', 'extended', 'currency', 'comp', 'shortint', 'smallint', 'integer', 'byte',
-            'longint', 'int64', 'word', 'boolean', 'char', 'widechar', 'longword', 'pchar',
+            'longint', 'int64', 'word', 'boolean', 'char', 'widechar', 'longword', 'pchar', 'string',
             'div', 'mod', 'and', 'or', 'in', 'is',
             'unit', 'interface', 'uses', 'type', 'true', 'false', 'class', 'end', 'procedure', 'function', 'var', 'const', 'array',
             'initialization',
