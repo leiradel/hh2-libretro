@@ -1064,7 +1064,7 @@ local function newParser(path)
             for i = 1, #ids do
                 local id = ids[i]
 
-                list[i] = {
+                list[#list + 1] = {
                     type = 'var',
                     subtype = type,
                     id = id
@@ -1073,7 +1073,7 @@ local function newParser(path)
 
             if #ids == 1 and self:token() == '=' then
                 self:match('=')
-                list[1].value = self:parseConstExpr()
+                list[#list].value = self:parseConstExpr()
             end
 
             self:match(';')
