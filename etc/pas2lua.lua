@@ -1348,7 +1348,7 @@ local function newGenerator(ast)
                 return string.format('%q', value), '<string>'
             elseif node.subtype == '<decimal>' then
                 local value = node.value:gsub('[^%d]', '')
-                return string.format('%d', tonumber(value)), 'number'
+                return string.format('%d', tonumber(value, 10)), 'number'
             end
         elseif node.type == 'variable' then
             local qid = table.concat(node.qid.id, '.')
