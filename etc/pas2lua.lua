@@ -773,6 +773,8 @@ local function newParser(path)
 
         if self:token() == '(' then
             heading.paramList = self:parseFormalParameters()
+        else
+            heading.paramList = {}
         end
 
         if heading.subtype == 'function' then
