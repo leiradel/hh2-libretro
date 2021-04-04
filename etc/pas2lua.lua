@@ -1274,7 +1274,7 @@ local function newParser(path)
     return parser
 end
 
-local function newGenerator(ast)
+local function newGenerator(path, ast)
     local generator = {}
 
     local out = function(format, ...)
