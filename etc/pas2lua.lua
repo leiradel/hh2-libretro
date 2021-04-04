@@ -1285,6 +1285,19 @@ local function newGenerator(ast)
         fatal(path, line, format, ...)
     end
 
+    function generator:declare(id, isLocal, value)
+        if isLocal == nil then
+            self:error(0, 'isLocal is nil')
+        end
+
+        if isLocal then
+            out('local %s = %s\n', id, value)
+        else
+            out('M.%s = %s\n', id, value)
+            out('%s = M.%s\n', id, id)
+        end
+    end
+
     function generator:generate()
         self:generateUnit(ast)
     end
