@@ -738,8 +738,9 @@ local function newParser(path)
         local list = {}
 
         -- TypeDecl
-        while self:token() == '<id>' do
-            local type = {id = self:lexeme()}
+        repeat
+            local id = self:lexeme()
+            local type
             self:match('<id>')
             self:match('=')
 
@@ -748,16 +749,16 @@ local function newParser(path)
             end
 
             if self:token() == 'class' then
-                type.decl = self:parseRestrictedType()
+                type = self:parseRestrictedType()
             else
-                type.decl = self:parseType()
+                type = self:parseType()
             end
 
             self:match(';')
-            list[#list + 1] = type
-        end
+            list[#list + 1] = {id = id, type = 'type', subtype = type}
+        until self:token() ~= '<id>'
 
-        return {type = 'types', types = list}
+        return list
     end
 
     function parser:parseExportedHeading()
