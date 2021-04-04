@@ -796,11 +796,11 @@ local function newParser(path)
 
     function parser:parseFormalParameters()
         self:match('(')
-        local list = {self:parseFormalParam()}
+        local list = self:parseFormalParam()
 
         while self:token() == ';' do
             self:match(';')
-            list[#list + 1] = self:parseFormalParam()
+            append(list, self:parseFormalParam())
         end
 
         self:match(')')
@@ -808,7 +808,7 @@ local function newParser(path)
     end
 
     function parser:parseFormalParam()
-        local access, isarray, subtype, value
+        local access, isarray, value
 
         if self:token() == 'var' or self:token() == 'const' or self:token() == 'out' then
             access = self:token()
@@ -816,7 +816,7 @@ local function newParser(path)
         end
 
         -- Parameter
-        local list = self:parseIdentList()
+        local ids = self:parseIdentList()
         self:match(':')
 
         if self:token() == 'array' then
@@ -825,23 +825,23 @@ local function newParser(path)
             self:match('of')
         end
 
-        subtype = self:parseType()
+        local subtype = self:parseType()
 
         if not isarray and self:token() == '=' then
             self:match('=')
             value = self:parseConstExpr()
         end
 
-        for i = 1, #list do
-            local id = list[i]
+        local list = {}
 
-            list[i] = {
+        for i = 1, #ids do
+            list[#list + 1] = {
                 type = 'param',
                 access = access,
                 isarray = isarray,
-                subtype = subype,
+                subtype = subtype,
                 value = value,
-                id = id
+                id = ids[i]
             }
         end
 
