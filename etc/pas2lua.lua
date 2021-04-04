@@ -1321,12 +1321,16 @@ local function newGenerator(path, ast)
         self:generateDeclarations(node.interface.declarations)
     end
 
-    function generator:generateDeclarations(node)
+    function generator:generateDeclarations(node, isLocal)
         for _, decl in ipairs(node) do
             if decl.type == 'const' then
-                self:generateConst(decl)
+                self:generateConst(decl, isLocal)
             elseif decl.type == 'var' then
-                self:generateVariable(decl)
+                self:generateVariable(decl, isLocal)
+            elseif decl.type == 'type' then
+                self:generateType(decl, isLocal)
+            elseif decl.type == 'decl' then
+                self:generateDeclaration(decl, isLocal)
             else
                 dump(decl)
                 fatal(0, 'Unhandled declaration')
