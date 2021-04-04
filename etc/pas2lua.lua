@@ -777,13 +777,7 @@ local function newParser(path)
 
         if heading.subtype == 'function' then
             self:match(':')
-
-            if self:token() == 'string' then
-                self.returnType = 'string'
-                self:match()
-            else
-                self.returnType = self:parseSimpleType()
-            end
+            self.returnType = self:parseType()
         end
 
         self:match(';')
