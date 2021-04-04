@@ -1318,7 +1318,12 @@ local function newGenerator(path, ast)
         end
 
         out('\n')
-        self:generateDeclarations(node.interface.declarations)
+
+        self:generateDeclarations(node.interface.declarations, true)
+        self:generateDeclarations(node.implementation.declarations, false)
+        self:generateClasses(node)
+
+        out('return M\n')
     end
 
     function generator:generateDeclarations(node, isLocal)
@@ -1345,7 +1350,7 @@ local function newGenerator(path, ast)
             end
         end
 
-        fatal(0, 'Identifier not found: "%s"', qid)
+        self:error(0, 'Identifier not found: "%s"', qid)
     end
 
     function generator:generateValue(node)
@@ -1367,7 +1372,7 @@ local function newGenerator(path, ast)
         elseif node.type == 'variable' then
             local qid = table.concat(node.qid.id, '.')
             local value, type = self:findIdentifier(qid)
-            return string.format('M.%s', qid), type
+            return string.format('%s', qid), type
         elseif node.type == '+' then
             local v1, t1 = self:generateValue(node.left)
             local v2, t2 = self:generateValue(node.right)
@@ -1386,7 +1391,7 @@ local function newGenerator(path, ast)
         end
 
         dump(node)
-        fatal(0, 'unhandled node in generateValue')
+        self:error(0, 'unhandled node in generateValue')
     end
 
     function generator:generateDefaultValue(node)
@@ -1448,10 +1453,10 @@ local function newGenerator(path, ast)
         end
 
         dump(node)
-        fatal('', 0, 'unhandled node in generateDefaultValue')
+        self:error(0, 'unhandled node in generateDefaultValue')
     end
 
-    function generator:generateConst(node)
+    function generator:generateConst(node, isLocal)
         if node.subtype and node.subtype.type == 'arraytype' then
             local limits = {}
 
@@ -1467,8 +1472,10 @@ local function newGenerator(path, ast)
                 }
             end
 
-            out('do\n')
-            out('    local a = {}\n')
+            local code = {}
+
+            code[#code + 1] = '(function()'
+            code[#code + 1] = '    local a = {}'
 
             local set = {}
 
@@ -1481,7 +1488,7 @@ local function newGenerator(path, ast)
                     local j = table.concat(indices, '][')
 
                     if i ~= #limits and not set[j] then
-                        out('    a[%s] = {}\n', j)
+                        code[#code + 1] = string.format('    a[%s] = {}', j)
                         set[j] = true
                     end
                 end
@@ -1492,7 +1499,10 @@ local function newGenerator(path, ast)
                     value = value[limits[i].current].value
                 end
 
-                out('    a[%s] = %s\n', table.concat(indices, ']['), self:generateValue(value[limits[#limits].current]))
+                code[#code + 1] = string.format(
+                    '    a[%s] = %s', table.concat(indices, ']['),
+                    self:generateValue(value[limits[#limits].current])
+                )
 
                 for i = #limits, 1, -1 do
                     limits[i].current = limits[i].current + 1
@@ -1510,20 +1520,67 @@ local function newGenerator(path, ast)
             end
 
             ::out::
-            out('    M.%s = a\n', node.id)
-            out('end\n')
+            code[#code + 1] = '    return a'
+            code[#code + 1] = 'end)()'
+            self:declare(node.id, isLocal, table.concat(code, '\n'))
         else
-            out('M.%s = %s\n', node.id, self:generateValue(node.value))
+            self:declare(node.id, isLocal, self:generateValue(node.value))
         end
     end
 
-    function generator:generateVariable(node)
+    function generator:generateVariable(node, isLocal)
         if node.value then
-            out('M.%s = %s\n', node.id, self:generateValue(node.value))
+            self:declare(node.id, isLocal, self:generateValue(node.value))
         else
-            out('M.%s = %s\n', node.id, self:generateDefaultValue(node.subtype))
+            self:declare(node.id, isLocal, self:generateDefaultValue(node.subtype))
+        end
+    end
+
+    function generator:generateType(node, isLocal)
+        if node.subtype.type == 'class' then
+            local class = node.subtype
+
+            self:declare(node.id, isLocal, string.format('class(%s)', table.concat(class.super, '.')))
+
+            out('function %s:new()\n', node.id)
+
+            for _, field in ipairs(class.fields) do
+                if field.value then
+                    out('    self.%s = %s\n', field.id, self:generateValue(field.value))
+                else
+                    out('    self.%s = %s\n', field.id, self:generateDefaultValue(field.subtype))
+                end
+            end
+
+            out('end\n')
+        else
+            dump(node.subtype)
+            self:error(0, 'Unhandled type')
+        end
+    end
+
+    function generator:generateDeclaration(node, isLocal)
+        if node.subtype == 'procedure' or node.subtype == 'function' then
+            local params = {}
+
+            for _, param in ipairs(node.paramList) do
+                params[#params + 1] = param.id
+            end
+
+            out('function %s(%s)\n', table.concat(node.id.id, ':'), table.concat(params, ', '))
+
+        else
+            dump(node.subtype)
+            self:error(0, 'Unhandled type')
         end
     end
 
     return generator
 end
+
+local path = 'games/popeye/unit1.pas'
+local parser = newParser(path)
+local ast = parser:parse()
+--dump(ast)
+local generator = newGenerator(path, ast)
+generator:generate()
