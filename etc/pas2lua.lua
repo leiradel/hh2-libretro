@@ -287,7 +287,7 @@ local function newParser(path)
             'longint', 'int64', 'word', 'boolean', 'char', 'widechar', 'longword', 'pchar', 'string',
             'div', 'mod', 'and', 'or', 'in', 'is',
             'unit', 'interface', 'uses', 'type', 'true', 'false', 'class', 'end', 'procedure', 'function', 'var', 'const', 'array',
-            'initialization',
+            'initialization', 'nil',
             'of', 'record', 'implementation', 'begin', 'not',
             'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case'
         }
@@ -378,10 +378,6 @@ local function newParser(path)
         local interface = {
             type = 'interface',
             uses = {},
-            consts = {},
-            types = {},
-            vars = {},
-            procedures = {},
             declarations = {}
         }
 
@@ -393,19 +389,15 @@ local function newParser(path)
         while true do
             if self:token() == 'const' then
                 local list = self:parseConstSection()
-                append(interface.consts, list)
                 append(interface.declarations, list)
             elseif self:token() == 'type' then
                 local list = self:parseTypeSection()
-                append(interface.types, list)
                 append(interface.declarations, list)
             elseif self:token() == 'var' then
                 local list = self:parseVarSection()
-                append(interface.vars, list)
                 append(interface.declarations, list)
             elseif self:token() == 'procedure' or self:token() == 'function' then
                 local heading = self:parseExportedHeading()
-                interface.procedures[#interface.procedures + 1] = heading
                 interface.declarations[#interface.declarations + 1] = heading
             else
                 break
@@ -421,10 +413,6 @@ local function newParser(path)
         local implementation = {
             type = 'implementation',
             uses = {},
-            consts = {},
-            types = {},
-            vars = {},
-            procedures = {},
             declarations = {}
         }
 
@@ -435,19 +423,15 @@ local function newParser(path)
         while true do
             if self:token() == 'const' then
                 local list = self:parseConstSection()
-                append(implementation.consts, list)
                 append(implementation.declarations, list)
             elseif self:token() == 'type' then
                 local list =self:parseTypeSection()
-                append(implementation.types, list)
                 append(implementation.declarations, list)
             elseif self:token() == 'var' then
                 local list = self:parseVarSection()
-                append(implementation.vars, list)
                 append(implementation.declarations, list)
             elseif self:token() == 'procedure' or self:token() == 'function' then
                 local decl = self:parseProcedureDeclSection()
-                implementation.procedures[#implementation.procedures + 1] = decl
                 implementation.declarations[#implementation.declarations + 1] = decl
             else
                 break
@@ -571,7 +555,7 @@ local function newParser(path)
     end
 
     function parser:parseRecordFieldConstant()
-        local field = {type = 'field', id = self:lexeme()}
+        local field = {type = 'recfield', id = self:lexeme()}
         self:match('<id>')
         self:match(':')
         field.value = self:parseTypedConstant()
@@ -645,7 +629,7 @@ local function newParser(path)
                 self:match(')')
             end
         elseif tk == 'true' or tk == 'false' then
-            expr = {type = 'literal', subtype = '<boolean>', value = ok}
+            expr = {type = 'literal', subtype = 'boolean', value = tk}
             self:match(tk)
         elseif tk == '<decimal>' or tk == '<binary>' or tk == '<octal>' or tk == '<hexadecimal>' or tk == '<float>' then
             expr = {type = 'literal', subtype = tk, value = self:lexeme()}
@@ -680,15 +664,15 @@ local function newParser(path)
             -- DesignatorSubElement
             if tk == '.' then
                 self:match('.')
-                designator = {type = 'field', id = self:lexeme(), struct = designator}
+                designator = {type = 'accfield', id = self:lexeme(), designator = designator}
                 self:match('<id>')
             elseif tk == '[' then
                 self:match('[')
-                designator = {type = 'index', indices = self:parseExprList(), array = designator}
+                designator = {type = 'accindex', indices = self:parseExprList(), designator = designator}
                 self:match(']')
             elseif tk == '(' then
                 self:match('(')
-                designator = {type = 'function', arguments = self:parseExprList(), func = designator}
+                designator = {type = 'call', arguments = self:parseExprList(), designator = designator}
                 self:match(')')
             end
 
@@ -719,7 +703,7 @@ local function newParser(path)
         end
 
         self:match(']')
-        return list
+        return {type = 'literal', subtype = 'set', elements = list}
     end
 
     function parser:parseSetElement()
@@ -895,18 +879,19 @@ local function newParser(path)
 
     function parser:parseRecType()
         self:match('record')
-        local class = {type = 'rectype', consts = {}, types = {}, vars = {}, procedures = {}, functions = {}, fields = {}}
+        local class = {type = 'rectype', declarations = {}}
 
         -- ClassHeritage
         if self:token() == '(' then
             self:match('(')
-            class.super = self:parseIdentList()
+            class.super = self:lexeme()
+            self:match('<id>')
             self:match(')')
         end
 
         while true do
             if self:token() == '<id>' then
-                append(class.fields, self:parseFieldList())
+                append(class.declarations, self:parseFieldList())
             else
                 break
             end
@@ -974,26 +959,27 @@ local function newParser(path)
 
     function parser:parseRestrictedType()
         self:match('class')
-        local class = {type = 'class', consts = {}, types = {}, vars = {}, procedures = {}, functions = {}, fields = {}}
+        local class = {type = 'class', declarations = {}}
 
         -- ClassHeritage
         if self:token() == '(' then
             self:match('(')
-            class.super = self:parseIdentList()
+            class.super = self:lexeme()
+            self:match('<id>')
             self:match(')')
         end
 
         while true do
             if self:token() == 'const' then
-                append(class.consts, self:parseConstSection())
+                append(class.declarations, self:parseConstSection())
             elseif self:token() == 'type' then
-                append(class.types, self:parseTypeSection())
+                append(class.declarations, self:parseTypeSection())
             elseif self:token() == 'var' then
-                append(class.vars, self:parseVarSection())
+                append(class.declarations, self:parseVarSection())
             elseif self:token() == 'procedure' or self:token() == 'function' then
-                class.procedures[#class.procedures + 1] = self:parseExportedHeading()
+                class.declarations[#class.declarations + 1] = self:parseExportedHeading()
             elseif self:token() == '<id>' then
-                append(class.fields, self:parseFieldList())
+                append(class.declarations, self:parseFieldList())
             else
                 break
             end
@@ -1080,18 +1066,14 @@ local function newParser(path)
     end
 
     function parser:parseBlock()
-        local block = {type = 'block', consts = {}, types = {}, vars = {}, procedures = {}, functions = {}}
+        local block = {type = 'block', declarations = {}}
 
         -- DeclSection
         while true do
             if self:token() == 'const' then
-                append(block.consts, self:parseConstSection())
-            elseif self:token() == 'type' then
-                append(block.types, self:parseTypeSection())
+                append(block.declarations, self:parseConstSection())
             elseif self:token() == 'var' then
-                append(block.vars, self:parseVarSection())
-            elseif self:token() == 'procedure' or self:token() == 'function' then
-                block.procedures[#block.procedures + 1] = self:parseProcedureDeclSection()
+                append(block.declarations, self:parseVarSection())
             else
                 break
             end
@@ -1112,7 +1094,7 @@ local function newParser(path)
         end
 
         self:match('end')
-        return list
+        return {type = 'compoundstmt', statements = list}
     end
 
     function parser:parseStmtList()
@@ -1141,6 +1123,7 @@ local function newParser(path)
         elseif tk == 'case' then
             return self:parseCaseStmt()
         elseif tk == 'repeat' then
+            error('hgkjg')
         elseif tk == 'while' then
             return self:parseWhileStmt()
         elseif tk == 'for' then
@@ -1183,6 +1166,8 @@ local function newParser(path)
 
             list[#list + 1] = self:parseCaseSelector()
         end
+
+        statement.selectors = list
 
         if self:token() == 'else' then
             self:match('else')
@@ -1267,202 +1252,412 @@ local function newParser(path)
                 self:match(')')
             end
 
-            return {type = 'call', designator = designator, arguments = list}
+            return {type = 'proccall', designator = designator, arguments = list or {}}
         end
     end
 
     return parser
 end
 
-local function newGenerator(path, ast)
-    local generator = {}
+local function createScopes()
+    local scopes = {
+        access = 'system.%s',
+        symbols = {
+            paramstr = true, chr = true, randomize = true, ord = true, odd = true, round = true, random = true, tdatetime = true
+        }
+    }
+    
+    scopes = {
+        previous = scopes,
+        access = 'sysutils.%s',
+        symbols = {
+            extractfilepath = true, fileexists = true, inttostr = true, includetrailingpathdelimiter = true, now = true,
+            datetimetotimestamp = true, beep = true
+        }
+    }
+    
+    scopes = {
+        previous = scopes,
+        access = 'inifiles.%s',
+        symbols = {tinifile = true}
+    }
+    
+    scopes = {
+        previous = scopes,
+        access = 'forms.%s',
+        symbols = {
+            action = true,
+            application = true,
+            screen = true,
+            cafree = true,
+            poscreencenter = true,
+            tform = {
+                type = 'class',
+                subtype = {
+                    scope = {
+                        access = 'self.%s',
+                        symbols = {top = true, left = true, doublebuffered = true, position = true}
+                    }
+                }
+            }
+        }
+    }
 
-    local out = function(format, ...)
-        io.write(string.format(format, ...))
+    scopes = {
+        previous = scopes,
+        access = 'dialogs.%s',
+        symbols = {messagedlg = true, mterror = true, mbok = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'extctrls.%s',
+        symbols = {timage = true, ttimer = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'stdctrls.%s',
+        symbols = {tlabel = true, tlcenter = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'controls.%s',
+        symbols = {mbleft = true, crhandpoint = true, crdefault = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'graphics.%s',
+        symbols = {clwhite = true, clgray = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'classes.%s',
+        symbols = {ssleft = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'menus.%s',
+        symbols = {tpopupmenu = true, tmenuitem = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'registry.%s',
+        symbols = {treginifile = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'shellapi.%s',
+        symbols = {shellexecute = true, handle = true, sw_shownormal = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'fmodtypes.%s',
+        symbols = {pfsoundsample = true, fsound_free = true, fsound_all = true}
+    }
+
+    scopes = {
+        previous = scopes,
+        access = 'fmod.%s',
+        symbols = {fsound_sample_free = true, fsound_close = true, fsound_playsound = true, fsound_stopsound = true}
+    }
+
+    return scopes
+end
+
+local function newGenerator(path, ast)
+    local function caller()
+        local info = debug.getinfo(3, 'nl')
+        return '' --string.format('<%s(%d)>', info.name, info.currentline)
     end
 
-    function generator:error(line, format, ...)
+    local indentLevel = 0
+
+    local function indent()
+        indentLevel = indentLevel + 1
+    end
+
+    local function unindent()
+        indentLevel = indentLevel - 1
+    end
+
+    local function spaces()
+        assert(indentLevel >= 0)
+        io.write(string.rep('    ', indentLevel))
+    end
+
+    local function out(format, ...)
+        io.write(caller(), string.format(format, ...))
+    end
+
+    local function outln(format, ...)
+        if format ~= nil then
+            spaces()
+            io.write(caller(), string.format(format, ...), '\n')
+        else
+            io.write('\n')
+        end
+    end
+
+    local scopes = createScopes()
+
+    local function error(line, format, ...)
         fatal(path, line, format, ...)
     end
 
-    function generator:declare(id, isLocal, value)
-        if isLocal == nil then
-            self:error(0, 'isLocal is nil')
-        end
-
-        if isLocal then
-            out('local %s = %s\n', id, value)
-        else
-            out('M.%s = %s\n', id, value)
-            out('%s = M.%s\n', id, id)
-        end
-    end
-
-    function generator:generate()
-        self:generateUnit(ast)
-    end
-
-    function generator:generateUnit(node)
-        if node.type ~= 'unit' then
-            self:error(0, 'Can only generate code for Pascal units')
-        end
-
-        out('local M = {}\n\n')
-
-        for _, unit in ipairs(node.interface.uses) do
-            out('uses \'%s\'\n', unit:lower())
-        end
-
-        for _, unit in ipairs(node.implementation.uses) do
-            out('uses \'%s\'\n', unit:lower())
-        end
-
-        out('\n')
-
-        self:generateDeclarations(node.interface.declarations, true)
-        self:generateDeclarations(node.implementation.declarations, false)
-        self:generateClasses(node)
-
-        out('return M\n')
-    end
-
-    function generator:generateDeclarations(node, isLocal)
-        for _, decl in ipairs(node) do
-            if decl.type == 'const' then
-                self:generateConst(decl, isLocal)
-            elseif decl.type == 'var' then
-                self:generateVariable(decl, isLocal)
-            elseif decl.type == 'type' then
-                self:generateType(decl, isLocal)
-            elseif decl.type == 'decl' then
-                self:generateDeclaration(decl, isLocal)
-            else
-                dump(decl)
-                fatal(0, 'Unhandled declaration')
-            end
-        end
-    end
-
-    function generator:findIdentifier(qid)
-        for _, decl in ipairs(ast.interface.declarations) do
-            if decl.id == qid then
-                return decl.value, decl.value.subtype
-            end
-        end
-
-        self:error(0, 'Identifier not found: "%s"', qid)
-    end
-
-    function generator:generateValue(node)
-        if node.type == 'literal' then
-            if node.subtype == '<string>' then
-                local value = node.value
-                value = value:gsub('^\'', '')
-                value = value:gsub('\'$', '')
-
-                value = value:gsub('\'#(%d+)\'', function(x) return string.char(tonumber(x)) end)
-                value = value:gsub('#(%d+)\'', function(x) return string.char(tonumber(x)) end)
-                value = value:gsub('\'#(%d+)', function(x) return string.char(tonumber(x)) end)
-
-                return string.format('%q', value), '<string>'
-            elseif node.subtype == '<decimal>' then
-                local value = node.value:gsub('[^%d]', '')
-                return string.format('%d', tonumber(value, 10)), 'number'
-            end
-        elseif node.type == 'variable' then
-            local qid = table.concat(node.qid.id, '.')
-            local value, type = self:findIdentifier(qid)
-            return string.format('%s', qid), type
-        elseif node.type == '+' then
-            local v1, t1 = self:generateValue(node.left)
-            local v2, t2 = self:generateValue(node.right)
-
-            if t1 == '<string>' or t2 == '<string>' then
-                if t1 ~= '<string>' then
-                    return string.format('(tostring(%s) .. %s)', v1, v2)
-                elseif t2 ~= '<string>' then
-                    return string.format('(%s .. tostring(%s))', v1, v2)
-                else
-                    return string.format('(%s .. %s)', v1, v2)
-                end
-            elseif t1 == 'number' and t2 == 'number' then
-                return string.format('(%s + %s)', v1, v2)
-            end
-        end
-
+    local function unhandled(node, type)
         dump(node)
-        self:error(0, 'unhandled node in generateValue')
+        print('====>', type)
+        error(0, 'Don\'t know how to generate node "%s"', type)
     end
 
-    function generator:generateDefaultValue(node)
+    local function pushScope(scope)
+        scope.previous = scopes
+        scope.symbols = scope.symbols or {}
+        scopes = scope
+    end
+
+    local function popScope()
+        scopes = scopes.previous
+    end
+
+    local function declare(id, node)
+        id = id:lower()
+        scopes.symbols[id] = node
+        out(scopes.declare, id)
+    end
+
+    local function access(id)
+        id = id:lower()
+        local scope = scopes
+
+        while scope do
+            if scope.symbols[id] then
+                return out(scope.access, id)
+            end
+
+            scope = scope.previous
+        end
+
+        error(0, 'Unknown identifier "%s"', id)
+    end
+
+    local function find(id)
+        id = id:lower()
+        local scope = scopes
+
+        while scope do
+            if scope.symbols[id] then
+                return scope.symbols[id]
+            end
+
+            scope = scope.previous
+        end
+    end
+
+    local generateNode
+
+    local function defaultValue(node)
         if node.type == 'ordident' then
             if node.subtype == 'boolean' then
-                return 'false'
+                out('false')
             elseif node.subtype == 'char' or node.subtype == 'widechar' then
-                return '"\0"'
+                out('\'\\0\'')
             elseif node.subtype == 'pchar' then
-                return nil
+                out('nil')
             else
-                return '0'
+                out('0')
             end
         elseif node.type == 'realtype' then
-            return '0'
+            out('0')
         elseif node.type == 'stringtype' then
-            return '""'
+            out('""')
         elseif node.type == 'typeid' then
-            return string.format('%s()', node.id)
+            access(node.id)
+            out('()')
         elseif node.type == 'arraytype' then
-            local code = {
-                '(function()',
-                '    local a1 = {}'
-            }
-
-            local value = self:generateDefaultValue(node.subtype)
+            out('(function()')
+            outln()
+            indent()
+            outln('local a1 = {}')
 
             for i = 1, #node.limits do
                 local limit = node.limits[i]
-                local min = limit.min.type == 'literal' and limit.min.value or table.concat(limit.min.qid.id, '.')
-                local max = limit.max.type == 'literal' and limit.max.value or table.concat(limit.max.qid.id, '.')
 
-                local ident = string.rep('    ', i)
-                code[#code + 1] = string.format('%sfor i%d = %s, %s do', ident, i, min, max)
+                spaces()
+                out('for i%d = ', i)
+                generateNode(limit.min)
+                out(', ')
+                generateNode(limit.max)
+                out(' do')
+                outln()
+                indent()
 
                 if i < #node.limits then
-                    code[#code + 1] = string.format('%s    local a%d = {}', ident, i + 1)
-                    code[#code + 1] = string.format('%s    a%d[i%d] = a%d', ident, i, i, i + 1)
+                    outln('local a%d = {}', i + 1)
+                    outln('a%d[i%d] = a%d', i, i, i + 1)
                 else
-                    code[#code + 1] = string.format('%s    a%d[i%d] = %s', ident, i, i, value)
+                    spaces()
+                    out('a%d[i%d] = ', i, i)
+                    defaultValue(node.subtype)
+                    outln()
                 end
             end
 
             for i = #node.limits, 1, -1 do
-                code[#code + 1] = string.format('%send', string.rep('    ', i))
+                unindent()
+                outln('end')
             end
 
-            code[#code + 1] = '    return a1'
-            code[#code + 1] = 'end)()'
-            return table.concat(code, '\n')
+            outln('return a1')
+            unindent()
+            spaces()
+            out('end)()')
         elseif node.type == 'rectype' then
-            local code = {}
+            out('{')
 
-            for _, field in ipairs(node.fields) do
-                code[#code + 1] = string.format('%s = %s', field.id, self:generateDefaultValue(field.subtype))
+            for i, decl in ipairs(node.declarations) do
+                if i ~= 1 then
+                    out(', ')
+                end
+
+                if decl.type == 'field' then
+                    out('%s = ', decl.id)
+                    defaultValue(decl.subtype)
+                end
             end
 
-            return string.format('{%s}', table.concat(code, ', '))
+            out('}')
+        else
+            unhandled(node)
         end
-
-        dump(node)
-        self:error(0, 'unhandled node in generateDefaultValue')
     end
 
-    function generator:generateConst(node, isLocal)
-        if node.subtype and node.subtype.type == 'arraytype' then
+    local function generateUnaryOp(operator, operand)
+        out('%s(', operator)
+        generateNode(operand)
+        out(')')
+    end
+
+    local function generateBinaryOp(operator, left, right)
+        out('(')
+        generateNode(left)
+        out(') %s (', operator)
+        generateNode(right)
+        out(')')
+    end
+
+    local function generateUnit(node)
+        outln('local M = {}')
+        outln()
+
+        generateNode(node.interface)
+        generateNode(node.implementation)
+        --self:generateInitialization(node.initialization)
+
+        outln('return M')
+    end
+
+    local function generateInterface(node)
+        pushScope {declare = 'M.%s', access = 'M.%s'}
+
+        for _, unit in ipairs(node.uses) do
+            outln('local %s = require \'%s\'', unit:lower(), unit:lower())
+        end
+
+        outln()
+
+        for _, decl in ipairs(node.declarations) do
+            generateNode(decl)
+        end
+
+        -- Do *not* pop the scope, the symbols are still visible in the next sections
+    end
+
+    local function generateType(node)
+        if node.subtype.type == 'class' then
+            local class = node.subtype
+
+            declare(node.id, node)
+            out(' = class(')
+
+            if class.super then
+                access(class.super)
+            end
+
+            out(')')
+            outln()
+            outln()
+
+            access(node.id)
+            outln('.new = function(self)')
+            indent()
+
+            class.scope = {declare = 'self.%s', access = 'self.%s'}
+            pushScope(class.scope)
+
+            if class.super then
+                spaces()
+                access(class.super)
+                out('.new(self)')
+                outln()
+            end
+
+            for _, decl in ipairs(class.declarations) do
+                generateNode(decl)
+            end
+
+            unindent()
+            outln('end')
+            outln()
+            popScope()
+        else
+            unhandled(node.subtype)
+        end
+    end
+
+    local function generateField(node)
+        spaces()
+        declare(node.id, node)
+        out(' = ')
+
+        if node.value then
+            generateNode(node.value)
+        else
+            defaultValue(node.subtype)
+        end
+
+        outln()
+    end
+
+    local function generateHeading(node)
+        -- Just to declare the methods in the class scope
+        spaces()
+        out('-- ')
+        declare(table.concat(node.id.id, '.'), node)
+        outln()
+    end
+
+    local function generateConst(node)
+        if node.subtype == nil or node.subtype.type == 'ordident' then
+            spaces()
+            declare(node.id, node)
+            out(' = ')
+            generateNode(node.value)
+            outln()
+        elseif node.subtype.type == 'arraytype' then
             local limits = {}
 
             for _, limit in ipairs(node.subtype.limits) do
                 if limit.min.type ~= 'literal' or limit.max.type ~= 'literal' then
-                    self:error(0, 'Array limits are not constant')
+                    error(0, 'Array limits are not constant')
                 end
 
                 limits[#limits + 1] = {
@@ -1472,10 +1667,12 @@ local function newGenerator(path, ast)
                 }
             end
 
-            local code = {}
-
-            code[#code + 1] = '(function()'
-            code[#code + 1] = '    local a = {}'
+            spaces()
+            out(' = (function()', declare(node.id, node))
+            outln()
+            indent()
+            outln('local a = {}')
+            outln()
 
             local set = {}
 
@@ -1488,7 +1685,7 @@ local function newGenerator(path, ast)
                     local j = table.concat(indices, '][')
 
                     if i ~= #limits and not set[j] then
-                        code[#code + 1] = string.format('    a[%s] = {}', j)
+                        outln('a[%s] = {}', j)
                         set[j] = true
                     end
                 end
@@ -1499,10 +1696,10 @@ local function newGenerator(path, ast)
                     value = value[limits[i].current].value
                 end
 
-                code[#code + 1] = string.format(
-                    '    a[%s] = %s', table.concat(indices, ']['),
-                    self:generateValue(value[limits[#limits].current])
-                )
+                spaces()
+                out('a[%s] = ', table.concat(indices, ']['))
+                generateNode(value[limits[#limits].current - limits[#limits].min + 1])
+                out('\n')
 
                 for i = #limits, 1, -1 do
                     limits[i].current = limits[i].current + 1
@@ -1520,67 +1717,513 @@ local function newGenerator(path, ast)
             end
 
             ::out::
-            code[#code + 1] = '    return a'
-            code[#code + 1] = 'end)()'
-            self:declare(node.id, isLocal, table.concat(code, '\n'))
+            outln('return a')
+            unindent()
+            outln('end)()')
         else
-            self:declare(node.id, isLocal, self:generateValue(node.value))
+            unhandled(node)
         end
     end
 
-    function generator:generateVariable(node, isLocal)
+    local function generateLiteral(node)
+        if node.subtype == '<string>' then
+            local value = node.value
+            value = value:gsub('^\'', '')
+            value = value:gsub('\'$', '')
+            value = value:gsub('\'\'', '\'')
+
+            value = value:gsub('\'#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+            value = value:gsub('#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+            value = value:gsub('\'#(%d+)', function(x) return string.char(tonumber(x)) end)
+
+            out('%q', value)
+        elseif node.subtype == 'boolean' then
+            out('%s', node.value)
+        elseif node.subtype == '<decimal>' then
+            out('%d', tonumber(node.value:gsub('[^%d]', ''), 10))
+        elseif node.subtype == '<binary>' then
+            out('%d', tonumber(node.value:gsub('[^01]', ''), 2))
+        elseif node.subtype == '<octal>' then
+            out('%d', tonumber(node.value:gsub('[^01234567]', ''), 8))
+        elseif node.subtype == '<hexadecimal>' then
+            out('%d', tonumber(node.value:gsub('[^%x]', ''), 16))
+        elseif node.subtype == '<float>' then
+            out('%s', node.value)
+        elseif node.subtype == 'nil' then
+            out('nil')
+        elseif node.subtype == 'set' then
+            out('{')
+
+            for i, element in ipairs(node.elements) do
+                if i ~= 1 then
+                    out(', ')
+                end
+
+                out('[')
+                generateNode(element.first)
+                out('] = true')
+            end
+
+            out('}')
+        else
+            unhandled(node)
+        end
+    end
+
+    local function generateAddition(node)
+        generateBinaryOp('+', node.left, node.right)
+    end
+
+    local function generateVariable(node)
+        generateNode(node.qid)
+    end
+
+    local function generateQualid(node)
+        if node.id[1]:lower() == 'true' then
+            dump(node)
+            error(0, '')
+        end
+
+        access(node.id[1]:lower())
+
+        for i = 2, #node.id do
+            out('.')
+            out('%s', node.id[i]:lower())
+        end
+    end
+
+    local function generateVar(node)
+        spaces()
+        declare(node.id, node)
+        out(' = ')
+
         if node.value then
-            self:declare(node.id, isLocal, self:generateValue(node.value))
+            generateNode(node.value)
         else
-            self:declare(node.id, isLocal, self:generateDefaultValue(node.subtype))
+            defaultValue(node.subtype)
+        end
+
+        outln()
+    end
+
+    local function generateImplementation(node)
+        pushScope {declare = 'local %s', access = '%s'}
+
+        for _, unit in ipairs(node.uses) do
+            outln('local %s = require \'%s\'', unit:lower(), unit:lower())
+        end
+
+        outln()
+
+        for _, decl in ipairs(node.declarations) do
+            generateNode(decl)
+        end
+
+        outln()
+        -- Do *not* pop the scope, the symbols are still visible in the next sections
+    end
+
+    local function generateDecl(node)
+        local scopeCount = 0
+        spaces()
+        generateNode(node.id)
+
+        if #node.id.id ~= 1 then
+            local lastId = node.id.id[#node.id.id]
+            node.id.id[#node.id.id] = nil
+
+            local className = table.concat(node.id.id, '.')
+            node.id.id[#node.id.id + 1] = lastId
+
+            local classNode = find(className)
+            local super = classNode.subtype.super
+
+            while super do
+                local superNode = find(super)
+                pushScope(superNode.subtype.scope)
+                scopeCount = scopeCount + 1
+                super = superNode.super
+            end
+
+            pushScope(classNode.subtype.scope)
+            scopeCount = scopeCount + 1
+        end
+
+        out(' = function(')
+        local symbols = {}
+
+        for i, param in ipairs(node.paramList) do
+            if i ~= 1 then
+                out(', ')
+            end
+
+            out('%s', param.id:lower())
+            symbols[param.id:lower()] = true
+        end
+
+        out(')')
+        outln()
+        indent()
+
+        pushScope {declare = 'local %s', access = '%s', symbols = symbols}
+        scopeCount = scopeCount + 1
+
+        for _, decl in ipairs(node.block.declarations) do
+            generateNode(decl)
+        end
+
+        generateNode(node.block.statement)
+
+        for i = 1, scopeCount do
+            popScope()
+        end
+
+        unindent()
+        outln('end')
+    end
+
+    local function generateCompoundStmt(node)
+        for _, statement in ipairs(node.statements) do
+            generateNode(statement)
         end
     end
 
-    function generator:generateType(node, isLocal)
-        if node.subtype.type == 'class' then
-            local class = node.subtype
+    local function generateAssignment(node)
+        spaces()
+        generateNode(node.designator)
+        out(' = ')
+        generateNode(node.value)
+        outln()
+    end
 
-            self:declare(node.id, isLocal, string.format('class(%s)', table.concat(class.super, '.')))
+    local function generateUnaryMinus(node)
+        generateUnaryOp('-', node.operand)
+    end
 
-            out('function %s:new()\n', node.id)
+    local function generateIf(node)
+        spaces()
+        out('if ')
+        generateNode(node.condition)
+        out(' then')
+        outln()
 
-            for _, field in ipairs(class.fields) do
-                if field.value then
-                    out('    self.%s = %s\n', field.id, self:generateValue(field.value))
+        indent()
+        generateNode(node.ontrue)
+        unindent()
+
+        if node.onfalse then
+            outln('else')
+            indent()
+            generateNode(node.onfalse)
+            unindent()
+        end
+
+        outln('end')
+    end
+
+    local function generateNot(node)
+        generateUnaryOp('not', node.operand)
+    end
+
+    local function generateFor(node)
+        spaces()
+        out('for ')
+        generateNode(node.variable)
+        out(' = ')
+        generateNode(node.first)
+        out(', ')
+        generateNode(node.last)
+        out(', ')
+        out('%d do', node.direction == 'up' and 1 or -1)
+        outln()
+
+        indent()
+        generateNode(node.body)
+        unindent()
+        outln('end')
+    end
+
+    local function generateFieldAccess(node)
+        generateNode(node.designator)
+        out('.%s', node.id:lower())
+    end
+
+    local function generateIndexAccess(node)
+        generateNode(node.designator)
+        out('[')
+
+        for i, index in ipairs(node.indices) do
+            if i ~= 1 then
+                out('][')
+            end
+
+            generateNode(index)
+        end
+
+        out(']')
+    end
+
+    local function generateCall(node)
+        if #node.designator.qid.id == 1 and node.designator.qid.id[1]:lower() == 'dec' then
+            -- Special case: dec
+            generateNode(node.arguments[1])
+            out(' = ')
+            generateNode(node.arguments[1])
+            out(' - ')
+
+            if #node.arguments == 1 then
+                out('1')
+            else
+                out('(')
+                generateNode(node.arguments[2])
+                out(')')
+            end
+        elseif #node.designator.qid.id == 1 and node.designator.qid.id[1]:lower() == 'inc' then
+            -- Special case: inc
+            generateNode(node.arguments[1])
+            out(' = ')
+            generateNode(node.arguments[1])
+            out(' + ')
+
+            if #node.arguments == 1 then
+                out('1')
+            else
+                out('(')
+                generateNode(node.arguments[2])
+                out(')')
+            end
+        elseif #node.designator.qid.id == 1 and node.designator.qid.id[1]:lower() == 'decodetime' then
+            -- Special case: decodetime
+            for i = 2, 5 do
+                if i ~= 2 then
+                    out(', ')
+                end
+
+                generateNode(node.arguments[i])
+            end
+
+            out(' = sysutils.decodetime(')
+            generateNode(node.arguments[1])
+            out(')')
+        else
+            generateNode(node.designator)
+            out('(')
+
+            for i, arg in ipairs(node.arguments) do
+                if i ~= 1 then
+                    out(', ')
+                end
+
+                generateNode(arg)
+            end
+
+            out(')')
+        end
+    end
+
+    local function generateProcedureCall(node)
+        spaces()
+        generateNode(node.designator)
+
+        if node.designator.type == 'variable' then
+            -- For procedure calls without an argument list inside parenthesis
+            out('()')
+        end
+
+        outln()
+    end
+
+    local function generateMultiplication(node)
+        generateBinaryOp('*', node.left, node.right)
+    end
+
+    local function generateGreaterThan(node)
+        generateBinaryOp('>', node.left, node.right)
+    end
+
+    local function generateLessEqual(node)
+        generateBinaryOp('<=', node.left, node.right)
+    end
+
+    local function generateWhile(node)
+        spaces()
+        out('while ')
+        generateNode(node.condition)
+        out(' do')
+        outln()
+
+        indent()
+        generateNode(node.body)
+        unindent()
+        outln('end')
+    end
+
+    local function generateGreaterEqual(node)
+        generateBinaryOp('>=', node.left, node.right)
+    end
+
+    local function generateMod(node)
+        generateBinaryOp('%', node.left, node.right)
+    end
+
+    local function generateDiv(node)
+        generateBinaryOp('//', node.left, node.right)
+    end
+
+    local function generateCase(node)
+        outln('do')
+        indent()
+        spaces()
+        out('local _ = ')
+        generateNode(node.selector)
+        outln()
+
+        for i, selector in ipairs(node.selectors) do
+            spaces()
+
+            if i == 1 then
+                out('if ')
+            else
+                out('elseif ')
+            end
+
+            for j, label in ipairs(selector.labels) do
+                if j ~= 1 then
+                    out(' or ')
+                end
+
+                if label.value then
+                    out('_ == (')
+                    generateNode(label.value)
+                    out(')')
                 else
-                    out('    self.%s = %s\n', field.id, self:generateDefaultValue(field.subtype))
+                    out('(_ >= (')
+                    generateNode(label.min)
+                    out(') and _ <= (')
+                    generateNode(label.max)
+                    out(')')
                 end
             end
 
-            out('end\n')
+            out(' then')
+            outln()
+            indent()
+            generateNode(selector.body)
+            unindent()
+        end
+
+        if node.otherwise then
+            indent()
+            generateNode(node.otherwise)
+            unindent()
+        end
+
+        outln('end')
+        unindent()
+        outln('end')
+    end
+
+    local function generateEqual(node)
+        generateBinaryOp('==', node.left, node.right)
+    end
+
+    local function generateAnd(node)
+        generateBinaryOp('and', node.left, node.right)
+    end
+
+    local function generateIn(node)
+        generateNode(node.left)
+        out('[')
+        generateNode(node.right)
+        out(']')
+    end
+
+    local function generateSubtract(node)
+        generateBinaryOp('-', node.left, node.right)
+    end
+
+    local function generateOr(node)
+        generateBinaryOp('or', node.left, node.right)
+    end
+
+    local function generateLessThan(node)
+        generateBinaryOp('<', node.left, node.right)
+    end
+
+    local function generateDivide(node)
+        generateBinaryOp('/', node.left, node.right)
+    end
+
+    local function generateNotEqual(node)
+        generateBinaryOp('~=', node.left, node.right)
+    end
+
+    local function generateEmptyStatement(node)
+    end
+
+    local generators = {
+        unit = generateUnit,
+        interface = generateInterface,
+        type = generateType,
+        field = generateField,
+        heading = generateHeading,
+        const = generateConst,
+        literal = generateLiteral,
+        ['+'] = generateAddition,
+        variable = generateVariable,
+        qualid = generateQualid,
+        var = generateVar,
+        implementation = generateImplementation,
+        decl = generateDecl,
+        compoundstmt = generateCompoundStmt,
+        assignment = generateAssignment,
+        unm = generateUnaryMinus,
+        ['if'] = generateIf,
+        ['not'] = generateNot,
+        ['for'] = generateFor,
+        accfield = generateFieldAccess,
+        accindex = generateIndexAccess,
+        call = generateCall,
+        proccall = generateProcedureCall,
+        ['*'] = generateMultiplication,
+        ['>'] = generateGreaterThan,
+        ['<='] = generateLessEqual,
+        ['while'] = generateWhile,
+        ['>='] = generateGreaterEqual,
+        mod = generateMod,
+        div = generateDiv,
+        case = generateCase,
+        ['='] = generateEqual,
+        ['and'] = generateAnd,
+        ['in'] = generateIn,
+        ['-'] = generateSubtract,
+        ['or'] = generateOr,
+        ['<'] = generateLessThan,
+        ['/'] = generateDivide,
+        ['<>'] = generateNotEqual,
+        emptystmt = generateEmptyStatement,
+    }
+
+    generateNode = function(node)
+        --out('--[[%s]]', node.type)
+        local generator = generators[node.type]
+
+        if generator then
+            generator(node)
         else
-            dump(node.subtype)
-            self:error(0, 'Unhandled type')
+            unhandled(node, node.type)
         end
     end
 
-    function generator:generateDeclaration(node, isLocal)
-        if node.subtype == 'procedure' or node.subtype == 'function' then
-            local params = {}
-
-            for _, param in ipairs(node.paramList) do
-                params[#params + 1] = param.id
-            end
-
-            out('function %s(%s)\n', table.concat(node.id.id, ':'), table.concat(params, ', '))
-
-        else
-            dump(node.subtype)
-            self:error(0, 'Unhandled type')
-        end
+    return function()
+        generateNode(ast)
     end
-
-    return generator
 end
 
+--local path = 'test.pas'
 local path = 'games/popeye/unit1.pas'
 local parser = newParser(path)
 local ast = parser:parse()
 --dump(ast)
 local generator = newGenerator(path, ast)
-generator:generate()
+generator()
