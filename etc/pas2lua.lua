@@ -2205,7 +2205,9 @@ local function newGenerator(path, ast)
     }
 
     generateNode = function(node)
-        --out('--[[%s]]', node.type)
+        --local info = debug.getinfo(2, 'nl')
+        --out('--[[%s(%d):%s]]', info.name, info.currentline, node.type)
+
         local generator = generators[node.type]
 
         if generator then
