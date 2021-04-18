@@ -2101,7 +2101,7 @@ local function newGenerator(path, ast)
                     generateNode(label.min)
                     out(') and _ <= (')
                     generateNode(label.max)
-                    out(')')
+                    out('))')
                 end
             end
 
