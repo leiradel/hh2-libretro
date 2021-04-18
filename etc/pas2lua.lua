@@ -2025,7 +2025,7 @@ local function newGenerator(path, ast)
         spaces()
         generateNode(node.designator)
 
-        if node.designator.type == 'variable' then
+        if node.designator.type == 'variable' or node.designator.type == 'accfield' then
             -- For procedure calls without an argument list inside parenthesis
             out('()')
         end
