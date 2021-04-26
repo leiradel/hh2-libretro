@@ -1,7 +1,11 @@
 -- Requires
 do
-    local template_separator, substitution = package.config:match('.-\n(.-)\n(.-)\n.*')
-    package.path = package.path .. template_separator .. '../etc/' .. substitution .. '.lua'
+    local cwd = arg[0]:match('(.*)/.-')
+
+    if cwd then
+        local template_separator, substitution = package.config:match('.-\n(.-)\n(.-)\n.*')
+        package.path = package.path .. template_separator .. cwd .. '/' .. substitution .. '.lua'
+    end
 end
 
 local inifile = require 'inifile'
