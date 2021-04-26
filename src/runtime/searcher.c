@@ -128,6 +128,7 @@ int hh2_searcher(lua_State* const L) {
                         case Z_MEM_ERROR: return luaL_error(L, "Z_MEM_ERROR");
                         case Z_BUF_ERROR: return luaL_error(L, "Z_BUF_ERROR");
                         case Z_VERSION_ERROR: return luaL_error(L, "Z_VERSION_ERROR");
+                        default: return luaL_error(L, "unknown zlib error");
                     }
                 }
 
