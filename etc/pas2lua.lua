@@ -2222,10 +2222,8 @@ local function newGenerator(path, ast)
     end
 end
 
---local path = 'test.pas'
-local path = 'games/popeye/unit1.pas'
-local parser = newParser(path)
-local ast = parser:parse()
---dump(ast)
-local generator = newGenerator(path, ast)
-generator()
+return {
+    newParser = newParser,
+    newDfmParser = newDfmParser,
+    newGenerator = newGenerator
+}
