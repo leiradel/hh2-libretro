@@ -1711,7 +1711,7 @@ local function newGenerator(path, ast)
             outln('.new = function(self)')
             indent()
 
-            class.scope = {declare = 'self.%s', access = 'self.%s'}
+            class.scope = {declare = 'self.%s', access = 'self.%s', symbols = {self = true}}
             pushScope(class.scope)
 
             if class.super then
