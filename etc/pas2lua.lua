@@ -305,10 +305,78 @@ local function newParser(path)
                 io.stderr:write(err)
                 os.exit(1)
             end
-        until la.token ~= '<linecomment>' and la.token ~= '<blockcomment>' and la.token ~= '<blockdirective>'
+        until la.token ~= '<linecomment>' and la.token ~= '<blockcomment>'
 
         tokens[#tokens + 1] = la
     until la.token == '<eof>'
+
+    do
+        local function getDirective(lexeme)
+            lexeme = lexeme:lower()
+            local directive, id = lexeme:match('{%$%s-([^%s]+)%s+(.+)%s-}')
+
+            if directive then
+                return directive, id
+            end
+
+            directive, id = lexeme:match('%(%*%$%s-([^%s]+)%s+(.+)%s-%*%)')
+
+            if directive then
+                return directive, id
+            end
+
+            directive = lexeme:match('{%$%s-(.+)%s-}')
+
+            if directive then
+                return directive
+            end
+
+            directive = lexeme:match('%(%*%$%s-(.+)%s-%*%)')
+            return directive
+        end
+
+        local function findEndif(tokens, start)
+            for i = start, #tokens do
+                local directive, id = getDirective(tokens[i].lexeme)
+
+
+                if directive == 'endif' and id == 'hh2' then
+                    return i
+                end
+            end
+        end
+
+        local newTokens = {}
+        local i = 1
+        local count = #tokens
+
+        while i <= count do
+            if tokens[i].token == '<blockdirective>' then
+                local directive, id = getDirective(tokens[i].lexeme)
+                i = i + 1
+
+                if id == 'hh2' then
+                    if directive == 'ifdef' then
+                        local j = findEndif(tokens, i) - 1
+
+                        while i <= j do
+                            newTokens[#newTokens + 1] = tokens[i]
+                            i = i + 1
+                        end
+
+                        i = i + 1
+                    elseif directive == 'ifndef' then
+                        i = findEndif(tokens, i) + 1
+                    end
+                end
+            else
+                newTokens[#newTokens + 1] = tokens[i]
+                i = i + 1
+            end
+        end
+
+        tokens = newTokens
+    end
 
     local parser = {
         tokens = tokens,
