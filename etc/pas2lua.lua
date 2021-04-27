@@ -1351,6 +1351,12 @@ local function createScopes()
     
     scopes = {
         previous = scopes,
+        access = 'hh2.%s',
+        symbols = {poke = true}
+   }
+    
+    scopes = {
+        previous = scopes,
         access = 'sysutils.%s',
         symbols = {
             extractfilepath = true, fileexists = true, inttostr = true, includetrailingpathdelimiter = true, now = true,
@@ -1448,7 +1454,10 @@ local function createScopes()
     scopes = {
         previous = scopes,
         access = 'fmod.%s',
-        symbols = {fsound_sample_free = true, fsound_close = true, fsound_playsound = true, fsound_stopsound = true}
+        symbols = {
+            fsound_sample_load = true, fsound_sample_free = true, fsound_close = true, fsound_playsound = true,
+            fsound_stopsound = true, fsound_2d = true
+        }
     }
 
     scopes = {
