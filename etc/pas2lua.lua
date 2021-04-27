@@ -2156,6 +2156,18 @@ local function newGenerator(path, ast)
         generateBinaryOp('<=', node.left, node.right)
     end
 
+    local function generateRepeat(node)
+        outln('repeat')
+        indent()
+        generateNode(node.body)
+        unindent()
+
+        spaces()
+        out('until ')
+        generateNode(node.condition)
+        outln()
+    end
+
     local function generateWhile(node)
         spaces()
         out('while ')
@@ -2299,6 +2311,7 @@ local function newGenerator(path, ast)
         ['*'] = generateMultiplication,
         ['>'] = generateGreaterThan,
         ['<='] = generateLessEqual,
+        ['repeat'] = generateRepeat,
         ['while'] = generateWhile,
         ['>='] = generateGreaterEqual,
         mod = generateMod,
