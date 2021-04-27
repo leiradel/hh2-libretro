@@ -1393,6 +1393,7 @@ local function newGenerator(path, ast)
     end
 
     local indentLevel = 0
+    local code = {}
 
     local function indent()
         indentLevel = indentLevel + 1
@@ -1404,19 +1405,22 @@ local function newGenerator(path, ast)
 
     local function spaces()
         assert(indentLevel >= 0)
-        io.write(string.rep('    ', indentLevel))
+        code[#code + 1] = string.rep('    ', indentLevel)
     end
 
     local function out(format, ...)
-        io.write(caller(), string.format(format, ...))
+        code[#code + 1] = caller()
+        code[#code + 1] = string.format(format, ...)
     end
 
     local function outln(format, ...)
         if format ~= nil then
             spaces()
-            io.write(caller(), string.format(format, ...), '\n')
+            code[#code + 1] = caller()
+            code[#code + 1] = string.format(format, ...)
+            code[#code + 1] = '\n'
         else
-            io.write('\n')
+            code[#code + 1] = '\n'
         end
     end
 
@@ -2233,6 +2237,7 @@ local function newGenerator(path, ast)
 
     return function()
         generateNode(ast)
+        return table.concat(code, '')
     end
 end
 
