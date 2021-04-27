@@ -11,6 +11,7 @@ end
 
 local inifile = require 'inifile'
 local bsenc = require 'bsenc'
+local pas2lua = require 'pas2lua'
 local riff = require 'riff'
 
 -- Supporting functions
@@ -246,6 +247,35 @@ do
     local file = assert(io.open('main.bs', 'wb'))
     file:write(bsenc(table.concat(main, '')))
     file:close()
+end
+
+-- Create unit1.bs and gfxinit.bs
+do
+    do
+        local path = (game .. '/unit1.pas'):gsub('\\', '/')
+        local parser = pas2lua.newParser(path)
+        local ast = parser:parse()
+
+        local generator = pas2lua.newGenerator(path, ast)
+        local code = generator()
+
+        local file = assert(io.open('unit1.bs', 'wb'))
+        file:write(bsenc(code))
+        file:close()
+    end
+
+    do
+        local path = (game .. '/gfxinit.pas'):gsub('\\', '/')
+        local parser = pas2lua.newParser(path)
+        local ast = parser:parse()
+
+        local generator = pas2lua.newGenerator(path, ast)
+        local code = generator()
+
+        local file = assert(io.open('gfxinit.bs', 'wb'))
+        file:write(bsenc(code))
+        file:close()
+    end
 end
 
 -- Create the RIFF file
