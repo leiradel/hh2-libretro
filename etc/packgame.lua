@@ -5,6 +5,7 @@ do
     if cwd then
         local template_separator, substitution = package.config:match('.-\n(.-)\n(.-)\n.*')
         package.path = package.path .. template_separator .. cwd .. '/' .. substitution .. '.lua'
+        package.cpath = package.cpath .. template_separator .. cwd .. '/' .. substitution .. '.so'
     end
 end
 
