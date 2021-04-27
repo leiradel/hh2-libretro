@@ -289,7 +289,7 @@ local function newParser(path)
             'unit', 'interface', 'uses', 'type', 'true', 'false', 'class', 'end', 'procedure', 'function', 'var', 'const', 'array',
             'initialization', 'nil',
             'of', 'record', 'implementation', 'begin', 'not',
-            'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case'
+            'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until'
         }
     }
 
@@ -1123,7 +1123,7 @@ local function newParser(path)
         elseif tk == 'case' then
             return self:parseCaseStmt()
         elseif tk == 'repeat' then
-            error('hgkjg')
+            return self:parseRepeatStmt()
         elseif tk == 'while' then
             return self:parseWhileStmt()
         elseif tk == 'for' then
@@ -1205,6 +1205,20 @@ local function newParser(path)
         end
 
         return label
+    end
+
+    function parser:parseRepeatStmt()
+        self:match('repeat')
+        local statement = {type = 'repeat', body = self:parseStatement()}
+
+        if self:token() == ';' then
+            -- Not sure how to handle this, the grammar says that semicolons separate statement, not that they termintate them
+            self:match(';')
+        end
+
+        self:match('until')
+        statement.condition = self:parseExpression()
+        return statement
     end
 
     function parser:parseWhileStmt()
