@@ -1697,7 +1697,7 @@ local function newGenerator(path, ast)
             local class = node.subtype
 
             declare(node.id, node)
-            out(' = class(')
+            out(' = class.new(')
 
             if class.super then
                 access(class.super)
