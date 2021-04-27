@@ -24,9 +24,14 @@ static bool hh2_pcall(lua_State* const L, int const num_args, int const num_resu
     lua_remove(L, error_index);
 
     if (ret != LUA_OK) {
-        HH2_LOG(HH2_LOG_ERROR, "===============================================================================");
-        HH2_LOG(HH2_LOG_ERROR, "%s", lua_tostring(L, -1));
-        HH2_LOG(HH2_LOG_ERROR, "-------------------------------------------------------------------------------");
+        HH2_LOG(
+            HH2_LOG_ERROR,
+            "\n===============================================================================\n"
+            "%s\n"
+            "-------------------------------------------------------------------------------",
+            lua_tostring(L, -1)
+        );
+
         lua_pop(L, 1);
         return false;
     }
