@@ -4,6 +4,7 @@
 #include "log.h"
 #include "searcher.h"
 #include "state.h"
+#include "version.h"
 
 #include <stdlib.h>
 
@@ -77,7 +78,10 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {"nativeSearcher", hh2_searcher}
     };
 
-    lua_createtable(L, 0, sizeof(functions) / sizeof(functions[0]));
+    lua_createtable(L, 0, sizeof(functions) / sizeof(functions[0]) + 1);
+
+    lua_pushliteral(L, HH2_VERSION);
+    lua_setfield(L, -2, "VERSION");
 
     lua_pushlightuserdata(L, state);
     luaL_setfuncs(L, functions, 1);
