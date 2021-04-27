@@ -18,14 +18,14 @@ return function(hh2)
         end
 
         -- Try to load content from the hh2 file
-        local content, err = pcall(hh2.contentLoader, modname .. '.bs')
+        local ok, encoded = pcall(hh2.contentLoader, modname .. '.bs')
 
-        if not content then
-            return err
+        if not ok then
+            return encoded
         end
 
-        local code = hh2.bsDecoder(content)
-        local chunk, err = load(code, modname, 't')
+        local decoded = hh2.bsDecoder(encoded)
+        local chunk, err = load(decoded, modname, 't')
         return chunk or err
     end
 
@@ -33,19 +33,7 @@ return function(hh2)
     searchers[3] = nil
     searchers[4] = nil
 
-    -- Creates the global 'uses' function
-    uses = function(unitname)
-        local unit = require(unitname)
-
-        -- Register the unit contents in the globals table
-        for key, value in pairs(unit) do
-            _G[key] = value
-        end
-    end
-
-    -- Make the addition operator concatenate string
-    -- Note: if both strings are convertible to numbers, the metamethod won't be called and a number addition will be performed
-    getmetatable('').__add = function(str1, str2)
-        return str1 .. str2
-    end
+    -- Run boot.lua
+    local boot = require 'boot'
+    return boot()
 end

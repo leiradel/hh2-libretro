@@ -61,7 +61,7 @@ ZLIB_OBJS = \
 	src/zlib/trees.o src/zlib/zutil.o
 
 LUA_HEADERS = \
-	src/runtime/class.luagz.h src/runtime/units/classes.luagz.h src/runtime/units/controls.luagz.h \
+	src/runtime/boot.luagz.h src/runtime/class.luagz.h src/runtime/units/classes.luagz.h src/runtime/units/controls.luagz.h \
 	src/runtime/units/dialogs.luagz.h src/runtime/units/extctrls.luagz.h src/runtime/units/fmod.luagz.h \
 	src/runtime/units/fmodtypes.luagz.h src/runtime/units/forms.luagz.h src/runtime/units/graphics.luagz.h \
 	src/runtime/units/jpeg.luagz.h src/runtime/units/math.luagz.h src/runtime/units/messages.luagz.h \

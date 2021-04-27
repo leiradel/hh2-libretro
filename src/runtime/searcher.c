@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include "boot.luagz.h"
 #include "class.luagz.h"
 #include "units/classes.luagz.h"
 #include "units/controls.luagz.h"
@@ -47,6 +48,7 @@ typedef struct {
 hh2_Module;
 
 static const hh2_Module hh2_modules[] = {
+    HH2_MODL("boot", boot_lua),
     HH2_MODL("class", class_lua),
     HH2_MODL("classes", classes_lua),
     HH2_MODL("controls", controls_lua),
