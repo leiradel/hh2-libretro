@@ -1383,6 +1383,22 @@ local function createScopes()
         symbols = {fsound_sample_free = true, fsound_close = true, fsound_playsound = true, fsound_stopsound = true}
     }
 
+    scopes = {
+        previous = scopes,
+        access = '%s',
+        symbols = {
+            gfxinit = {
+                type = 'class',
+                subtype = {
+                    scope = {
+                        access = 'gfxinit.%s',
+                        symbols = {gfx_game_init = true}
+                    }
+                }
+            }
+        }
+    }
+
     return scopes
 end
 
