@@ -715,7 +715,7 @@ local function newParser(path)
         elseif tk == '[' then
             expr = self:parseSetConstructor()
         else
-            expr = {type = 'cast', type = self:parseTypeId()}
+            expr = {type = 'cast', type = self:parseOrdinalType()}
             self:match('(')
             expr.operand = self:parseExpression()
             self:match(')')
