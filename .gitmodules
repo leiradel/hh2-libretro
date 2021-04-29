@@ -16,3 +16,6 @@
 [submodule "src/quickjs"]
 	path = src/quickjs
 	url = https://github.com/bellard/quickjs.git
+[submodule "src/duktape"]
+	path = src/duktape
+	url = https://github.com/svaarala/duktape.git
