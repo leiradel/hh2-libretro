@@ -1,0 +1,1 @@
+Copied from files in duktape-2.6.0.tar.xz, downloaded from https://duktape.org/download.html

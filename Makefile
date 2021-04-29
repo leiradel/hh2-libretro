@@ -1,18 +1,12 @@
 %.o: %.c
 	$(CC) $(INCLUDES) $(CFLAGS) -std=c99 -Wall -Wpedantic -Werror -c "$<" -o "$@"
 
-src/quickjs/%.o: src/quickjs/%.c
-	$(CC) $(INCLUDES) $(CFLAGS) -std=c11 -include alloca.h -c "$<" -o "$@"
-
-%.lua.h: %.lua
+%.js.h: %.js
 	echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
-%.luagz.h: %.lua
+%.jsgz.h: %.js
 	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
 	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `wc -c "$<" | sed 's/ .*//'`;" >> "$@"
-
-%.bs: %.lua
-	$(LUA) etc/bsenc.lua $< $@
 
 CC ?= gcc
 CFLAGS = -fPIC
@@ -24,7 +18,7 @@ DEFINES = \
 	-DOUTSIDE_SPEEX -DRANDOM_PREFIX=speex -DEXPORT= -D_USE_SSE -D_USE_SSE2 -DFLOATING_POINT
 
 INCLUDES = \
-	-Isrc -Isrc/dr_libs -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/lua -Isrc/speex -Isrc/runtime \
+	-Isrc -Isrc/dr_libs -Isrc/duktape -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/speex -Isrc/runtime \
 	-Isrc/zlib
 
 LIBS = -lm
@@ -50,8 +44,8 @@ LIBPNG_OBJS = \
 	src/libpng/pngrtran.o src/libpng/pngrutil.o src/libpng/pngset.o src/libpng/pngtrans.o src/libpng/pngwio.o \
 	src/libpng/pngwrite.o src/libpng/pngwtran.o src/libpng/pngwutil.o
 
-QUICKJS_OBJS = \
-	src/quickjs/quickjs.o src/quickjs/libregexp.o src/quickjs/libunicode.o src/quickjs/cutils.o
+DUKTAPE_OBJS = \
+	src/duktape/duktape.o
 
 SPEEX_OBJS = \
 	src/speex/resample.o
@@ -75,7 +69,7 @@ HH2_OBJS = \
 
 all: src/generated/version.h hh2_libretro.so
 
-hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(QUICKJS_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
+hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(DUKTAPE_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
@@ -89,7 +83,7 @@ src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
 src/runtime/searcher.o: $(LUA_HEADERS)
 
-test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(QUICKJS_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
+test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(DUKTAPE_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/generated/version.h
@@ -103,6 +97,6 @@ clean: FORCE
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(QUICKJS_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
+	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(DUKTAPE_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 .PHONY: FORCE
