@@ -1,5 +1,8 @@
 %.o: %.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
+	$(CC) $(INCLUDES) $(CFLAGS) -std=c99 -Wall -Wpedantic -Werror -c "$<" -o "$@"
+
+src/quickjs/%.o: src/quickjs/%.c
+	$(CC) $(INCLUDES) $(CFLAGS) -std=c11 -include alloca.h -c "$<" -o "$@"
 
 %.lua.h: %.lua
 	echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
@@ -12,7 +15,7 @@
 	$(LUA) etc/bsenc.lua $< $@
 
 CC ?= gcc
-CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
+CFLAGS = -fPIC
 
 DEFINES = \
 	-DHH2_ENABLE_LOGGING \
@@ -47,11 +50,8 @@ LIBPNG_OBJS = \
 	src/libpng/pngrtran.o src/libpng/pngrutil.o src/libpng/pngset.o src/libpng/pngtrans.o src/libpng/pngwio.o \
 	src/libpng/pngwrite.o src/libpng/pngwtran.o src/libpng/pngwutil.o
 
-LUA_OBJS = \
-    src/lua/lapi.o src/lua/lauxlib.o src/lua/lbaselib.o src/lua/lcode.o src/lua/lcorolib.o src/lua/lctype.o src/lua/ldebug.o \
-    src/lua/ldo.o src/lua/ldump.o src/lua/lfunc.o src/lua/lgc.o src/lua/llex.o src/lua/lmathlib.o src/lua/lmem.o src/lua/loadlib.o \
-    src/lua/lobject.o src/lua/lopcodes.o src/lua/lparser.o src/lua/lstate.o src/lua/lstring.o src/lua/lstrlib.o src/lua/ltable.o \
-    src/lua/ltablib.o src/lua/ltm.o src/lua/lundump.o src/lua/lutf8lib.o src/lua/lvm.o src/lua/lzio.o
+QUICKJS_OBJS = \
+	src/quickjs/quickjs.o src/quickjs/libregexp.o src/quickjs/libunicode.o src/quickjs/cutils.o
 
 SPEEX_OBJS = \
 	src/speex/resample.o
@@ -75,7 +75,7 @@ HH2_OBJS = \
 
 all: src/generated/version.h hh2_libretro.so
 
-hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
+hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(QUICKJS_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
@@ -89,7 +89,7 @@ src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
 src/runtime/searcher.o: $(LUA_HEADERS)
 
-test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
+test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(QUICKJS_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/generated/version.h
@@ -103,6 +103,6 @@ clean: FORCE
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
+	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(QUICKJS_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 .PHONY: FORCE
