@@ -1,7 +1,7 @@
 .vscode/
 src/generated/version.h
-*.lua.h
-*.luagz.h
+*.js.h
+*.js.gz.h
 games/
 test/test
 test/test.hh2
