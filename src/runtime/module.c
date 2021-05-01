@@ -1,88 +1,175 @@
 #include "module.h"
-#include "bsreader.h"
 #include "filesys.h"
 #include "log.h"
-#include "searcher.h"
 #include "state.h"
 #include "version.h"
 
+#include <zlib.h>
+
 #include <stdlib.h>
+#include <errno.h>
 
-#include <lauxlib.h>
+#include "boot.js.gz.h"
+#include "libs/rtl.js.gz.h"
+#include "libs/system.js.gz.h"
 
-static int hh2_contentLoader(lua_State* const L) {
-    hh2_State* state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
-    char const* const path = luaL_checkstring(L, 1);
-    long const size = hh2_fileSize(state->filesys, path);
+typedef struct {
+    char const* name;
+    uint8_t const* compressed;
+    size_t compressed_length;
+    size_t uncompressed_length;
+}
+hh2_Module;
 
-    if (size < 0) {
-        return luaL_error(L, "file not found: \"%s\"", path);
+static const hh2_Module hh2_modules[] = {
+    {"boot.js", boot_js, sizeof(boot_js), boot_js_size},
+    {"rtl.js", rtl_js, sizeof(rtl_js), rtl_js_size},
+    {"system.js", system_js, sizeof(system_js), system_js_size}
+};
+
+static duk_ret_t hh2_zerror(duk_context* const ctx, int const res) {
+    switch (res) {
+        case Z_ERRNO: return duk_error(ctx, DUK_ERR_ERROR, "Z_ERRNO: %s", strerror(errno));
+        case Z_STREAM_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_STREAM_ERROR");
+        case Z_DATA_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_DATA_ERROR");
+        case Z_MEM_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_MEM_ERROR");
+        case Z_BUF_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_BUF_ERROR");
+        case Z_VERSION_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_VERSION_ERROR");
+        default: return duk_error(ctx, DUK_ERR_ERROR, "unknown zlib error");
+    }
+}
+
+static duk_ret_t hh2_uncompress(
+    duk_context* const ctx, void const* const compressed, size_t const compressed_length, size_t const uncompressed_length) {
+
+    // Mostly copied from zlib's uncompr.c
+    void* const uncompressed = malloc(uncompressed_length);
+
+    if (uncompressed == NULL) {
+        return hh2_zerror(ctx, Z_MEM_ERROR);
     }
 
-    hh2_File const file = hh2_openFile(state->filesys, path);
+    z_stream stream;
+    memset(&stream, 0, sizeof(stream));
+
+    stream.next_in = (Bytef z_const*)compressed;
+    stream.avail_in = compressed_length;
+    stream.next_out = uncompressed;
+    stream.avail_out = uncompressed_length;
+
+    int const zerr1 = inflateInit2(&stream, 16 + MAX_WBITS);
+
+    if (zerr1 != Z_OK) {
+        return hh2_zerror(ctx, zerr1);
+    }
+
+    int const zerr2 = inflate(&stream, Z_NO_FLUSH);
+    inflateEnd(&stream);
+
+    if (zerr2 == Z_NEED_DICT) {
+        return hh2_zerror(ctx, Z_DATA_ERROR);
+    }
+    else if (zerr2 != Z_STREAM_END) {
+        return hh2_zerror(ctx, zerr2);
+    }
+
+    duk_push_lstring(ctx, uncompressed, uncompressed_length);
+    free(uncompressed);
+    return 1;
+}
+
+static duk_ret_t hh2_print(duk_context* const ctx) {
+    duk_concat(ctx, duk_get_top(ctx));
+    char const* const string = duk_require_string(ctx, 0);
+    HH2_LOG(HH2_LOG_INFO, "[JS]: %s", string);
+    return 0;
+}
+
+static duk_ret_t hh2_load(duk_context* const ctx) {
+    duk_push_current_function(ctx);
+    duk_get_prop_string(ctx, -1, "\xff" "state");
+    hh2_State* const state = (hh2_State*)duk_get_pointer(ctx, -1);
+    duk_pop_2(ctx);
+
+    char const* const name = duk_require_string(ctx, 0);
+
+    for (size_t i = 0; i < sizeof(hh2_modules) / sizeof(hh2_modules[0]); i++) {
+        hh2_Module const* const mod = hh2_modules + i;
+
+        if (strcmp(name, mod->name) == 0) {
+            return hh2_uncompress(ctx, mod->compressed, mod->compressed_length, mod->uncompressed_length);
+        }
+    }
+
+    long const size = hh2_fileSize(state->filesys, name);
+
+    if (size < 0) {
+        return duk_error(ctx, DUK_ERR_ERROR, "file not found: \"%s\"", name);
+    }
+
+    hh2_File const file = hh2_openFile(state->filesys, name);
 
     if (file == NULL) {
-        return luaL_error(L, "error opening file: \"%s\"", path);
+        return duk_error(ctx, DUK_ERR_ERROR, "error opening file: \"%s\"", name);
     }
 
     void* const buffer = malloc(size);
 
     if (buffer == NULL) {
         hh2_close(file);
-        return luaL_error(L, "out of memory");
+        return duk_error(ctx, DUK_ERR_ERROR, "out of memory");
     }
 
     if (hh2_read(file, buffer, size) != size) {
         free(buffer);
         hh2_close(file);
-        return luaL_error(L, "error reading from file: \"%s\"", path);
+        return duk_error(ctx, DUK_ERR_ERROR, "error reading from file: \"%s\"", name);
     }
 
     hh2_close(file);
-    lua_pushlstring(L, buffer, size);
+    duk_push_lstring(ctx, buffer, size);
     free(buffer);
     return 1;
 }
 
-static int hh2_bsDecoder(lua_State* const L) {
-    char const* const data = luaL_checkstring(L, 1);
-    hh2_BsStream const stream = hh2_createBsDecoder(data);
+static duk_ret_t hh2_decrypt(duk_context* const ctx) {
+    return 0;
+}
 
-    if (stream == NULL) {
-        return luaL_error(L, "error creating bs stream");
-    }
-
-    luaL_Buffer B;
-    luaL_buffinit(L, &B);
-
-    for (lua_Integer i = 1;; i++) {
-        size_t length = 0;
-        char const* const decoded = hh2_decode(stream, &length);
-
-        if (decoded == NULL) {
-            break;
-        }
-
-        luaL_addlstring(&B, decoded, length);
-    }
-
-    hh2_destroyBsDecoder(stream);
-    luaL_pushresult(&B);
+static duk_ret_t hh2_compile(duk_context* const ctx) {
+    duk_set_top(ctx, 2);
+    duk_compile(ctx, DUK_COMPILE_FUNCTION);
     return 1;
 }
 
-void hh2_pushModule(lua_State* const L, hh2_State* const state) {
-    static luaL_Reg const functions[] = {
-        {"bsDecoder", hh2_bsDecoder},
-        {"contentLoader", hh2_contentLoader},
-        {"nativeSearcher", hh2_searcher}
-    };
+static duk_ret_t hh2_eval(duk_context* const ctx) {
+    duk_set_top(ctx, 1);
+    duk_push_literal(ctx, "eval");
+    duk_compile(ctx, DUK_COMPILE_EVAL);
+    duk_call(ctx, 0);
+    return 1;
+}
 
-    lua_createtable(L, 0, sizeof(functions) / sizeof(functions[0]) + 1);
+void hh2_pushModule(duk_context* const ctx, hh2_State* const state) {
+    duk_idx_t const index = duk_push_object(ctx);
 
-    lua_pushliteral(L, HH2_VERSION);
-    lua_setfield(L, -2, "VERSION");
+    duk_push_c_function(ctx, hh2_print, DUK_VARARGS);
+    duk_put_prop_literal(ctx, index, "print");
 
-    lua_pushlightuserdata(L, state);
-    luaL_setfuncs(L, functions, 1);
+    duk_push_c_function(ctx, hh2_load, 1);
+    duk_push_pointer(ctx, state);
+    duk_put_prop_string(ctx, -2, "\xff" "state");
+    duk_put_prop_literal(ctx, index, "load");
+
+    duk_push_c_function(ctx, hh2_decrypt, 1);
+    duk_put_prop_literal(ctx, index, "decrypt");
+
+    duk_push_c_function(ctx, hh2_compile, 2);
+    duk_put_prop_literal(ctx, index, "compile");
+
+    duk_push_c_function(ctx, hh2_eval, 1);
+    duk_put_prop_literal(ctx, index, "eval");
+
+    duk_push_literal(ctx, HH2_VERSION);
+    duk_put_prop_literal(ctx, index, "version");
 }
