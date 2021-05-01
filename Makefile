@@ -4,9 +4,12 @@
 %.js.h: %.js
 	echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
-%.jsgz.h: %.js
+%.js.gz.h: %.js
 	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
 	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `wc -c "$<" | sed 's/ .*//'`;" >> "$@"
+
+%.js: %.pas
+	pas2js -O2 -Pecmascript5 -Tnodejs -Jc- -Jl -Jeutf-8 -Jirtl.js- "$<"
 
 CC ?= gcc
 CFLAGS = -fPIC
@@ -54,18 +57,12 @@ ZLIB_OBJS = \
 	src/zlib/adler32.o src/zlib/crc32.o src/zlib/deflate.o src/zlib/inffast.o src/zlib/inflate.o src/zlib/inftrees.o \
 	src/zlib/trees.o src/zlib/zutil.o
 
-LUA_HEADERS = \
-	src/runtime/boot.luagz.h src/runtime/class.luagz.h src/runtime/units/classes.luagz.h src/runtime/units/controls.luagz.h \
-	src/runtime/units/dialogs.luagz.h src/runtime/units/extctrls.luagz.h src/runtime/units/fmod.luagz.h \
-	src/runtime/units/fmodtypes.luagz.h src/runtime/units/forms.luagz.h src/runtime/units/graphics.luagz.h \
-	src/runtime/units/jpeg.luagz.h src/runtime/units/math.luagz.h src/runtime/units/messages.luagz.h \
-	src/runtime/units/registry.luagz.h src/runtime/units/stdctrls.luagz.h src/runtime/units/sysutils.luagz.h \
-	src/runtime/units/windows.luagz.h
+JS_HEADERS = \
+	src/runtime/boot.js.gz.h src/runtime/libs/rtl.js.gz.h src/runtime/libs/system.js.gz.h
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
-	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/bsreader.o src/runtime/module.o \
-	src/runtime/searcher.o src/runtime/state.o src/version.o
+	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/module.o src/runtime/state.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 
@@ -79,9 +76,9 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
+src/runtime/module.o: src/runtime/module.c $(JS_HEADERS)
 
-src/runtime/searcher.o: $(LUA_HEADERS)
+src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.js.h
 
 test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(DUKTAPE_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
@@ -93,7 +90,7 @@ test/test.hh2: FORCE
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
-	rm -f src/generated/version.h src/runtime/bootstrap.lua.h $(LUA_HEADERS)
+	rm -f src/generated/version.h src/runtime/bootstrap.lua.h $(JS_HEADERS)
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
