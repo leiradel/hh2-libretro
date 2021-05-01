@@ -4,7 +4,7 @@
 #include "canvas.h"
 #include "filesys.h"
 
-#include <lua.h>
+#include <duktape.h>
 
 // Do not change these values!
 #define HH2C_SRAM_MAX_ENTRIES 8
@@ -52,8 +52,7 @@ hh2_Button;
 
 typedef struct {
     hh2_Sram sram;
-    lua_State* L;
-    int reference;
+    duk_context* ctx;
 
     hh2_Filesys filesys;
 

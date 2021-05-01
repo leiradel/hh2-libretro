@@ -2,75 +2,32 @@
 #include "log.h"
 #include "module.h"
 
-#include "bootstrap.lua.h"
-
-#include <lauxlib.h>
-#include <lualib.h>
+#include <zlib.h>
 
 #include <string.h>
-#include <stdlib.h>
 
-static int hh2_traceback(lua_State* const L) {
-    luaL_traceback(L, L, lua_tostring(L, -1), 1);
+#include "bootstrap.js.h"
+
+static duk_ret_t hh2_bootstrap(duk_context* const ctx) {
+    hh2_State* const state = (hh2_State*)duk_get_pointer(ctx, 0);
+
+    duk_push_literal(ctx, "bootstrap.js");
+    duk_compile_lstring_filename(ctx, DUK_COMPILE_FUNCTION, bootstrap_js, sizeof(bootstrap_js));
+
+    hh2_pushModule(ctx, state);
+    duk_call(ctx, 1);
     return 1;
-}
-
-static bool hh2_pcall(lua_State* const L, int const num_args, int const num_results) {
-    int const error_index = lua_gettop(L) - num_args;
-    lua_pushcfunction(L, hh2_traceback);
-    lua_insert(L, error_index);
-
-    int const ret = lua_pcall(L, num_args, num_results, error_index);
-    lua_remove(L, error_index);
-
-    if (ret != LUA_OK) {
-        HH2_LOG(
-            HH2_LOG_ERROR,
-            "\n===============================================================================\n"
-            "%s\n"
-            "-------------------------------------------------------------------------------",
-            lua_tostring(L, -1)
-        );
-
-        lua_pop(L, 1);
-        return false;
-    }
-
-    return true;
-}
-
-static int hh2_bootstrap(lua_State* const L) {
-    hh2_State* state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
-
-    // Load the bootstrap code
-    int const res = luaL_loadbufferx(L, bootstrap_lua, sizeof(bootstrap_lua), "bootstrap.lua", "t");
-
-    if (res != LUA_OK) {
-        return lua_error(L);
-    }
-
-    // Call the compiled chunk to get the bootstrap main function
-    lua_call(L, 0, 1);
-
-    // Call the main function
-    hh2_pushModule(L, state);
-    lua_call(L, 1, 1);
-
-    // Get a reference to whatever the main function returns
-    state->reference = luaL_ref(L, LUA_REGISTRYINDEX);
-    return 0;
 }
 
 bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
     memset(&state->sram, 0, sizeof(state->sram));
 
-    state->L = luaL_newstate();
+    state->ctx = duk_create_heap_default();
 
-    if (state->L == NULL) {
+    if (state->ctx == NULL) {
         return false;
     }
 
-    state->reference = LUA_NOREF;
     state->filesys = filesys;
     state->next_tick = 0;
     state->canvas = NULL;
@@ -85,30 +42,29 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
     state->pointer_y = 0;
     state->pointer_pressed = false;
 
-    static luaL_Reg const lualibs[] = {
-        {"_G", luaopen_base},
-        {LUA_LOADLIBNAME, luaopen_package},
-        {LUA_COLIBNAME, luaopen_coroutine},
-        {LUA_TABLIBNAME, luaopen_table},
-        // {LUA_IOLIBNAME, luaopen_io},
-        // {LUA_OSLIBNAME, luaopen_os},
-        {LUA_STRLIBNAME, luaopen_string},
-        {LUA_MATHLIBNAME, luaopen_math},
-        {LUA_UTF8LIBNAME, luaopen_utf8},
-        // {LUA_DBLIBNAME, luaopen_debug}
-    };
+    duk_push_c_function(state->ctx, hh2_bootstrap, 1);
+    duk_push_pointer(state->ctx, state);
+    duk_int_t const res = duk_pcall(state->ctx, 1);
 
-    for (size_t i = 0; i < sizeof(lualibs) / sizeof(lualibs[0]); i++ ) {
-        luaL_requiref(state->L, lualibs[i].name, lualibs[i].func, 1);
-        lua_pop(state->L, 1);
+    if (res != DUK_EXEC_SUCCESS) {
+        HH2_LOG(
+            HH2_LOG_ERROR,
+            "\n===============================================================================\n"
+            "%s\n"
+            "-------------------------------------------------------------------------------",
+            duk_safe_to_stacktrace(state->ctx, -1)
+        );
+
+        hh2_destroyState(state);
+        return false;
     }
 
-    lua_pushlightuserdata(state->L, (void*)state);
-    lua_pushcclosure(state->L, hh2_bootstrap, 1);
+    duk_bool_t const success = duk_require_boolean(state->ctx, -1);
+    duk_pop(state->ctx);
 
-    if (!hh2_pcall(state->L, 0, 0)) {
-        lua_close(state->L);
-        memset(state, 0, sizeof(*state));
+    if (!success) {
+        HH2_LOG(HH2_LOG_ERROR, "Error creating state, bootstrap.js returned false");
+        hh2_destroyState(state);
         return false;
     }
 
@@ -116,7 +72,7 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
 }
 
 void hh2_destroyState(hh2_State* const state) {
-    lua_close(state->L);
+    duk_destroy_heap(state->ctx);
 
     if (state->canvas != NULL) {
         hh2_destroyCanvas(state->canvas);
