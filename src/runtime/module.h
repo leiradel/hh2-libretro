@@ -3,8 +3,8 @@
 
 #include "state.h"
 
-#include <lua.h>
+#include <duktape.h>
 
-void hh2_pushModule(lua_State* L, hh2_State* state);
+void hh2_pushModule(duk_context* const ctx, hh2_State* const state);
 
 #endif // HH2_MODULE_H__
