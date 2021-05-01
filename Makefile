@@ -9,7 +9,7 @@
 	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `wc -c "$<" | sed 's/ .*//'`;" >> "$@"
 
 %.js: %.pas
-	pas2js -O2 -Pecmascript5 -Tnodejs -Jc- -Jl -Jeutf-8 -Jirtl.js- "$<"
+	pas2js -O2 -dHH2 -Pecmascript5 -Tnodejs -Jc- -Jl -Jeconsole -Jirtl.js- "$<" -o"$@"
 
 CC ?= gcc
 CFLAGS = -fPIC
