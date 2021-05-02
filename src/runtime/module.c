@@ -10,8 +10,26 @@
 #include <errno.h>
 
 #include "boot.js.gz.h"
-#include "libs/rtl.js.gz.h"
-#include "libs/system.js.gz.h"
+
+#include "rtl/classes.js.gz.h"
+#include "rtl/js.js.gz.h"
+#include "rtl/rtl.js.gz.h"
+#include "rtl/rtlconsts.js.gz.h"
+#include "rtl/system.js.gz.h"
+#include "rtl/sysutils.js.gz.h"
+#include "rtl/types.js.gz.h"
+#include "rtl/typinfo.js.gz.h"
+
+#include "units/controls.js.gz.h"
+#include "units/extctrls.js.gz.h"
+#include "units/forms.js.gz.h"
+#include "units/fmod.js.gz.h"
+#include "units/fmodtypes.js.gz.h"
+#include "units/graphics.js.gz.h"
+#include "units/menus.js.gz.h"
+#include "units/registry.js.gz.h"
+#include "units/stdctrls.js.gz.h"
+#include "units/windows.js.gz.h"
 
 typedef struct {
     char const* name;
@@ -23,8 +41,26 @@ hh2_Module;
 
 static const hh2_Module hh2_modules[] = {
     {"boot.js", boot_js, sizeof(boot_js), boot_js_size},
+
+    {"classes.js", classes_pas, sizeof(classes_pas), classes_pas_size},
+    {"js.js", js_pas, sizeof(js_pas), js_pas_size},
     {"rtl.js", rtl_js, sizeof(rtl_js), rtl_js_size},
-    {"system.js", system_js, sizeof(system_js), system_js_size}
+    {"rtlconsts.js", rtlconsts_pas, sizeof(rtlconsts_pas), rtlconsts_pas_size},
+    {"system.js", system_pas, sizeof(system_pas), system_pas_size},
+    {"sysutils.js", sysutils_pas, sizeof(sysutils_pas), sysutils_pas_size},
+    {"types.js", types_pas, sizeof(types_pas), types_pas_size},
+    {"typinfo.js", typinfo_pas, sizeof(typinfo_pas), typinfo_pas_size},
+
+    {"controls.js", controls_pas, sizeof(controls_pas), controls_pas_size},
+    {"extctrls.js", extctrls_pas, sizeof(extctrls_pas), extctrls_pas_size},
+    {"forms.js", forms_pas, sizeof(forms_pas), forms_pas_size},
+    {"fmod.js", fmod_pas, sizeof(fmod_pas), fmod_pas_size},
+    {"fmodtypes.js", fmodtypes_pas, sizeof(fmodtypes_pas), fmodtypes_pas_size},
+    {"graphics.js", graphics_pas, sizeof(graphics_pas), graphics_pas_size},
+    {"menus.js", menus_pas, sizeof(menus_pas), menus_pas_size},
+    {"registry.js", registry_pas, sizeof(registry_pas), registry_pas_size},
+    {"stdctrls.js", stdctrls_pas, sizeof(stdctrls_pas), stdctrls_pas_size},
+    {"windows.js", windows_pas, sizeof(windows_pas), windows_pas_size},
 };
 
 static duk_ret_t hh2_zerror(duk_context* const ctx, int const res) {
