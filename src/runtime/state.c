@@ -59,15 +59,6 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
         return false;
     }
 
-    duk_bool_t const success = duk_require_boolean(state->ctx, -1);
-    duk_pop(state->ctx);
-
-    if (!success) {
-        HH2_LOG(HH2_LOG_ERROR, "Error creating state, bootstrap.js returned false");
-        hh2_destroyState(state);
-        return false;
-    }
-
     return true;
 }
 
