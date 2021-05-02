@@ -78,10 +78,28 @@ static duk_ret_t hh2_uncompress(
     return 1;
 }
 
-static duk_ret_t hh2_print(duk_context* const ctx) {
-    duk_concat(ctx, duk_get_top(ctx));
-    char const* const string = duk_require_string(ctx, 0);
-    HH2_LOG(HH2_LOG_INFO, "[JS]: %s", string);
+static duk_ret_t hh2_jslog(duk_context* const ctx) {
+    duk_size_t length = 0;
+    char const* const levelStr = duk_require_lstring(ctx, 0, &length);
+
+    if (length != 1) {
+error:
+        return duk_error(ctx, DUK_ERR_ERROR, "invalid log level: \"%s\"", levelStr);
+    }
+
+    hh2_LogLevel level = HH2_LOG_INFO;
+
+    switch (*levelStr) {
+        case 'd': level = HH2_LOG_DEBUG; break;
+        case 'i': level = HH2_LOG_INFO; break;
+        case 'w': level = HH2_LOG_WARN; break;
+        case 'e': level = HH2_LOG_ERROR; break;
+        default: goto error;
+    }
+
+    duk_concat(ctx, duk_get_top(ctx) - 1);
+    char const* const string = duk_require_string(ctx, 1);
+    HH2_LOG(level, "[JS]: %s", string);
     return 0;
 }
 
@@ -145,8 +163,8 @@ static duk_ret_t hh2_compile(duk_context* const ctx) {
 void hh2_pushModule(duk_context* const ctx, hh2_State* const state) {
     duk_idx_t const index = duk_push_object(ctx);
 
-    duk_push_c_function(ctx, hh2_print, DUK_VARARGS);
-    duk_put_prop_literal(ctx, index, "print");
+    duk_push_c_function(ctx, hh2_jslog, DUK_VARARGS);
+    duk_put_prop_literal(ctx, index, "log");
 
     duk_push_c_function(ctx, hh2_load, 1);
     duk_push_pointer(ctx, state);
