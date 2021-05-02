@@ -35,7 +35,7 @@ static duk_ret_t hh2_zerror(duk_context* const ctx, int const res) {
         case Z_MEM_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_MEM_ERROR");
         case Z_BUF_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_BUF_ERROR");
         case Z_VERSION_ERROR: return duk_error(ctx, DUK_ERR_ERROR, "Z_VERSION_ERROR");
-        default: return duk_error(ctx, DUK_ERR_ERROR, "unknown zlib error");
+        default: return duk_error(ctx, DUK_ERR_ERROR, "Unknown zlib error");
     }
 }
 
