@@ -159,9 +159,6 @@ void hh2_pushModule(duk_context* const ctx, hh2_State* const state) {
     duk_push_c_function(ctx, hh2_compile, 2);
     duk_put_prop_literal(ctx, index, "compile");
 
-    duk_push_c_function(ctx, hh2_eval, 1);
-    duk_put_prop_literal(ctx, index, "eval");
-
     duk_push_literal(ctx, HH2_VERSION);
     duk_put_prop_literal(ctx, index, "version");
 }
