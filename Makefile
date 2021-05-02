@@ -60,7 +60,14 @@ ZLIB_OBJS = \
 	src/zlib/trees.o src/zlib/zutil.o
 
 JS_HEADERS = \
-	src/runtime/boot.js.gz.h src/runtime/libs/rtl.js.gz.h src/runtime/libs/system.js.gz.h
+	src/runtime/boot.js.gz.h src/runtime/rtl/rtl.js.gz.h
+
+PAS_HEADERS = \
+	src/runtime/rtl/classes.js.gz.h src/runtime/rtl/js.js.gz.h src/runtime/rtl/rtlconsts.js.gz.h src/runtime/rtl/system.js.gz.h \
+	src/runtime/rtl/sysutils.js.gz.h src/runtime/rtl/types.js.gz.h src/runtime/rtl/typinfo.js.gz.h \
+	src/runtime/units/controls.js.gz.h src/runtime/units/extctrls.js.gz.h src/runtime/units/fmod.js.gz.h \
+	src/runtime/units/fmodtypes.js.gz.h src/runtime/units/forms.js.gz.h src/runtime/units/graphics.js.gz.h src/runtime/units/menus.js.gz.h \
+	src/runtime/units/registry.js.gz.h src/runtime/units/stdctrls.js.gz.h src/runtime/units/windows.js.gz.h
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
@@ -78,7 +85,7 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-src/runtime/module.o: src/runtime/module.c $(JS_HEADERS)
+src/runtime/module.o: src/runtime/module.c $(JS_HEADERS) $(PAS_HEADERS)
 
 src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.js.h
 
@@ -92,7 +99,7 @@ test/test.hh2: FORCE
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
-	rm -f src/generated/version.h src/runtime/bootstrap.lua.h $(JS_HEADERS)
+	rm -f src/generated/version.h src/runtime/bootstrap.js.h $(JS_HEADERS) $(PAS_HEADERS)
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
