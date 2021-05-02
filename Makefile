@@ -8,8 +8,10 @@
 	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
 	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `wc -c "$<" | sed 's/ .*//'`;" >> "$@"
 
-%.js: %.pas
-	pas2js -O2 -dHH2 -Pecmascript5 -Tnodejs -Jc- -Jl -Jeconsole -Jirtl.js- "$<" -o"$@"
+%.js.gz.h: %.pas
+	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`$(PAS2JS) "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
+	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `$(PAS2JS) "$<" | wc -c - | sed 's/ .*//'`;" >> "$@"
+	#$(PAS2JS) "$<" > "$@.js"
 
 CC ?= gcc
 CFLAGS = -fPIC
@@ -25,7 +27,7 @@ INCLUDES = \
 	-Isrc/zlib
 
 LIBS = -lm
-LUA ?= lua
+PAS2JS = etc/pas2js-hh2.sh
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -O0 -g -DHH2_DEBUG $(DEFINES)
