@@ -142,14 +142,6 @@ static duk_ret_t hh2_compile(duk_context* const ctx) {
     return 1;
 }
 
-static duk_ret_t hh2_eval(duk_context* const ctx) {
-    duk_set_top(ctx, 1);
-    duk_push_literal(ctx, "eval");
-    duk_compile(ctx, DUK_COMPILE_EVAL);
-    duk_call(ctx, 0);
-    return 1;
-}
-
 void hh2_pushModule(duk_context* const ctx, hh2_State* const state) {
     duk_idx_t const index = duk_push_object(ctx);
 
