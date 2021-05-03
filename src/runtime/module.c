@@ -21,13 +21,20 @@
 #include "rtl/typinfo.js.gz.h"
 
 #include "units/controls.js.gz.h"
+#include "units/dialogs.js.gz.h"
 #include "units/extctrls.js.gz.h"
-#include "units/forms.js.gz.h"
 #include "units/fmod.js.gz.h"
 #include "units/fmodtypes.js.gz.h"
+#include "units/forms.js.gz.h"
 #include "units/graphics.js.gz.h"
+#include "units/hh2.js.gz.h"
+#include "units/inifiles.js.gz.h"
+#include "units/jpeg.js.gz.h"
 #include "units/menus.js.gz.h"
+#include "units/messages.js.gz.h"
+#include "units/pngimage.js.gz.h"
 #include "units/registry.js.gz.h"
+#include "units/shellapi.js.gz.h"
 #include "units/stdctrls.js.gz.h"
 #include "units/windows.js.gz.h"
 
@@ -40,27 +47,34 @@ typedef struct {
 hh2_Module;
 
 static const hh2_Module hh2_modules[] = {
-    {"boot.js", boot_js, sizeof(boot_js), boot_js_size},
+    {"boot.js.gz", boot_js, sizeof(boot_js), boot_js_size},
 
-    {"classes.js", classes_pas, sizeof(classes_pas), classes_pas_size},
-    {"js.js", js_pas, sizeof(js_pas), js_pas_size},
-    {"rtl.js", rtl_js, sizeof(rtl_js), rtl_js_size},
-    {"rtlconsts.js", rtlconsts_pas, sizeof(rtlconsts_pas), rtlconsts_pas_size},
-    {"system.js", system_pas, sizeof(system_pas), system_pas_size},
-    {"sysutils.js", sysutils_pas, sizeof(sysutils_pas), sysutils_pas_size},
-    {"types.js", types_pas, sizeof(types_pas), types_pas_size},
-    {"typinfo.js", typinfo_pas, sizeof(typinfo_pas), typinfo_pas_size},
+    {"classes.js.gz", classes_pas, sizeof(classes_pas), classes_pas_size},
+    {"js.js.gz", js_pas, sizeof(js_pas), js_pas_size},
+    {"rtl.js.gz", rtl_js, sizeof(rtl_js), rtl_js_size},
+    {"rtlconsts.js.gz", rtlconsts_pas, sizeof(rtlconsts_pas), rtlconsts_pas_size},
+    {"system.js.gz", system_pas, sizeof(system_pas), system_pas_size},
+    {"sysutils.js.gz", sysutils_pas, sizeof(sysutils_pas), sysutils_pas_size},
+    {"types.js.gz", types_pas, sizeof(types_pas), types_pas_size},
+    {"typinfo.js.gz", typinfo_pas, sizeof(typinfo_pas), typinfo_pas_size},
 
-    {"controls.js", controls_pas, sizeof(controls_pas), controls_pas_size},
-    {"extctrls.js", extctrls_pas, sizeof(extctrls_pas), extctrls_pas_size},
-    {"forms.js", forms_pas, sizeof(forms_pas), forms_pas_size},
-    {"fmod.js", fmod_pas, sizeof(fmod_pas), fmod_pas_size},
-    {"fmodtypes.js", fmodtypes_pas, sizeof(fmodtypes_pas), fmodtypes_pas_size},
-    {"graphics.js", graphics_pas, sizeof(graphics_pas), graphics_pas_size},
-    {"menus.js", menus_pas, sizeof(menus_pas), menus_pas_size},
-    {"registry.js", registry_pas, sizeof(registry_pas), registry_pas_size},
-    {"stdctrls.js", stdctrls_pas, sizeof(stdctrls_pas), stdctrls_pas_size},
-    {"windows.js", windows_pas, sizeof(windows_pas), windows_pas_size},
+    {"controls.js.gz", controls_pas, sizeof(controls_pas), controls_pas_size},
+    {"dialogs.js.gz", dialogs_pas, sizeof(dialogs_pas), dialogs_pas_size},
+    {"extctrls.js.gz", extctrls_pas, sizeof(extctrls_pas), extctrls_pas_size},
+    {"fmod.js.gz", fmod_pas, sizeof(fmod_pas), fmod_pas_size},
+    {"fmodtypes.js.gz", fmodtypes_pas, sizeof(fmodtypes_pas), fmodtypes_pas_size},
+    {"forms.js.gz", forms_pas, sizeof(forms_pas), forms_pas_size},
+    {"graphics.js.gz", graphics_pas, sizeof(graphics_pas), graphics_pas_size},
+    {"hh2.js.gz", hh2_pas, sizeof(hh2_pas), hh2_pas_size},
+    {"inifiles.js.gz", inifiles_pas, sizeof(inifiles_pas), inifiles_pas_size},
+    {"jpeg.js.gz", jpeg_pas, sizeof(jpeg_pas), jpeg_pas_size},
+    {"menus.js.gz", menus_pas, sizeof(menus_pas), menus_pas_size},
+    {"messages.js.gz", messages_pas, sizeof(messages_pas), messages_pas_size},
+    {"pngimage.js.gz", pngimage_pas, sizeof(pngimage_pas), pngimage_pas_size},
+    {"registry.js.gz", registry_pas, sizeof(registry_pas), registry_pas_size},
+    {"shellapi.js.gz", shellapi_pas, sizeof(shellapi_pas), shellapi_pas_size},
+    {"stdctrls.js.gz", stdctrls_pas, sizeof(stdctrls_pas), stdctrls_pas_size},
+    {"windows.js.gz", windows_pas, sizeof(windows_pas), windows_pas_size},
 };
 
 static duk_ret_t hh2_zerror(duk_context* const ctx, int const res) {
@@ -135,7 +149,7 @@ error:
 
     duk_concat(ctx, duk_get_top(ctx) - 1);
     char const* const string = duk_require_string(ctx, 1);
-    HH2_LOG(level, "[JS]: %s", string);
+    HH2_LOG(level, "JS  %s", string);
     return 0;
 }
 

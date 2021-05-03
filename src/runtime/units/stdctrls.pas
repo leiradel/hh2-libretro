@@ -9,6 +9,11 @@ type
     TLabel = class
     public
         Caption: string;
+        Top: Integer;
+        Left: Integer;
+        Width: Integer;
+        Height: Integer;
+        Visible: Boolean;
     end;
 
     TComboBox = class

@@ -1138,8 +1138,15 @@ Type
     Function ToString(UseBoolStrs: Boolean = False): string; overload; inline;
   end;
 
+// FileExists added by Andre Leiradella on 2021-05-02
+function FileExists(const FileName: string; FollowLink: Boolean = True): Boolean;
 
 implementation
+
+function FileExists(const FileName: string; FollowLink: Boolean = True): Boolean; Assembler;
+asm
+  return hh2.fileExists(FileName);
+end;
 
 { ---------------------------------------------------------------------
   Exception handling

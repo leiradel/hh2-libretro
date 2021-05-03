@@ -442,7 +442,15 @@ function Assigned(const V: JSValue): boolean; assembler; overload;
 function StrictEqual(const A: JSValue; const B): boolean; assembler;
 function StrictInequal(const A: JSValue; const B): boolean; assembler;
 
+// Randomize added by Andre Leiradella on 2021-05-03
+procedure Randomize;
+
 implementation
+
+procedure Randomize; assembler;
+asm
+  hh2.randomize();
+end;
 
 type
 

@@ -19,6 +19,10 @@ interface
 uses
   RTLConsts, Types, SysUtils, JS, TypInfo;
 
+// TShiftState added by Andre Leiradella on 2021-05-02
+type
+  TShiftState = set of (ssShift, ssAlt, ssCtrl, ssLeft, ssRight, ssMiddle, ssDouble, ssTouch, ssPen, ssCommand, ssHorizontal);
+
 type
   TNotifyEvent = procedure(Sender: TObject) of object;
   TNotifyEventRef = reference to procedure(Sender: TObject);
