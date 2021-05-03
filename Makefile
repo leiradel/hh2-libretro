@@ -11,7 +11,6 @@
 %.js.gz.h: %.pas
 	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`$(PAS2JS) "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
 	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `$(PAS2JS) "$<" | wc -c - | sed 's/ .*//'`;" >> "$@"
-	#$(PAS2JS) "$<" > "$@.js"
 
 CC ?= gcc
 CFLAGS = -fPIC
