@@ -3,11 +3,30 @@
 #include "djb2.h"
 
 #include <inttypes.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #define TAG "RIF "
+
+/*
+File structure (all integers are little-endian):
+
+* Header
+    1. "RIFF"
+    2. uint32_t with the file size - 8
+    3. "HH2 "
+* Entries:
+    1. "LIST"
+    2. uint32_t with the chunk size - 8
+    3. "path"
+    4. uint32_t with the chunk size - 8
+    5. Path, including the nul terminator
+    6. "data"
+    7. uint32_t with the chink size - 8
+    8 Data
+*/
 
 typedef struct {
     char const* path;
@@ -39,120 +58,190 @@ static void hh2_formatU8(uint8_t const u8, char string[static 5]) {
         string[i++] = u8;
     }
     else {
-        char const hex[17] = "0123456789abcedef";
-        string[i++] = '0';
-        string[i++] = 'x';
-        string[i++] = hex[u8 / 16];
-        string[i++] = hex[u8 % 16];
+        string[i++] = '\\';
+        string[i++] = '0' + (u8 / 64);
+        string[i++] = '0' + ((u8 / 8) % 8);
+        string[i++] = '0' + (u8 % 8);
     }
 
     string[i] = 0;
 }
 
-static unsigned hh2_filesystemValidate(uint8_t const* const data, size_t const size) {
-    uint8_t const* const end = data + size;
-    uint8_t const* chunk = data + 12;
-    unsigned count = 0;
-
-    for (;;) {
-        // Check if EOF reached
-        if (chunk == end) {
-            // RIFF must have at lest one entry
-            if (count == 0) {
-                HH2_LOG(HH2_LOG_ERROR, TAG "empty RIFF");
-                return 0;
-            }
-
-            HH2_LOG(HH2_LOG_DEBUG, TAG "successfully reached the end of the RIFF buffer");
-            return count;
-        }
-
-        // Check if we went past EOF
-        if (chunk > end) {
-            HH2_LOG(HH2_LOG_ERROR, TAG "detected chunk past end of the buffer");
-            return 0;
-        }
-
-        // Check if there's enough space left for the chunk
-        if (end - chunk < 8) {
-            HH2_LOG(HH2_LOG_ERROR, TAG "not enough space left for another chunk");
-            return 0;
-        }
-
-        // All chunks must be "FILE"
-        if (chunk[0] != 'F' || chunk[1] != 'I' || chunk[2] != 'L' || chunk[3] != 'E') {
-            char d0[5], d1[5], d2[5], d3[5];
-            hh2_formatU8(chunk[0], d0);
-            hh2_formatU8(chunk[1], d1);
-            hh2_formatU8(chunk[2], d2);
-            hh2_formatU8(chunk[3], d3);
-
-            HH2_LOG(HH2_LOG_ERROR, TAG "invalid chunk %s %s %s %s", d0, d1, d2, d3);
-            return 0;
-        }
-
-        HH2_LOG(HH2_LOG_DEBUG, TAG "validating chunk %u", count);
-
-        uint32_t const chunk_size = chunk[4] | (uint32_t)chunk[5] << 8 | (uint32_t)chunk[6] << 16 | (uint32_t)chunk[7] << 24;
-
-        uint16_t const path_len = chunk[8] | (uint16_t)chunk[9] << 8;
-        uint32_t const total_path_len = (uint32_t)path_len + 2 + (path_len & 1); // including size and padding
-
-        // Validate that the FILE chunk has a path and data (data could have 0 length though)
-        if (total_path_len > chunk_size) {
-            HH2_LOG(HH2_LOG_ERROR, TAG "invalid FILE chunk");
-            return 0;
-        }
-
-        // Validate that the path is terminated with a nul
-        if (chunk[10 + path_len - 1] != 0) {
-            HH2_LOG(HH2_LOG_ERROR, TAG "path in FILE chunk is not nul terminated");
-            return 0;
-        }
-
-        uint32_t const data_size = chunk_size - total_path_len;
-
-        // Validate that the content size fits in a long
-        if (data_size > UINT32_MAX) {
-            HH2_LOG(HH2_LOG_ERROR, TAG "content size is too big: %" PRIu32, data_size);
-            return 0;
-        }
-
-        uint32_t const total_chunk_size = chunk_size + 8 + (chunk_size & 1); // include id, size, and padding
-        chunk += total_chunk_size; // total_chunk_size is at least 8 so we'll never be caught in an infinite loop
-        count = count + 1;
+static size_t hh2_chunkSize(uint8_t const* const data, size_t const size) {
+    if (size < 8) {
+        return 0;
     }
+
+    return data[4] | (uint32_t)data[5] << 8 | (uint32_t)data[6] << 16 | (uint32_t)data[7] << 24;
+}
+
+static size_t hh2_paddedSize(size_t const size) {
+    return size + (size & 1);
+}
+
+static size_t hh2_validateHeader(uint8_t const* const data, size_t const size, char const* const id) {
+    if (strlen(id) != 4) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid chunk id '%s' passed to %s", id, __func__);
+        return 0;
+    }
+
+    if (size <= 8) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "chunk '%s' undersized, should be at least 8 plus subchunks, got %zu", id, size);
+        return 0;
+    }
+
+    if (data[0] != id[0] || data[1] != id[1] || data[2] != id[2] || data[3] != id[3]) {
+        char d0[5], d1[5], d2[5], d3[5];
+        hh2_formatU8(data[0], d0);
+        hh2_formatU8(data[1], d1);
+        hh2_formatU8(data[2], d2);
+        hh2_formatU8(data[3], d3);
+
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid chunk id, wanted '%s', got '%s%s%s%s'", id, d0, d1, d2, d3);
+        return 0;
+    }
+
+    size_t const chunk_size = hh2_chunkSize(data, size);
+
+    if (chunk_size + 8 > size) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid chunk '%s', size %" PRIu32 " is bigger than available %zu", chunk_size + 8, size);
+        return 0;
+    }
+
+    return chunk_size + 8;
+}
+
+static size_t hh2_validatePath(uint8_t const* const data, size_t const size) {
+    size_t const chunk_size = hh2_validateHeader(data, size, "path");
+
+    if (chunk_size == 0) {
+        return 0;
+    }
+
+    uint8_t const* const path = data + 8;
+
+    if (path[chunk_size - 8 - 1] != 0) {
+        char nul[5];
+        hh2_formatU8(path[chunk_size - 8], nul);
+
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid path chunk, path must end with a nul terminator buts ends with '%s'", nul);
+        return 0;
+    }
+
+    return chunk_size;
+}
+
+static size_t hh2_validateData(uint8_t const* const data, size_t const size) {
+    size_t const chunk_size = hh2_validateHeader(data, size, "data");
+
+    if (chunk_size > LONG_MAX) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid data chunk, size %u" PRIu32 " does not fit in a long");
+        return 0;
+    }
+
+    return chunk_size;
+}
+
+static size_t hh2_validateList(uint8_t const* const data, size_t const size) {
+    size_t const chunk_size = hh2_validateHeader(data, size, "LIST");
+
+    if (chunk_size == 0) {
+        return 0;
+    }
+
+    uint8_t const* const path = data + 8;
+    size_t const path_size = hh2_validatePath(path, chunk_size);
+
+    if (path_size == 0) {
+        return 0;
+    }
+
+    uint8_t const* const contents = path + hh2_paddedSize(path_size);
+    size_t const contents_size = hh2_validateData(contents, chunk_size);
+
+    if (contents_size == 0) {
+        return false;
+    }
+
+    return chunk_size;
+}
+
+static unsigned hh2_validateRiff(uint8_t const* const data, size_t const size) {
+    size_t const chunk_size = hh2_validateHeader(data, size, "RIFF");
+
+    if (chunk_size == 0) {
+        return 0;
+    }
+
+    if (data[8] != 'H' || data[9] != 'H' || data[10] != '2' || data[11] != ' ') {
+        char d0[5], d1[5], d2[5], d3[5];
+        hh2_formatU8(data[0], d0);
+        hh2_formatU8(data[1], d1);
+        hh2_formatU8(data[2], d2);
+        hh2_formatU8(data[3], d3);
+
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid RIFF type, wanted 'HH2 ', got '%s%s%s%s'", d0, d1, d2, d3);
+        return 0;
+    }
+
+    uint8_t const* list = data + 12;
+    uint8_t const* const end = data + size;
+    unsigned num_entries = 0;
+
+    while (list < end) {
+        size_t const list_size = hh2_validateList(list, size);
+
+        if (list_size == 0) {
+            return 0;
+        }
+
+        list += hh2_paddedSize(list_size);
+        num_entries++;
+    }
+
+    if (list != end) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "corrupted RIFF, last chunk is incomplete");
+        return 0;
+    }
+
+    if (num_entries == 0) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "invalid RIFF, no entries found");
+        return 0;
+    }
+
+    return num_entries;
 }
 
 static void hh2_collectEntries(hh2_Filesys filesys) {
-    uint8_t const* chunk = filesys->data + 12;
+    uint8_t const* list = filesys->data + 12;
     unsigned const num_entries = filesys->num_entries;
+    size_t const size = filesys->size;
 
     for (unsigned i = 0; i < num_entries; i++) {
-        filesys->entries[i].path = (char const*)(chunk + 10);
+        size_t const list_size = hh2_chunkSize(list, size);
+
+        uint8_t const* const path = list + 8;
+        filesys->entries[i].path = (char const*)(path + 8);
         filesys->entries[i].hash = hh2_djb2(filesys->entries[i].path);
 
         HH2_LOG(
-            HH2_LOG_DEBUG,
-            TAG "entry %u with hash " HH2_PRI_DJB2HASH ": \"%s\"",
-            i, filesys->entries[i].hash, filesys->entries[i].path
+            HH2_LOG_INFO,
+            TAG "entry %u at %p with hash " HH2_PRI_DJB2HASH ": \"%s\"",
+            i, list, filesys->entries[i].hash, filesys->entries[i].path
         );
 
-        uint16_t const path_len = chunk[8] | (uint16_t)chunk[9] << 8;
-        uint32_t const total_path_len = (uint32_t)path_len + 2 + (path_len & 1);
+        size_t const path_size = hh2_chunkSize(path, list_size) + 8;
+        uint8_t const* const data = path + hh2_paddedSize(path_size);
+        uint32_t const data_size = hh2_chunkSize(data, list_size);
 
-        filesys->entries[i].data = chunk + 8 + total_path_len;
-
-        uint32_t const chunk_size = chunk[4] | (uint32_t)chunk[5] << 8 | (uint32_t)chunk[6] << 16 | (uint32_t)chunk[7] << 24;
-
-        filesys->entries[i].size = chunk_size - total_path_len;
-
-        if (filesys->entries[i].size == 0) {
+        if (data_size == 0) {
             HH2_LOG(HH2_LOG_WARN, TAG "entry %u has no data", i);
         }
 
-        uint32_t const total_chunk_size = chunk_size + 8 + (chunk_size & 1);
-        chunk += total_chunk_size;
+        filesys->entries[i].data = data + 8;
+        filesys->entries[i].size = data_size;
+
+        list += hh2_paddedSize(list_size) + 8;
     }
 }
 
@@ -201,60 +290,15 @@ static hh2_Entry* hh2_fileFind(hh2_Filesys filesys, char const* path) {
 hh2_Filesys hh2_createFilesystem(void const* const buffer, size_t const size) {
     HH2_LOG(HH2_LOG_INFO, TAG "creating filesystem from buffer %p with size %zu", buffer, size);
 
-    uint8_t const* data = buffer;
-
-    // Validate buffer size
-    if (size < 20) {
-        // Sizes less than 20 can't contain the main chunk id (4 bytes), its size (4 bytes), the file id (4 bytes), and one empty
-        // subchunk (id + size = 8 bytes)
-        HH2_LOG(HH2_LOG_ERROR, TAG "buffer to small for a RIFF file: %zu", size);
-        return NULL;
-    }
-
-    // Validate top-level chunk id
-    if (data[0] != 'R' || data[1] != 'I' || data[2] != 'F' || data[3] != 'F') {
-        // RIFF files must begin with "RIFF"
-        char d0[5], d1[5], d2[5], d3[5];
-        hh2_formatU8(data[0], d0);
-        hh2_formatU8(data[1], d1);
-        hh2_formatU8(data[2], d2);
-        hh2_formatU8(data[3], d3);
-
-        HH2_LOG(HH2_LOG_ERROR, TAG "buffer doesn't start with \"RIFF\": %s %s %s %s", d0, d1, d2, d3);
-        return NULL;
-    }
-
-    // Validate main chunk size
-    uint32_t const main_size = data[4] | (uint32_t)data[5] << 8 | (uint32_t)data[6] << 16 | (uint32_t)data[7] << 24;
-
-    if (main_size + 8 != size) {
-        // The main chunk size doesn't count for the id (4 bytes) and size (4 bytes)
-        HH2_LOG(HH2_LOG_ERROR, TAG "main chunk size plus 8 must be equal to the buffer size");
-        return NULL;
-    }
-
-    // Validate descriptor id
-    if (data[8] != 'H' || data[9] != 'H' || data[10] != '2' || data[11] != ' ') {
-        // Our file type is "HH2 "
-        char d8[5], d9[5], d10[5], d11[5];
-        hh2_formatU8(data[8], d8);
-        hh2_formatU8(data[9], d9);
-        hh2_formatU8(data[10], d10);
-        hh2_formatU8(data[11], d11);
-
-        HH2_LOG(HH2_LOG_ERROR, TAG "buffer id is not \"HH2 \": %s %s %s %s", d8, d9, d10, d11);
-        return NULL;
-    }
-
     // Validate structure
-    unsigned const num_entries = hh2_filesystemValidate(data, size);
-    HH2_LOG(HH2_LOG_DEBUG, TAG "RIFF file has %u entries", num_entries);
+    unsigned const num_entries = hh2_validateRiff(buffer, size);
 
     if (num_entries == 0) {
         // Error already logged
         return NULL;
     }
 
+    HH2_LOG(HH2_LOG_DEBUG, TAG "RIFF file has %u entries", num_entries);
     hh2_Filesys const filesys = malloc(sizeof(*filesys) + sizeof(filesys->entries[0]) * (num_entries - 1));
 
     if (filesys == NULL) {
