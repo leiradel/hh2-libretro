@@ -7,7 +7,7 @@ function(hh2) {
     }
 
     // Define rtl and pas globaly
-    const rtlSource = hh2.load("rtl.js");
+    const rtlSource = hh2.load("rtl.js.gz");
     const rtlFunction = hh2.compile("function() {" + rtlSource + "return {rtl, pas};}", "rtl1.js");
     const rtlGlobals = rtlFunction();
     rtl = rtlGlobals.rtl;
