@@ -42,15 +42,21 @@ function(hh2) {
             var unitname = useslist[i];
 
             if (loaded[unitname] == undefined) {
-                const name = unitname + ".js";
-                hh2.print("Compiling ", name);
+                hh2.print("Compiling ", unitname);
+                var source;
 
-                const code = hh2.load(name);
-                const source = "function() { " + code + " }";
-                const func = hh2.compile(source, name);
-                func();
+                try {
+                    // Try a compressed JavaScript file first
+                    source = hh2.load(unitname + ".js.gz");
+                }
+                catch (e) {
+                    // Then try an uncompressed JavaScript file
+                    source = hh2.load(unitname + ".js");
+                }
 
                 loaded[unitname] = true;
+                const func = hh2.compile("function() { " + source + " }", unitname + ".js");
+                func();
             }
         }
 
