@@ -64,9 +64,12 @@ JS_HEADERS = \
 PAS_HEADERS = \
 	src/runtime/rtl/classes.js.gz.h src/runtime/rtl/js.js.gz.h src/runtime/rtl/rtlconsts.js.gz.h src/runtime/rtl/system.js.gz.h \
 	src/runtime/rtl/sysutils.js.gz.h src/runtime/rtl/types.js.gz.h src/runtime/rtl/typinfo.js.gz.h \
-	src/runtime/units/controls.js.gz.h src/runtime/units/extctrls.js.gz.h src/runtime/units/fmod.js.gz.h \
-	src/runtime/units/fmodtypes.js.gz.h src/runtime/units/forms.js.gz.h src/runtime/units/graphics.js.gz.h src/runtime/units/menus.js.gz.h \
-	src/runtime/units/registry.js.gz.h src/runtime/units/stdctrls.js.gz.h src/runtime/units/windows.js.gz.h
+	src/runtime/units/controls.js.gz.h src/runtime/units/dialogs.js.gz.h src/runtime/units/extctrls.js.gz.h \
+	src/runtime/units/fmod.js.gz.h src/runtime/units/fmodtypes.js.gz.h src/runtime/units/forms.js.gz.h \
+	src/runtime/units/graphics.js.gz.h src/runtime/units/hh2.js.gz.h src/runtime/units/inifiles.js.gz.h \
+	src/runtime/units/jpeg.js.gz.h src/runtime/units/menus.js.gz.h src/runtime/units/messages.js.gz.h \
+	src/runtime/units/pngimage.js.gz.h src/runtime/units/registry.js.gz.h src/runtime/units/shellapi.js.gz.h \
+	src/runtime/units/stdctrls.js.gz.h src/runtime/units/windows.js.gz.h
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
