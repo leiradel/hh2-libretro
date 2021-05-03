@@ -64,20 +64,9 @@ function(hh2) {
     };
 
     // Run main.js whcih contains the actual program
-    //const mainSource = hh2.load("main.js");
-    const mainSource = '\
-function() {\
-rtl.module("program",["system","unit1"],function () {\
-  "use strict";\
-  var $mod = this;\
-  var $lm = pas.unit1;\
-  $mod.$main = function () {\
-    $lm.form1.formcreate(null);\
-  };\
-});\
-}';
-
-    const mainFunction = hh2.compile(mainSource, "main.js");
+    hh2.print("Compiling hh2main");
+    const mainSource = hh2.load("hh2main.js");
+    const mainFunction = hh2.compile("function() { " + mainSource + " }", "hh2main.js");
     mainFunction();
 
     // Call rtl.run() to run the program
