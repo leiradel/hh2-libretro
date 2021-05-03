@@ -7,7 +7,7 @@ function(hh2) {
     }
 
     // Define rtl and pas globaly
-    const rtlSource = hh2.load("rtl.js.gz");
+    const rtlSource = hh2.loadFile("rtl.js.gz");
     const rtlFunction = hh2.compile("function() { " + rtlSource + " return {rtl, pas}; }", "rtl.js");
     const rtlGlobals = rtlFunction();
     rtl = rtlGlobals.rtl;
@@ -47,11 +47,11 @@ function(hh2) {
 
                 try {
                     // Try a compressed JavaScript file first
-                    source = hh2.load(unitname + ".js.gz");
+                    source = hh2.loadFile(unitname + ".js.gz");
                 }
                 catch (e) {
                     // Then try an uncompressed JavaScript file
-                    source = hh2.load(unitname + ".js");
+                    source = hh2.loadFile(unitname + ".js");
                 }
 
                 loaded[unitname] = true;
@@ -65,7 +65,7 @@ function(hh2) {
 
     // Run main.js whcih contains the actual program
     hh2.print("Compiling hh2main");
-    const mainSource = hh2.load("hh2main.js");
+    const mainSource = hh2.loadFile("hh2main.js");
     const mainFunction = hh2.compile("function() { " + mainSource + " }", "hh2main.js");
     mainFunction();
 

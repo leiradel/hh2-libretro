@@ -153,7 +153,7 @@ error:
     return 0;
 }
 
-static duk_ret_t hh2_load(duk_context* const ctx) {
+static duk_ret_t hh2_loadFile(duk_context* const ctx) {
     duk_push_current_function(ctx);
     duk_get_prop_string(ctx, -1, "\xff" "state");
     hh2_State* const state = (hh2_State*)duk_get_pointer(ctx, -1);
@@ -216,7 +216,10 @@ void hh2_pushModule(duk_context* const ctx, hh2_State* const state) {
     duk_push_c_function(ctx, hh2_jslog, DUK_VARARGS);
     duk_put_prop_literal(ctx, index, "log");
 
-    duk_push_c_function(ctx, hh2_load, 1);
+    duk_push_c_function(ctx, hh2_loadFile, 1);
+    duk_push_pointer(ctx, state);
+    duk_put_prop_string(ctx, -2, "\xff" "state");
+    duk_put_prop_literal(ctx, index, "loadFile");
     duk_push_pointer(ctx, state);
     duk_put_prop_string(ctx, -2, "\xff" "state");
     duk_put_prop_literal(ctx, index, "load");
