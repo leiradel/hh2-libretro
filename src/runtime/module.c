@@ -205,6 +205,27 @@ static duk_ret_t hh2_loadFile(duk_context* const ctx) {
     return 1;
 }
 
+static duk_ret_t hh2_fileExistsJs(duk_context* const ctx) {
+    duk_push_current_function(ctx);
+    duk_get_prop_string(ctx, -1, "\xff" "state");
+    hh2_State* const state = (hh2_State*)duk_get_pointer(ctx, -1);
+    duk_pop_2(ctx);
+
+    char const* const name = duk_require_string(ctx, 0);
+
+    for (size_t i = 0; i < sizeof(hh2_modules) / sizeof(hh2_modules[0]); i++) {
+        hh2_Module const* const mod = hh2_modules + i;
+
+        if (strcmp(name, mod->name) == 0) {
+            duk_push_boolean(ctx, 1);
+            return 1;
+        }
+    }
+
+    duk_push_boolean(ctx, hh2_fileExists(state->filesys, name));
+    return 1;
+}
+
 static duk_ret_t hh2_decrypt(duk_context* const ctx) {
     return 0;
 }
@@ -225,9 +246,11 @@ void hh2_pushModule(duk_context* const ctx, hh2_State* const state) {
     duk_push_pointer(ctx, state);
     duk_put_prop_string(ctx, -2, "\xff" "state");
     duk_put_prop_literal(ctx, index, "loadFile");
+
+    duk_push_c_function(ctx, hh2_fileExistsJs, 1);
     duk_push_pointer(ctx, state);
     duk_put_prop_string(ctx, -2, "\xff" "state");
-    duk_put_prop_literal(ctx, index, "load");
+    duk_put_prop_literal(ctx, index, "fileExists");
 
     duk_push_c_function(ctx, hh2_decrypt, 1);
     duk_put_prop_literal(ctx, index, "decrypt");

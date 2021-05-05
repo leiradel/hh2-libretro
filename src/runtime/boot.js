@@ -45,11 +45,11 @@ function(hh2) {
                 hh2.print("Compiling ", unitname);
                 var source;
 
-                try {
+                if (hh2.fileExists(unitname + ".js.gz")) {
                     // Try a compressed JavaScript file first
                     source = hh2.loadFile(unitname + ".js.gz");
                 }
-                catch (e) {
+                else {
                     // Then try an uncompressed JavaScript file
                     source = hh2.loadFile(unitname + ".js");
                 }
