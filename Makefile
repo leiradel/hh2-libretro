@@ -63,8 +63,7 @@ JS_HEADERS = \
 
 PAS_HEADERS = \
 	src/runtime/rtl/classes.js.gz.h src/runtime/rtl/js.js.gz.h src/runtime/rtl/rtlconsts.js.gz.h \
-	src/runtime/rtl/simplelinkedlist.js.gz.h src/runtime/rtl/system.js.gz.h src/runtime/rtl/sysutils.js.gz.h \
-	src/runtime/rtl/types.js.gz.h src/runtime/rtl/typinfo.js.gz.h \
+	src/runtime/rtl/classes.js.gz.h src/runtime/rtl/system.js.gz.h src/runtime/rtl/sysutils.js.gz.h \
 	src/runtime/units/controls.js.gz.h src/runtime/units/dialogs.js.gz.h src/runtime/units/extctrls.js.gz.h \
 	src/runtime/units/fmod.js.gz.h src/runtime/units/fmodtypes.js.gz.h src/runtime/units/forms.js.gz.h \
 	src/runtime/units/graphics.js.gz.h src/runtime/units/hh2.js.gz.h src/runtime/units/inifiles.js.gz.h \

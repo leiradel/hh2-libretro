@@ -15,11 +15,8 @@
 #include "rtl/js.js.gz.h"
 #include "rtl/rtl.js.gz.h"
 #include "rtl/rtlconsts.js.gz.h"
-#include "rtl/simplelinkedlist.js.gz.h"
 #include "rtl/system.js.gz.h"
 #include "rtl/sysutils.js.gz.h"
-#include "rtl/types.js.gz.h"
-#include "rtl/typinfo.js.gz.h"
 
 #include "units/controls.js.gz.h"
 #include "units/dialogs.js.gz.h"
@@ -56,11 +53,8 @@ static const hh2_Module hh2_modules[] = {
     {"js.js.gz", js_pas, sizeof(js_pas), js_pas_size},
     {"rtl.js.gz", rtl_js, sizeof(rtl_js), rtl_js_size},
     {"rtlconsts.js.gz", rtlconsts_pas, sizeof(rtlconsts_pas), rtlconsts_pas_size},
-    {"simplelinkedlist.js.gz", simplelinkedlist_pas, sizeof(simplelinkedlist_pas), simplelinkedlist_pas_size},
     {"system.js.gz", system_pas, sizeof(system_pas), system_pas_size},
     {"sysutils.js.gz", sysutils_pas, sizeof(sysutils_pas), sysutils_pas_size},
-    {"types.js.gz", types_pas, sizeof(types_pas), types_pas_size},
-    {"typinfo.js.gz", typinfo_pas, sizeof(typinfo_pas), typinfo_pas_size},
 
     {"controls.js.gz", controls_pas, sizeof(controls_pas), controls_pas_size},
     {"dialogs.js.gz", dialogs_pas, sizeof(dialogs_pas), dialogs_pas_size},
