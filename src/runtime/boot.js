@@ -15,6 +15,7 @@ function(hh2) {
 
     rtl.debug_load_units = true;
     rtl.debug_rtti = true;
+    rtl.quiet = false;
 
     // Patch rtl.debug
     rtl.debug = function() {
@@ -23,7 +24,7 @@ function(hh2) {
         }
 
         const args = Array.prototype.slice.call(arguments);
-        args.splice(0, 0, "d");
+        args.splice(0, 0, "i");
         hh2.log.apply(this, args);
     };
 
