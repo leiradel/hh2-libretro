@@ -3,7 +3,7 @@ unit StdCtrls;
 interface
 
 uses
-    Classes;
+    Classes, Graphics;
 
 type
     TLabel = class
@@ -14,29 +14,37 @@ type
         Width: Integer;
         Height: Integer;
         Visible: Boolean;
+        Font: TFont;
     end;
 
     TComboBox = class
     public
         procedure SetFocus;
+        procedure Clear;
 
     public
-        ItemIndex: integer;
-        Text: string;
+        ItemIndex: Integer;
+        Text: String;
         Items: TStrings;
     end;
 
     TCheckBox = class
     public
-        Checked: boolean;
+        Checked: Boolean;
     end;
 
     TButton = class
+    public
+        Enabled: Boolean;
     end;
 
 implementation
 
 procedure TComboBox.SetFocus;
+begin
+end;
+
+procedure TComboBox.Clear;
 begin
 end;
 

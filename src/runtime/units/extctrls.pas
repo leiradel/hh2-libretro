@@ -34,7 +34,7 @@ type
         Height: Integer;
     end;
 
-    TPopupMenu = class // TODO this belongs to the Menus unit
+    TBevel = class
     end;
 
 implementation

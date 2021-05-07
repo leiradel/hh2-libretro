@@ -3,9 +3,12 @@ unit Menus;
 interface
 
 type
+    TPopupMenu = class
+    end;
+
     TMenuItem = class
     public
-        Checked: boolean;
+        Checked: Boolean;
     end;
 
 implementation

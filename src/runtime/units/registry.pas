@@ -5,33 +5,40 @@ interface
 type
     TRegIniFile = class
     public
-        constructor Create(FileName: string);
-        function ReadInteger(section: string; key: string; default: integer): integer;
-        procedure WriteInteger(section: string; key: string; val: integer);
-        function ReadBool(section: string; key: string; default: boolean): boolean;
-        procedure WriteBool(section: string; key: string; val: boolean);
+        constructor Create(FileName: String);
+        destructor Destroy;
+        function ReadInteger(Section: String; Key: String; Default: Integer): Integer;
+        procedure WriteInteger(Section: String; Key: String; Val: Integer);
+        function ReadBool(Section: String; Key: String; Default: Boolean): Boolean;
+        procedure WriteBool(Section: String; Key: String; Val: Boolean);
     end;
 
 
 implementation
 
-constructor TRegIniFile.Create(FileName: string);
+constructor TRegIniFile.Create(FileName: String);
 begin
 end;
 
-function TRegIniFile.ReadInteger(section: string; key: string; default: integer): integer;
+destructor TRegIniFile.Destroy;
 begin
 end;
 
-procedure TRegIniFile.WriteInteger(section: string; key: string; val: integer);
+function TRegIniFile.ReadInteger(Section: String; Key: String; Default: Integer): Integer;
+begin
+    ReadInteger := Default;
+end;
+
+procedure TRegIniFile.WriteInteger(Section: String; Key: String; Val: Integer);
 begin
 end;
 
-function TRegIniFile.ReadBool(section: string; key: string; default: boolean): boolean;
+function TRegIniFile.ReadBool(Section: String; Key: String; Default: Boolean): Boolean;
 begin
+    ReadBool := Default;
 end;
 
-procedure TRegIniFile.WriteBool(section: string; key: string; val: boolean);
+procedure TRegIniFile.WriteBool(Section: String; Key: String; Val: Boolean);
 begin
 end;
 

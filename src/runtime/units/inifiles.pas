@@ -4,27 +4,32 @@ interface
 type
     TIniFile = class
     public
-        constructor Create(FileName: string);
-        function ReadInteger(section: string; key: string; default: integer): integer;
-        function ReadBool(section: string; key: string; default: boolean): boolean;
-        function ReadString(section: string; key: string; default: string): string;
+        constructor Create(FileName: String);
+        destructor Destroy;
+        function ReadInteger(Section: String; Key: String; Default: Integer): Integer;
+        function ReadBool(Section: String; Key: String; Default: Boolean): Boolean;
+        function ReadString(Section: String; Key: String; Default: String): String;
     end;
 
 implementation
 
-constructor TIniFile.Create(FileName: string);
+constructor TIniFile.Create(FileName: String);
 begin
 end;
 
-function TIniFile.ReadInteger(section: string; key: string; default: integer): integer;
+destructor TIniFile.Destroy;
 begin
 end;
 
-function TIniFile.ReadBool(section: string; key: string; default: boolean): boolean;
+function TIniFile.ReadInteger(Section: String; Key: String; Default: Integer): Integer;
 begin
 end;
 
-function TIniFile.ReadString(section: string; key: string; default: string): string;
+function TIniFile.ReadBool(Section: String; Key: String; Default: Boolean): Boolean;
+begin
+end;
+
+function TIniFile.ReadString(Section: String; Key: String; Default: String): String;
 begin
 end;
 

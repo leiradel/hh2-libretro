@@ -158,11 +158,11 @@ type
     HINSTANCE = longint;
     HWND = longint;
 
-function ShellExecute(wnd: HWND; lpOperation: string; lpFile: string; lpParameters: longint; lpDirectory: string; nShowCmd: integer): HINSTANCE;
+function ShellExecute(wnd: HWND; lpOperation: String; lpFile: String; lpParameters: Longint; lpDirectory: String; nShowCmd: Integer): HINSTANCE;
 
 implementation
 
-function ShellExecute(wnd: HWND; lpOperation: string; lpFile: string; lpParameters: longint; lpDirectory: string; nShowCmd: integer): HINSTANCE;
+function ShellExecute(wnd: HWND; lpOperation: String; lpFile: String; lpParameters: Longint; lpDirectory: String; nShowCmd: Integer): HINSTANCE;
 begin
     ShellExecute := 0;
 end;
