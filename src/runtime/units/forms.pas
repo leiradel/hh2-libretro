@@ -3,46 +3,56 @@ unit Forms;
 interface
 
 uses
-    Classes, Windows, Graphics;
+    Classes, Controls, Graphics, Types, Windows;
 
 type
     TCloseAction = (caNone, caHide, caFree, caMinimize);
     TFormStyle = (fsNormal, fsMDIChild, fsMDIForm, fsStayOnTop);
+    TBorderIcon = (biSystemMenu, biMinimize, biMaximize, biHelp);
+    TBorderIcons = set of TBorderIcon;
+    TFormBorderStyle = (bsDialog, bsSingle, bsNone, bsSizeable, bsToolWindow, bsSizeToolWin);
+    TPrintScale = (poNone, poProportional, poPrintToFit);
 
     TPosition = (
         poDesigned, poDefault, poDefaultPosOnly, poDefaultSizeOnly, poScreenCenter, poDesktopCenter, poMainFormCenter,
         poOwnerFormCenter
     );
 
-    TCustomForm = class(TComponent) {HACK not really true but enough to get us going without mimicking the entire inheritance tree}
+    TCloseEvent = procedure(Sender: TObject; var Action: TCloseAction) of object;
+
+    TCustomForm = class(TControl) {HACK not really true but enough to get us going without mimicking the entire inheritance tree}
     public
-        constructor Create;
+        constructor Create; virtual;
+
+    public
+        OnClose: TCloseEvent;
+        FormStyle: TFormStyle;
+        TransparentColor: Boolean;
+        TransparentColorValue: TColor;
+        BorderIcons: TBorderIcons;
+        BorderStyle: TFormBorderStyle;
+        KeyPreview: Boolean;
+        OldCreateOrder: Boolean;
+        PrintScale: TPrintScale;
+        Scaled: Boolean;
+        PixelsPerInch: Integer;
     end;
 
     TForm = class(TCustomForm)
     public
+        constructor Create; virtual;
         procedure Close;
 
     public
         Handle: HWND;
         Position: TPosition;
-        FormStyle: TFormStyle;
-        DoubleBuffered: boolean;
-        Top: Integer;
-        Left: Integer;
-        Width: Integer;
-        Height: Integer;
-        ClientWidth: Integer;
-        ClientHeight: Integer;
-        Color: TColor;
-        TransparentColor: boolean;
-        TransparentColorValue: TColor;
-        Enabled: boolean;
+        DoubleBuffered: Boolean;
+        TextHeight: Integer;
     end;
 
     TApplication = class(TComponent)
     public
-        constructor Create;
+        constructor Create; virtual;
         procedure Initialize;
         procedure Run;
         procedure Terminate;
@@ -68,9 +78,20 @@ var
 
 implementation
 
-constructor TCustomForm.Create; assembler;
+constructor TCustomForm.Create; Assembler;
 asm
-    throw "Initialize properties with the contents of the DFM file";
+    hh2.print("TForm.TCustomForm FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
+    const $mod = pas.hh2dfm;
+    hh2.print('################################ ', mod);
+end;
+
+constructor TForm.Create;
+begin
+    asm
+        hh2.print("TForm.Create FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
+    end;
+
+    inherited Create;
 end;
 
 procedure TForm.Close;
@@ -87,8 +108,9 @@ procedure TApplication.Initialize;
 begin
 end;
 
-procedure TApplication.Run;
-begin
+procedure TApplication.Run; Assembler;
+asm
+    rtl.hh2main.setup();
 end;
 
 procedure TApplication.Terminate;
@@ -100,7 +122,14 @@ begin
     Reference := InstanceClass.Create();
 
     asm
+        const instance = reference.get();
+
+        if (instance['$classname'] == 'tform1') {
+            InitTForm1(Reference);
+        }
     end;
+
+    TForm(Reference).OnCreate(nil);
 
     if not HasMainForm then
     begin
@@ -109,4 +138,6 @@ begin
     end;
 end;
 
+initialization
+    Application := TApplication.Create;
 end.

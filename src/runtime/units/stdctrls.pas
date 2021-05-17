@@ -3,18 +3,21 @@ unit StdCtrls;
 interface
 
 uses
-    Classes, Graphics;
+    Classes, Controls, Graphics;
 
 type
-    TLabel = class
+    TComboBoxStyle = (csDropDown, csSimple, csDropDownList, csOwnerDrawFixed, csOwnerDrawVariable);
+
+    TLabel = class(TControl)
     public
-        Caption: string;
-        Top: Integer;
-        Left: Integer;
-        Width: Integer;
-        Height: Integer;
-        Visible: Boolean;
-        Font: TFont;
+        constructor Create; virtual;
+
+    public
+        Caption: String;
+        Alignment: TAlignment;
+        AutoSize: Boolean;
+        ParentFont: Boolean;
+        Transparent: Boolean;
     end;
 
     TComboBox = class
@@ -24,8 +27,10 @@ type
 
     public
         ItemIndex: Integer;
+        ItemHeight: Integer;
         Text: String;
         Items: TStrings;
+        Style: TComboBoxStyle;
     end;
 
     TCheckBox = class
@@ -39,6 +44,11 @@ type
     end;
 
 implementation
+
+constructor TLabel.Create;
+begin
+    inherited Create;
+end;
 
 procedure TComboBox.SetFocus;
 begin

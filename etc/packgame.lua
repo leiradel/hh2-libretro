@@ -211,10 +211,11 @@ do
         io.write(str)
     end
 
-    out('local unit1 = require \'unit1\'\n\n')
-    out('unit1.form1.oncreate()\n\n')
+    out('program Main;\n\n')
+    out('uses unit1, gfxinit, hh2;\n\n')
+    out('begin\n')
+    out('    unit1.form1.oncreate();\n')
 
-    out('return {\n')
     out('    core_version = "0.0.1",\n')
     out('    unmapped_buttons = {\n')
 
@@ -243,6 +244,7 @@ do
 
     out('    background_image = %q\n', (settings.skindir .. '/'):gsub('\\', '/'):gsub('//', '/') .. settings.backgroundimage)
     out('}\n')
+    out('end.\n')
 
     local file = assert(io.open('main.bs', 'wb'))
     file:write(bsenc(table.concat(main, '')))

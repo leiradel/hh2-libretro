@@ -17,6 +17,7 @@
 #include "rtl/rtlconsts.js.gz.h"
 #include "rtl/system.js.gz.h"
 #include "rtl/sysutils.js.gz.h"
+#include "rtl/types.js.gz.h"
 
 #include "units/controls.js.gz.h"
 #include "units/dialogs.js.gz.h"
@@ -55,6 +56,7 @@ static const hh2_Module hh2_modules[] = {
     {"rtlconsts.js.gz", rtlconsts_pas, sizeof(rtlconsts_pas), rtlconsts_pas_size},
     {"system.js.gz", system_pas, sizeof(system_pas), system_pas_size},
     {"sysutils.js.gz", sysutils_pas, sizeof(sysutils_pas), sysutils_pas_size},
+    {"types.js.gz", types_pas, sizeof(types_pas), types_pas_size},
 
     {"controls.js.gz", controls_pas, sizeof(controls_pas), controls_pas_size},
     {"dialogs.js.gz", dialogs_pas, sizeof(dialogs_pas), dialogs_pas_size},

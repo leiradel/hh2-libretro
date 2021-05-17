@@ -13,8 +13,8 @@ function(hh2) {
     rtl = rtlGlobals.rtl;
     pas = rtlGlobals.pas;
 
-    rtl.debug_load_units = true;
-    rtl.debug_rtti = true;
+    rtl.debug_load_units = false;
+    rtl.debug_rtti = false;
     rtl.quiet = false;
 
     // Patch rtl.debug
@@ -30,8 +30,8 @@ function(hh2) {
 
     // Patch loaduseslist to load files from memory and the content file
     const loaded = {};
-
     const loaduseslist = rtl.loaduseslist;
+
     rtl.loaduseslist = function(module, useslist, f) {
         if (useslist == undefined) {
             return;
@@ -39,8 +39,8 @@ function(hh2) {
 
         const len = useslist.length;
 
-        for (var i = 0; i<len; i++) {
-            var unitname = useslist[i];
+        for (var i = 0; i < len; i++) {
+            const unitname = useslist[i];
 
             if (loaded[unitname] == undefined) {
                 hh2.print("Compiling ", unitname);
@@ -56,19 +56,19 @@ function(hh2) {
                 }
 
                 loaded[unitname] = true;
-                const func = hh2.compile("function() { " + source + " }", unitname + ".js");
-                func();
+                const func = hh2.compile("function(hh2) { " + source + " }", unitname + ".js");
+                func(hh2);
             }
         }
 
         loaduseslist(module, useslist, f);
     };
 
-    // Run main.js whcih contains the actual program
-    hh2.print("Compiling hh2main");
-    const mainSource = hh2.loadFile("hh2main.js");
-    const mainFunction = hh2.compile("function() { " + mainSource + " }", "hh2main.js");
-    mainFunction();
+    // Run hh2boot.js whcih contains the actual program
+    hh2.print("Compiling hh2boot");
+    const mainSource = hh2.loadFile("hh2boot.js");
+    const mainFunction = hh2.compile("function(hh2) { " + mainSource + " }", "hh2boot.js");
+    mainFunction(hh2);
 
     // Call rtl.run() to run the program
     rtl.run();

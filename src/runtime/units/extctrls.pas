@@ -3,27 +3,29 @@ unit ExtCtrls;
 interface
 
 uses
-    Graphics;
+    Classes, Controls, Graphics;
 
 type
-    TImage = class
+    TImage = class(TControl)
+    public
+        constructor Create; virtual;
+
     public
         Picture: TPicture;
-        Visible: boolean;
-        Enabled: boolean;
-        Stretch: boolean;
-        AutoSize: boolean;
-        Left: integer;
-        Top: integer;
-        Width: integer;
-        Height: integer;
-        Hint: string;
+        Stretch: Boolean;
+        AutoSize: Boolean;
+        Center: Boolean;
+        Transparent: Boolean;
     end;
 
     TTimer = class
     public
-        Interval: longint;
-        Enabled: boolean;
+        constructor Create; virtual;
+
+    public
+        Interval: Longint;
+        Enabled: Boolean;
+        OnTimer: TNotifyEvent;
     end;
 
     TShape = class
@@ -38,5 +40,13 @@ type
     end;
 
 implementation
+
+constructor TImage.Create;
+begin
+end;
+
+constructor TTimer.Create;
+begin
+end;
 
 end.

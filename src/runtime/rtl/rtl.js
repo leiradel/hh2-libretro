@@ -324,7 +324,7 @@ var rtl = {
           } else {
             fn.apply(o,args);
           };
-          o.AfterConstruction();
+          if (o.AfterConstruction) o.AfterConstruction();
         } catch($e){
           // do not call BeforeDestruction
           if (o.Destroy) o.Destroy();

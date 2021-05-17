@@ -42,6 +42,8 @@ type
     UnicodeChar = char;
 
     TObject = class
+    public
+        constructor Create; virtual;
     end;
 
 function ParamStr(Index: Integer): String;
@@ -73,6 +75,10 @@ end;
 function Odd(X: Integer): Boolean;
 begin
     Odd := (X And 1) <> 0;
+end;
+
+constructor TObject.Create;
+begin
 end;
 
 end.
