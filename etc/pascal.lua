@@ -1285,19 +1285,19 @@ return {
             return nil, tokens
         end
 
-        local ok, preprocessor_source = pcall(preprocess, path, tokens)
+        local ok, pp_source = pcall(preprocess, path, tokens)
 
         if not ok then
-            return nil, preprocessor_source
+            return nil, pp_source
         end
 
-        local preprocessor_factory, err = load(preprocessor_source)
+        local pp_factory, err = load(pp_source)
 
-        if not preprocessor_factory then
+        if not pp_factory then
             return nil, err
         end
 
-        local ok, preprocessor = pcall(preprocessor_factory)
+        local ok, preprocessor = pcall(pp_factory)
 
         if not ok then
             return nil, preprocessor
