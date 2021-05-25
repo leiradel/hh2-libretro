@@ -2,7 +2,7 @@
 local pascal = require 'pascal'
 
 if #arg == 0 then
-    print(string.format('Usage: lua %s [-Dmacro...] [-I<include_dir_path>...] <input_file_path>', arg[0]))
+    print(string.format('Usage: lua %s [-D<macro>...] [-I<include_dir_path>...] <input_file_path>', arg[0]))
     os.exit(1)
 end
 
