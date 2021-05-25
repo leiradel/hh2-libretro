@@ -4,75 +4,104 @@
 -- Requires
 local ddlt = require 'ddlt'
 local access = require 'access'
-local paspp = require 'paspp'
+
+-- Tokenizes Pascal source code
+local function tokenize(path, source)
+    -- Creates the parser
+    local lexer = ddlt.newLexer{
+        file = path,
+        source = source,
+        language = 'pas',
+        symbols = {
+            ';', ',', '=', '(', ')', ':', '+', '[', ']', '..', '.', '-', '*', '<', '>', '/', ':=', '<=', '>=', '<>'
+        },
+
+        keywords = {
+            'real48', 'real', 'single', 'double', 'extended', 'currency', 'comp', 'shortint', 'smallint', 'integer', 'byte',
+            'longint', 'int64', 'word', 'boolean', 'char', 'widechar', 'longword', 'pchar', 'string',
+            'div', 'mod', 'and', 'or', 'in', 'is',
+            'unit', 'interface', 'uses', 'type', 'true', 'false', 'class', 'end', 'procedure', 'function', 'var', 'const', 'array',
+            'initialization', 'nil',
+            'of', 'record', 'implementation', 'begin', 'not',
+            'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until'
+        }
+    }
+
+    -- Tokenizes the entire file
+    local tokens = {}
+    local la
+
+    repeat
+        -- Don't add comments to the token list
+        repeat
+            la = assert(lexer:next({}))
+        until la.token ~= '<linecomment>' and la.token ~= '<blockcomment>'
+
+        tokens[#tokens + 1] = la
+    until la.token == '<eof>'
+
+    return tokens
+end
+
+-- Preprocesses a token stream
+local function preprocess(path, tokens)
+    local source = {
+        'return function(macros)',
+        'local source = {}'
+    }
+
+    local out = function(format, ...)
+        source[#source + 1] = string.format(format, ...)
+    end
+
+    for i =1, #tokens do
+        local la = tokens[i]
+
+        if la.token == '<blockdirective>' then
+            local dir, id = la.lexeme:match('{%$%s*([^%s}]+)%s*}'), ''
+
+            if not dir then
+                dir, id = la.lexeme:match('{%$%s*([^%s]+)%s*([^%s}]+)%s*}')
+            end
+
+            dir, id = dir:lower(), id:lower()
+
+            if dir == 'ifdef' then
+                out('if macros.%s then', id)
+            elseif dir == 'ifndef' then
+                out('if not macros.%s then', id)
+            elseif dir == 'else' then
+                out('else')
+            elseif dir == 'endif' then
+                out('end')
+            elseif dir == 'r' then
+                -- Discard
+            else
+                error(string.format('%s:%u: unhandled directive "%s"', path, la.line, dir))
+            end
+        elseif la.token ~= '<eof>' then
+            out('source[%d] = (source[%d] or "") .. %q', la.line, la.line, la.lexeme .. ' ')
+        end
+    end
+
+    source[#source + 1] = 'for i = 1, ' .. tokens[#tokens].line .. ' do'
+    source[#source + 1] = 'source[i] = source[i] or ""'
+    source[#source + 1] = 'end'
+    source[#source + 1] = 'return table.concat(source, "\\n")'
+    source[#source + 1] = 'end'
+
+    return table.concat(source, '\n')
+end
 
 -- Returns a new parser for the given file
-local function newParser(path, macros)
-    -- Tokenizes Pascal source code
-    local function tokenize(source)
-        -- Creates the parser
-        local lexer = ddlt.newLexer{
-            file = path,
-            source = source,
-            language = 'pas',
-            symbols = {
-                ';', ',', '=', '(', ')', ':', '+', '[', ']', '..', '.', '-', '*', '<', '>', '/', ':=', '<=', '>=', '<>'
-            },
-
-            keywords = {
-                'real48', 'real', 'single', 'double', 'extended', 'currency', 'comp', 'shortint', 'smallint', 'integer', 'byte',
-                'longint', 'int64', 'word', 'boolean', 'char', 'widechar', 'longword', 'pchar', 'string',
-                'div', 'mod', 'and', 'or', 'in', 'is',
-                'unit', 'interface', 'uses', 'type', 'true', 'false', 'class', 'end', 'procedure', 'function', 'var', 'const', 'array',
-                'initialization', 'nil',
-                'of', 'record', 'implementation', 'begin', 'not',
-                'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until'
-            }
-        }
-
-        -- Tokenizes the entire file
-        local tokens = {}
-        local la
-
-        repeat
-            -- Don't add comments to the token list
-            repeat
-                la = assert(lexer:next({}))
-            until la.token ~= '<linecomment>' and la.token ~= '<blockcomment>'
-
-            tokens[#tokens + 1] = la
-        until la.token == '<eof>'
-
-        return tokens
-    end
-
-    -- Pre-processes Pascal source code
-    local function preprocess(source)
-        local tokens = tokenize( source)
-        local source = assert(paspp(path, tokens))
-        return load(source)()(macros)
-    end
-
-    -- Try to open and read the input file
-    local input, err = io.open(path, 'r')
-
-    if not input then
-        error(string.format('%s:0: Error opening input file: %s', path, err))
-    end
-
-    local source = input:read('*a')
-    input:close()
-
-    source = preprocess(source)
-    local tokens = tokenize(source)
-
+local function newParser(path, tokens)
     -- Creates and returns the parser instance
     return access.record {
         tokens = access.const(tokens),
         current = 1,
 
         error = function(self, line, format, ...)
-            error(string.format('%s:%d: %s', path, line, string.format(format, ...)))
+            error(string.format('%s:%u: %s', path, line, string.format(format, ...)))
         end,
 
         token = function(self, offset)
@@ -1238,18 +1267,64 @@ local function newParser(path, macros)
     }
 end
 
-return function(path, macros)
-    local ok, parser = pcall(newParser, path, macros)
+return {
+    tokenize = function(path, source)
+        local ok, tokens = pcall(tokenize, path, source)
 
-    if not ok then
-        return nil, parser
+        if not ok then
+            return nil, tokens
+        end
+
+        return tokens
+    end,
+
+    preprocess = function(path, source, macros)
+        local ok, tokens = pcall(tokenize, path, source)
+
+        if not ok then
+            return nil, tokens
+        end
+
+        local ok, preprocessor_source = pcall(preprocess, path, tokens)
+
+        if not ok then
+            return nil, preprocessor_source
+        end
+
+        local preprocessor_factory, err = load(preprocessor_source)
+
+        if not preprocessor_factory then
+            return nil, err
+        end
+
+        local ok, preprocessor = pcall(preprocessor_factory)
+
+        if not ok then
+            return nil, preprocessor
+        end
+
+        local ok, new_source = pcall(preprocessor, macros)
+
+        if not ok then
+            return nil, new_source
+        end
+
+        return new_source
+    end,
+
+    parse = function(path, tokens)
+        local ok, parser = pcall(newParser, path, tokens)
+
+        if not ok then
+            return nil, parser
+        end
+
+        local ok, ast = pcall(parser.parse, parser)
+
+        if not ok then
+            return nil, ast
+        end
+
+        return ast
     end
-
-    local ok, ast = pcall(parser.parse, parser)
-
-    if not ok then
-        return nil, ast
-    end
-
-    return ast
-end
+}
