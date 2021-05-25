@@ -1,5 +1,5 @@
 -- Requires
-local pas2ast = require 'pas2ast'
+local pascal = require 'pascal'
 
 if #arg == 0 then
     print(string.format('Usage: lua %s [-Dmacro...] [-I<include_dir_path>...] <input_file_path>', arg[0]))
@@ -29,21 +29,21 @@ end
 local source = input_file:read('*a')
 input_file:close()
 
-local source, err = pas2ast.preprocess(input_file_path, source, macros)
+local source, err = pascal.preprocess(input_file_path, source, macros)
 
 if not source then
     io.stderr:write(err, '\n')
     os.exit(1)
 end
 
-local tokens, err = pas2ast.tokenize(input_file_path, source)
+local tokens, err = pascal.tokenize(input_file_path, source)
 
 if not tokens then
     io.stderr:write(err, '\n')
     os.exit(1)
 end
 
-local ast, err = pas2ast.parse(input_file_path, tokens)
+local ast, err = pascal.parse(input_file_path, tokens)
 
 if not ast then
     io.stderr:write(err, '\n')
