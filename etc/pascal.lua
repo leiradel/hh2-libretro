@@ -125,17 +125,26 @@ local function newParser(path, tokens)
         end,
 
         parse = function(self)
+            local ast
+
             if self:token() == 'program' then
-                local ast = self:parseProgram()
-                self:match('<eof>')
-                return ast
+                ast = self:parseProgram()
             elseif self:token() == 'unit' then
-                local ast = self:parseUnit()
-                self:match('<eof>')
-                return ast
+                ast = self:parseUnit()
             else
                 self:error(self:line(), '"program" or "unit" expected, found "%s"', self:token())
+                return
             end
+
+            self:match('<eof>')
+
+            local new_ast = {path = path}
+
+            for key, value in pairs(ast) do
+                new_ast[key] = value
+            end
+
+            return access.const(new_ast)
         end,
 
         parseProgram = function(self)
