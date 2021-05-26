@@ -152,7 +152,8 @@ local function newParser(path, tokens)
         end,
 
         parseUnit = function(self)
-            self:match('unit');
+            local line = self:line()
+            self:match('unit')
 
             local id = self:lexeme()
             self:match('<id>')
@@ -165,7 +166,8 @@ local function newParser(path, tokens)
             self:match('.')
 
             return access.const {
-                type = 'unit', 
+                type = 'unit',
+                line = line,
                 id = id,
                 interface = interface,
                 implementation = implementation,
@@ -174,6 +176,7 @@ local function newParser(path, tokens)
         end,
 
         parseInterfaceSection = function(self)
+            local line = self:line()
             self:match('interface')
 
             local uses = nil
@@ -201,12 +204,14 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'interface',
+                line = line,
                 uses = uses,
                 declarations = access.const(list)
             }
         end,
 
         parseImplementationSection = function(self)
+            local line = self:line()
             self:match('implementation')
 
             local uses = nil
@@ -233,12 +238,14 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'implementation',
+                line = line,
                 uses = uses,
                 declarations = access.const(list)
             }
         end,
 
         parseInitializationSection = function(self)
+            local line = self:line()
             local list = nil
 
             if self:token() == 'initialization' or self:token() == 'begin' then
@@ -250,17 +257,21 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'initialization',
+                line = line,
                 statements = list
             }
         end,
 
         parseUsesClause = function(self)
+            local line = self:line()
+
             self:match('uses')
             local list = self:parseIdentList()
             self:match(';')
 
             return access.const {
                 type = 'uses',
+                line = line,
                 units = list
             }
         end,
@@ -279,6 +290,8 @@ local function newParser(path, tokens)
         end,
 
         parseConstSection = function(self)
+            local line = self:line()
+
             self:match('const')
             local list = {}
 
@@ -312,6 +325,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 tpye = 'const',
+                line = line,
                 constants = access.const(list)
             }
         end,
@@ -340,6 +354,8 @@ local function newParser(path, tokens)
         end,
 
         parseArrayConstant = function(self)
+            local line = self:line()
+
             self:match('(')
             local list = {self:parseTypedConstant()}
 
@@ -352,11 +368,14 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'arrayconst',
+                line = line,
                 value = access.const(list)
             }
         end,
 
         parseRecordConstant = function(self)
+            local line = self:line()
+
             self:match('(')
             local list = {self:parseRecordFieldConstant()}
 
@@ -369,11 +388,13 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'recordconst',
+                line = line,
                 value = access.const(list)
             }
         end,
 
         parseRecordFieldConstant = function(self)
+            local line = self:line()
             local id = self:lexeme()
             self:match('<id>')
             self:match(':')
@@ -381,6 +402,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'recfield',
+                line = line,
                 id = id,
                 value = value
             }
@@ -391,12 +413,15 @@ local function newParser(path, tokens)
             local tk = self:token()
 
             while tk == '>' or tk == '<' or tk == '<=' or tk == '>=' or tk == '<>' or tk == 'in' or tk == 'is' or tk == '=' do
+                local line = self:line()
+
                 self:match(tk)
                 local left = expr
                 local right = self:parseSimpleExpression()
 
                 expr = access.const {
                     type = tk,
+                    line = line,
                     left = left,
                     right = right
                 }
@@ -414,10 +439,12 @@ local function newParser(path, tokens)
                 self:match('+')
                 expr = self:parseTerm()
             elseif self:token() == '-' then
+                local line = self:line()
                 self:match('-')
 
                 expr = access.const {
                     type = 'unm',
+                    line = line,
                     operand = self:parseTerm()
                 }
             else
@@ -427,12 +454,15 @@ local function newParser(path, tokens)
             local tk = self:token()
 
             while tk == '+' or tk == '-' or tk == 'or' or tk == 'xor' do
+                local line = self:line()
+
                 self:match(tk)
                 local left = expr
                 local right = self:parseTerm()
 
                 expr = access.const {
                     type = tk,
+                    line = line,
                     left = left,
                     right = right
                 }
@@ -448,12 +478,15 @@ local function newParser(path, tokens)
             local tk = self:token()
 
             while tk == '*' or tk == '/' or tk == 'div' or tk == 'mod' or tk == 'and' or tk == 'shl' or tk == 'shr' do
+                local line = self:line()
+
                 self:match(tk)
                 local left = expr
                 local right = self:parseFactor()
 
                 expr = access.const {
                     type = tk,
+                    line = line,
                     left = left,
                     right = right
                 }
@@ -473,6 +506,7 @@ local function newParser(path, tokens)
             elseif tk == 'true' or tk == 'false' then
                 expr = access.const {
                     type = 'literal',
+                    line = self:line(),
                     subtype = 'boolean',
                     value = tk
                 }
@@ -481,6 +515,7 @@ local function newParser(path, tokens)
             elseif tk == '<decimal>' or tk == '<binary>' or tk == '<octal>' or tk == '<hexadecimal>' or tk == '<float>' then
                 expr = access.const {
                     type = 'literal',
+                    line = self:line(),
                     subtype = tk,
                     value = self:lexeme()
                 }
@@ -489,6 +524,7 @@ local function newParser(path, tokens)
             elseif tk == '<string>' or tk == 'nil' then
                 expr = access.const {
                     type = 'literal',
+                    line = self:line(),
                     subtype = tk,
                     value = self:lexeme()
                 }
@@ -499,15 +535,18 @@ local function newParser(path, tokens)
                 expr = self:parseExpression()
                 self:match(')')
             elseif tk == 'not' then
+                local line = self:line()
                 self:match(tk)
 
                 expr = access.const {
                     type = 'not',
+                    line = line,
                     operand = self:parseFactor()
                 }
             elseif tk == '[' then
                 expr = self:parseSetConstructor()
             else
+                local line = self:line()
                 local typeId = self:parseTypeId()
                 self:match('(')
                 local operand = self:parseExpression()
@@ -515,6 +554,7 @@ local function newParser(path, tokens)
 
                 expr = access.const {
                     type = 'cast',
+                    line = line,
                     typeId = typeId,
                     operand = operand
                 }
@@ -524,8 +564,11 @@ local function newParser(path, tokens)
         end,
 
         parseDesignator = function(self)
+            local line = self:line()
+
             local designator = access.const {
                 type = 'variable',
+                line = line,
                 qid = self:parseQualId()
             }
 
@@ -534,30 +577,36 @@ local function newParser(path, tokens)
             while tk == '.' or tk == '[' or tk == '(' do
                 -- DesignatorSubElement
                 if tk == '.' then
+                    local line = self:line()
                     self:match('.')
 
                     designator = access.const {
                         type = 'accfield',
+                        line = line,
                         id = self:lexeme(),
                         designator = designator
                     }
 
                     self:match('<id>')
                 elseif tk == '[' then
+                    local line = self:line()
                     self:match('[')
 
                     designator = access.const {
                         type = 'accindex',
+                        line = line,
                         indices = self:parseExprList(),
                         designator = designator
                     }
 
                     self:match(']')
                 elseif tk == '(' then
+                    local line = self:line()
                     self:match('(')
 
                     designator = access.const {
                         type = 'call',
+                        line = line,
                         arguments = self:parseExprList(),
                         designator = designator
                     }
@@ -583,6 +632,8 @@ local function newParser(path, tokens)
         end,
 
         parseSetConstructor = function(self)
+            local line = self:line()
+
             self:match('[')
             local list = {self:parseSetElement()}
 
@@ -595,6 +646,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'literal',
+                line = line,
                 subtype = 'set',
                 elements = access.const(list)
             }
@@ -616,8 +668,10 @@ local function newParser(path, tokens)
         end,
 
         parseTypeSection = function(self)
-            self:match('type')
+            local line = self:line()
             local list = {}
+
+            self:match('type')
 
             -- TypeDecl
             repeat
@@ -648,11 +702,13 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'type',
+                line = line,
                 types = access.const(list)
             }
         end,
 
         parseExportedHeading = function(self)
+            local line = self:line()
             local subtype = self:token()
 
             if self:token() ~= 'procedure' and self:token() ~= 'function' then
@@ -678,6 +734,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'heading',
+                line = line,
                 subtype = subtype,
                 id = id,
                 paramList = paralList,
@@ -686,12 +743,14 @@ local function newParser(path, tokens)
         end,
 
         parseProcedureDeclSection = function(self)
+            local line = self:line()
             local heading = self:parseExportedHeading()
             local block = self:parseBlock()
             self:match(';')
 
             return access.const {
                 type = 'decl',
+                line = line,
                 heading = heading,
                 block = block
             }
@@ -711,6 +770,7 @@ local function newParser(path, tokens)
         end,
 
         parseFormalParam = function(self)
+            local line = self:line()
             local varaccess, isarray, value
 
             if self:token() == 'var' or self:token() == 'const' or self:token() == 'out' then
@@ -737,6 +797,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'param',
+                line = line,
                 access = varaccess,
                 ids = ids,
                 isarray = isarray,
@@ -751,6 +812,8 @@ local function newParser(path, tokens)
             if tk == '<id>' then
                 return self:parseTypeId()
             elseif tk == 'string' then
+                local line = self:line()
+
                 self:match('string')
                 local length
 
@@ -762,10 +825,13 @@ local function newParser(path, tokens)
 
                 return access.const {
                     type = 'stringtype',
+                    line = line,
                     length = length
                 }
             elseif tk == 'array' then
                 -- ArrayType
+                local line = self:line()
+
                 self:match('array')
                 local limits
 
@@ -787,6 +853,7 @@ local function newParser(path, tokens)
 
                 return access.const {
                     type = 'arraytype',
+                    line = line,
                     subtype = subtype,
                     limits = limits
                 }
@@ -799,9 +866,11 @@ local function newParser(path, tokens)
         end,
 
         parseRecType = function(self)
-            self:match('record')
+            local line = self:line()
             local list = {}
             local super
+
+            self:match('record')
 
             -- ClassHeritage
             if self:token() == '(' then
@@ -823,6 +892,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'rectype',
+                line = line,
                 super = super,
                 declarations = access.const(list)
             }
@@ -834,10 +904,12 @@ local function newParser(path, tokens)
             if tk == 'real48' or tk == 'real' or tk == 'single' or tk == 'double' or tk == 'extended' or tk == 'currency'
                 or tk == 'comp' then
                 -- RealType
+                local line = self:line()
                 self:match(tk)
 
                 return access.const {
                     type = 'realtype',
+                    line = line,
                     subtype = tk
                 }
             else
@@ -854,19 +926,23 @@ local function newParser(path, tokens)
             elseif tk == 'shortint' or tk == 'smallint' or tk == 'integer' or tk == 'byte' or tk == 'longint' or tk == 'int64'
                 or tk == 'word' or tk == 'boolean' or tk == 'char' or tk == 'widechar' or tk == 'longword' or tk == 'pchar' then
                 -- OrdIdent
+                local line = self:line()
                 self:match(tk)
 
                 return access.const {
                     type = 'ordident',
+                    line = line,
                     subtype = tk
                 }
             else
                 -- SubrangeType
+                local line = self:line()
                 local min = self:parseConstExpr()
                 self:match('..')
 
                 return access.const {
                     type = 'subrange',
+                    line = line,
                     min = min,
                     max = self:parseConstExpr()
                 }
@@ -874,8 +950,10 @@ local function newParser(path, tokens)
         end,
 
         parseEnumeratedType = function(self)
-            self:match('(')
+            local line = self:line()
             local list = {}
+
+            self:match('(')
 
             -- EnumerateTypeElement
             while true do
@@ -897,6 +975,7 @@ local function newParser(path, tokens)
                 if self:token() ~= ',' then
                     return access.const {
                         type = 'enumerated',
+                        line = line,
                         elements = access.const(list)
                     }
                 end
@@ -906,10 +985,11 @@ local function newParser(path, tokens)
         end,
 
         parseRestrictedType = function(self)
-            self:match('class')
-
+            local line = self:line()
             local list = {}
             local super
+
+            self:match('class')
 
             -- ClassHeritage
             if self:token() == '(' then
@@ -939,12 +1019,14 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'class',
+                line = line,
                 super = super,
                 declarations = access.const(list)
             }
         end,
 
         parseFieldList = function(self)
+            local line = self:line()
             local ids = self:parseIdentList()
             self:match(':')
             local subtype = self:parseType()
@@ -952,16 +1034,18 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'field',
+                line = line,
                 subtype = subtype,
                 ids = ids
             }
         end,
 
         parseTypeId = function(self)
+            local line = self:line()
             local id = self:lexeme()
-            self:match('<id>')
-
             local unitid
+
+            self:match('<id>')
 
             if self:token() == '.' then
                 unitid = id
@@ -971,13 +1055,16 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'typeid',
+                line = line,
                 id = id,
                 unitid = unitid
             }
         end,
 
         parseQualId = function(self)
+            local line = self:line()
             local list = {self:lexeme()}
+
             self:match('<id>')
 
             while self:token() == '.' do
@@ -988,13 +1075,16 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'qualid',
+                line = line,
                 id = list
             }
         end,
 
         parseVarSection = function(self)
-            self:match('var')
+            local line = self:line()
             local list = {}
+
+            self:match('var')
 
             -- VarDecl
             while self:token() == '<id>' do
@@ -1010,6 +1100,7 @@ local function newParser(path, tokens)
 
                 list[#list + 1] = {
                     type = 'var',
+                    line = line,
                     subtype = subtype,
                     ids = ids,
                     value = value
@@ -1020,11 +1111,13 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'variables',
+                line = line,
                 variables = access.const(list)
             }
         end,
 
         parseBlock = function(self)
+            local line = self:line()
             local list = {}
 
             -- DeclSection
@@ -1040,14 +1133,17 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'block',
+                line = line,
                 declarations = access.const(list),
                 statement = self:parseCompoundStmt()
             }
         end,
 
         parseCompoundStmt = function(self)
-            self:match('begin')
+            local line = self:line()
             local list
+
+            self:match('begin')
 
             if self:token() ~= 'end' then
                 list = self:parseStmtList()
@@ -1057,6 +1153,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'compoundstmt',
+                line = line,
                 statements = access.const(list or {})
             }
         end,
@@ -1097,11 +1194,17 @@ local function newParser(path, tokens)
             elseif tk == '<id>' then
                 return self:parseSimpleStatement()
             else
-                return access.const {type = 'emptystmt'}
+                local line = self:line()
+                return access.const {
+                    type = 'emptystmt',
+                    line = line
+                }
             end
         end,
 
         parseIfStmt = function(self)
+            local line = self:line()
+
             self:match('if')
             local condition = self:parseExpression()
             self:match('then')
@@ -1115,6 +1218,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'if',
+                line = line,
                 condition = consition,
                 ontrue = ontrue,
                 onfalse = onfalse
@@ -1122,6 +1226,8 @@ local function newParser(path, tokens)
         end,
 
         parseCaseStmt = function(self)
+            local line = self:line()
+
             self:match('case')
             local selector = self:parseExpression()
             self:match('of')
@@ -1153,6 +1259,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'case',
+                line = line,
                 selector = selector,
                 selectors = access.const(list),
                 otherwise = otherwise
@@ -1186,6 +1293,8 @@ local function newParser(path, tokens)
         end,
 
         parseRepeatStmt = function(self)
+            local line = self:line()
+
             self:match('repeat')
             local body = self:parseStatement()
 
@@ -1198,24 +1307,30 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'repeat',
+                line = line,
                 body = body,
                 condition = self:parseExpression()
             }
         end,
 
         parseWhileStmt = function(self)
+            local line = self:line()
+
             self:match('while')
             local condition = self:parseExpression()
             self:match('do')
 
             return access.const {
                 type = 'while',
+                line = line,
                 condition = condition,
                 body = self:parseStatement()
             }
         end,
 
         parseForStmt = function(self)
+            local line = self:line()
+
             self:match('for')
             local variable = self:parseQualId()
             self:match(':=')
@@ -1238,6 +1353,7 @@ local function newParser(path, tokens)
 
             return access.const {
                 type = 'for',
+                line = line,
                 variable = variable,
                 first = first,
                 direction = direction,
@@ -1247,6 +1363,7 @@ local function newParser(path, tokens)
         end,
 
         parseSimpleStatement = function(self)
+            local line = self:line()
             local designator = self:parseDesignator()
 
             if self:token() == ':=' then
@@ -1254,6 +1371,7 @@ local function newParser(path, tokens)
 
                 return access.const {
                     type = 'assignment',
+                    line = line,
                     designator = designator,
                     value = self:parseExpression()
                 }
@@ -1268,6 +1386,7 @@ local function newParser(path, tokens)
 
                 return access.const {
                     type = 'proccall',
+                    line = line,
                     designator = designator,
                     arguments = access.const(list or {})
                 }
