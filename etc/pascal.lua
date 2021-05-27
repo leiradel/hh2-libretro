@@ -324,7 +324,7 @@ local function newParser(path, tokens)
             end
 
             return access.const {
-                tpye = 'const',
+                tpye = 'constants',
                 line = line,
                 constants = access.const(list)
             }
@@ -675,6 +675,7 @@ local function newParser(path, tokens)
 
             -- TypeDecl
             repeat
+                local line = self:line()
                 local id = self:lexeme()
                 local type
 
@@ -694,14 +695,15 @@ local function newParser(path, tokens)
                 self:match(';')
 
                 list[#list + 1] = access.const {
-                    id = id,
                     type = 'type',
+                    line = line,
+                    id = id,
                     subtype = type
                 }
             until self:token() ~= '<id>'
 
             return access.const {
-                type = 'type',
+                type = 'types',
                 line = line,
                 types = access.const(list)
             }
@@ -868,7 +870,7 @@ local function newParser(path, tokens)
         parseRecType = function(self)
             local line = self:line()
             local list = {}
-            local super
+            local super = false
 
             self:match('record')
 
