@@ -1,6 +1,7 @@
 -- Requires
 local pascal = require 'pascal'
 local ddlt = require 'ddlt'
+local access = require 'access'
 
 local cache = {}
 
@@ -48,6 +49,155 @@ local function parse(path, macros)
 
     -- We have an AST
     return ast
+end
+
+local function find_unit(unit_name, search_paths)
+    unit_name = ddlt.join(nil, unit_name:lower(), 'pas')
+
+    for i = 1, #search_paths do
+        for lower, entry in pairs(search_paths[i]) do
+            local dir, name, extension = ddlt.split(lower)
+            local filename = ddlt.join(nil, name, extension)
+
+            if filename == unit_name then
+                return entry
+            end
+        end
+    end
+
+    return nil
+end
+
+local function generate(ast, search_paths, out)
+    local scope = access.const {}
+
+    local function fatal(line, format, ...)
+        error(string.format('%s:%u: %s', ast.path, line, string.format(format, ...)))
+    end
+
+    local function push(ids, declareFmt, accessFmt)
+        local new_scope = access.const {
+            ids = ids,
+            declare = declareFmt,
+            access = accessFmt,
+            previous = scope
+        }
+
+        scope = new_scope
+    end
+
+    local function pop()
+        scope = scope.previous
+    end
+
+    local function push_unit(unit, id, all)
+        local ids = {}
+
+        local function declare(node)
+            if node.type == 'type' then
+                -- No need to declare types
+            elseif node.type == 'variables' then
+                for i = 1, #node.variables do
+                    declare(node.variables[i])
+                end
+            elseif node.type == 'var' then
+                ids[table.concat(node.ids, ''):lower()] = true
+            elseif node.type == 'decl' then
+                ids[table.concat(node.heading.id, ''):lower()] = true
+            else
+                for k, v in pairs(node) do
+                    io.stderr:write(string.format('%s\t%s\n', k, v))
+                end
+
+                fatal(unit.line, 'Do not know how to declare "%s"', node.type)
+            end
+        end
+
+        for i = 1, #unit.interface.declarations do
+            declare(unit.interface.declarations[i])
+        end
+
+        if all then
+            for i = 1, #unit.implementation.declarations do
+                declare(unit.implementation.declarations[i])
+            end
+        end
+
+        push(access.const(ids), 'M.%s', 'M.%s')
+    end
+
+    local gen
+
+    local genUnit = function(node)
+        out('-- Generated code for Pascal unit "%s"\n\n', node.id)
+        out('local M = {}\n\n')
+
+        push_unit(node, 'M', true)
+
+        gen(node.interface)
+        gen(node.implementation)
+        gen(node.initialization)
+    end
+
+    local genInterface = function(node)
+        gen(node.uses)
+
+        for i = 1, #node.declarations do
+            gen(node.declarations[i])
+        end
+    end
+
+    local genUses = function(node)
+        out('local luart = require "luart"\n')
+
+        for i = 1, #node.units do
+            local unit = node.units[i]
+            local path = find_unit(unit, search_paths)
+
+            if not path then
+                --fatal(node.line, 'Cannot find the path to unit "%s"', unit)
+            end
+
+            unit = unit:lower()
+            out('local %s = require "%s"\n', unit, unit)
+        end
+
+        out('\n')
+    end
+
+    local genType = function(node)
+        for k, v in pairs(node) do
+            io.stderr:write(string.format('%s\t%s\n', tostring(k), tostring(v)))
+        end
+
+        for i = 1, #node.types do
+            gen(node.types[i])
+        end
+    end
+
+    gen = function(node)
+        -- Use a series of ifs to have better stack traces
+        if node.type == 'unit' then
+            genUnit(node)
+        elseif node.type == 'interface' then
+            genInterface(node)
+        elseif node.type == 'uses' then
+            genUses(node)
+        elseif node.type == 'type' then
+            genType(node)
+        else
+            io.stderr:write('-------------------------------------------\n')
+
+            for k, v in pairs(node) do
+                io.stderr:write(string.format('%s\t%s\n', tostring(k), tostring(v)))
+            end
+
+            fatal(node.line, 'Cannot generate code for node type "%s"', node.type)
+        end
+    end
+
+    out('-- Generated from "%s"\n', ast.path)
+    gen(ast)
 end
 
 if #arg == 0 then
@@ -110,28 +260,50 @@ if not ast then
     os.exit(1)
 end
 
--- Parse the units recursively
+-- Generate code
+local out
+
 do
-    local function find_unit(name)
-        name = ddlt.join(nil, name:lower(), 'pas')
+    local props = {
+        level = 0,
+        at_start = true,
 
-        for i = 1, #search_paths do
-            for lower, entry in pairs(search_paths[i]) do
-                local dir, name2, extension = ddlt.split(lower)
-                local filename = ddlt.join(nil, name2, extension)
+        indent = function(self)
+            self.level = self.level + 1
+        end,
 
-                print(i, name, lower, entry, dir, name2, extension, filename)
+        unindent = function(self)
+            self.level = self.level - 1
+        end,
 
-                if filename == name then
-                    return entry
-                end
-            end
+        spaces = function(self)
+            return string.rep('    ', self.level)
         end
+    }
 
-        return nil
-    end
+    local mt = {
+        __call = function(self, ...)
+            local str = string.format(...)
 
-    for _, unit in pairs(ast.interface.uses.units) do
-        print(find_unit(unit))
-    end
+            if self.at_start then
+                io.write(self:spaces())
+                self.at_start = false
+            end
+
+            str = str:gsub('\n([^\n])', string.format('\n%s%%1', self:spaces()))
+            io.write(str)
+            self.at_start = str:sub(-1, -1) == '\n'
+        end,
+    }
+
+    out = debug.setmetatable(props, mt)
 end
+
+--[[local ok, err = pcall(generate, ast, out)
+
+if not ok then
+    print(err)
+    os.exit(1)
+end]]
+
+generate(ast, search_paths, out)
