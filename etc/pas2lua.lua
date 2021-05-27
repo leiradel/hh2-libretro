@@ -51,7 +51,7 @@ local function parse(path, macros)
     return ast
 end
 
-local function find_unit(unit_name, search_paths)
+local function findUnit(unit_name, search_paths)
     unit_name = ddlt.join(nil, unit_name:lower(), 'pas')
 
     for i = 1, #search_paths do
@@ -90,7 +90,7 @@ local function generate(ast, search_paths, out)
         scope = scope.previous
     end
 
-    local function push_unit(unit, id, all)
+    local function pushUnit(unit, id, all)
         local ids = {}
 
         local function declare(node)
@@ -132,7 +132,7 @@ local function generate(ast, search_paths, out)
         out('-- Generated code for Pascal unit "%s"\n\n', node.id)
         out('local M = {}\n\n')
 
-        push_unit(node, 'M', true)
+        pushUnit(node, 'M', true)
 
         gen(node.interface)
         gen(node.implementation)
@@ -152,7 +152,7 @@ local function generate(ast, search_paths, out)
 
         for i = 1, #node.units do
             local unit = node.units[i]
-            local path = find_unit(unit, search_paths)
+            local path = findUnit(unit, search_paths)
 
             if not path then
                 --fatal(node.line, 'Cannot find the path to unit "%s"', unit)
