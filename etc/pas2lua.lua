@@ -69,7 +69,7 @@ local function findUnit(unit_name, search_paths)
 end
 
 local function generate(ast, search_paths, out)
-    local scope = access.const {}
+    local scope = nil
 
     local function fatal(line, format, ...)
         error(string.format('%s:%u: %s', ast.path, line, string.format(format, ...)))
