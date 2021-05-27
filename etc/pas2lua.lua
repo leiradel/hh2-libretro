@@ -68,7 +68,7 @@ local function findUnit(unit_name, search_paths)
     return nil
 end
 
-local function generate(ast, search_paths, out)
+local function generate(ast, search_paths, macros, out)
     local scope = nil
 
     local function fatal(line, format, ...)
@@ -306,4 +306,4 @@ if not ok then
     os.exit(1)
 end]]
 
-generate(ast, search_paths, out)
+generate(ast, search_paths, macros, out)
