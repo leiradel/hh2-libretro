@@ -12,6 +12,7 @@ local function tokenize(path, source)
         file = path,
         source = source,
         language = 'pas',
+
         symbols = {
             ';', ',', '=', '(', ')', ':', '+', '[', ']', '..', '.', '-', '*', '<', '>', '/', ':=', '<=', '>=', '<>'
         },
@@ -24,7 +25,9 @@ local function tokenize(path, source)
             'initialization', 'nil',
             'of', 'record', 'implementation', 'begin', 'not',
             'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until'
-        }
+        },
+
+        freeform = {{'asm', 'end'}}
     }
 
     -- Tokenizes the entire file
@@ -77,7 +80,7 @@ local function preprocess(path, tokens)
             elseif dir == 'r' then
                 -- Discard
             else
-                error(string.format('%s:%u: unhandled directive "%s"', path, la.line, dir))
+                error(string.format('%s:%u: Unhandled directive "%s"', path, la.line, dir))
             end
         elseif la.token ~= '<eof>' then
             out('source[%d] = (source[%d] or "") .. %q', la.line, la.line, la.lexeme .. ' ')
@@ -124,6 +127,7 @@ local function newParser(path, tokens)
             self.current = self.current + 1
         end,
 
+        -- pascal = program | unit .
         parse = function(self)
             local ast
 
@@ -151,6 +155,7 @@ local function newParser(path, tokens)
             self:error(self:line(), 'Only units are supported')
         end,
 
+        -- unit = 'unit' id ';' interface_section implementation_section initialization_section .
         parseUnit = function(self)
             local line = self:line()
             self:match('unit')
@@ -175,6 +180,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- interface_section = 'interface' [ uses_clause ] { const_section | type_section | exported_heading } .
         parseInterfaceSection = function(self)
             local line = self:line()
             self:match('interface')
@@ -210,6 +216,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- implementation_section = 'implementation' [ uses_clause ] { const_section | type_section | exported_heading } .
         parseImplementationSection = function(self)
             local line = self:line()
             self:match('implementation')
@@ -244,6 +251,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- initialization_section = ( 'initialization' | 'begin' ) stmt_list 'end' .
         parseInitializationSection = function(self)
             local line = self:line()
             local list = nil
@@ -262,6 +270,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- uses_clause = 'uses' ident_list ';' .
         parseUsesClause = function(self)
             local line = self:line()
 
@@ -276,6 +285,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- ident_list = id { ',' id } .
         parseIdentList = function(self)
             local list = {self:lexeme()}
             self:match('<id>')
@@ -289,6 +299,7 @@ local function newParser(path, tokens)
             return access.const(list)
         end,
 
+        -- const_section = 'const' { id ( '=' const_expr | ':' type '=' typed_constant ) } ';' .
         parseConstSection = function(self)
             local line = self:line()
 
@@ -330,10 +341,12 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- const_expr = expression .
         parseConstExpr = function(self)
             return self:parseExpression()
         end,
 
+        -- typed_constant = record_constant | array_constant | const_expr .
         parseTypedConstant = function(self)
             local current = self.current
             local ok, type = pcall(self.parseRecordConstant, self)
@@ -353,6 +366,7 @@ local function newParser(path, tokens)
             return self:parseConstExpr()
         end,
 
+        -- array_constant = '(' typed_constant { ',' typed_constant } ')' .
         parseArrayConstant = function(self)
             local line = self:line()
 
@@ -373,6 +387,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- record_constant = '(' record_field_constant { ';' record_field_constant } ')' .
         parseRecordConstant = function(self)
             local line = self:line()
 
@@ -393,6 +408,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- record_field_constant = id ':' typed_constant '.'
         parseRecordFieldConstant = function(self)
             local line = self:line()
             local id = self:lexeme()
@@ -408,6 +424,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- expression = simple_expression { ( '>' | '<' | '<=' | '>=' | '<>' | 'in' | 'is' | '=' ) simple_expression } .
         parseExpression = function(self)
             local expr = self:parseSimpleExpression()
             local tk = self:token()
@@ -432,6 +449,7 @@ local function newParser(path, tokens)
             return expr
         end,
 
+        -- simple_expression = [ '+' | '-' ] term { ( '+' | '-' | 'or' | 'xor' ) term  } .
         parseSimpleExpression = function(self)
             local expr
 
@@ -473,6 +491,7 @@ local function newParser(path, tokens)
             return expr
         end,
 
+        -- term = factor { ( '*' | '/' | 'div' | 'mod' | 'and' | 'shl' | 'shr' ) factor } .
         parseTerm = function(self)
             local expr = self:parseFactor()
             local tk = self:token()
@@ -497,14 +516,15 @@ local function newParser(path, tokens)
             return expr
         end,
 
+        -- factor = designator | 'true' | 'false' | decimal | binary | octal | hexadecimal | float | string | 'nil'
+        --        | '(' expression ')' | 'not' factor | 'inherited' designator | set_constructor | type_id '(' expression ')' .
         parseFactor = function(self)
             local tk = self:token()
-            local expr
 
             if tk == '<id>' then
-                expr = self:parseDesignator()
+                return self:parseDesignator()
             elseif tk == 'true' or tk == 'false' then
-                expr = access.const {
+                local factor = access.const {
                     type = 'literal',
                     line = self:line(),
                     subtype = 'boolean',
@@ -512,8 +532,9 @@ local function newParser(path, tokens)
                 }
 
                 self:match(tk)
+                return factor
             elseif tk == '<decimal>' or tk == '<binary>' or tk == '<octal>' or tk == '<hexadecimal>' or tk == '<float>' then
-                expr = access.const {
+                local factor = access.const {
                     type = 'literal',
                     line = self:line(),
                     subtype = tk,
@@ -521,8 +542,9 @@ local function newParser(path, tokens)
                 }
 
                 self:match(tk)
+                return factor
             elseif tk == '<string>' or tk == 'nil' then
-                expr = access.const {
+                local factor = access.const {
                     type = 'literal',
                     line = self:line(),
                     subtype = tk,
@@ -530,21 +552,32 @@ local function newParser(path, tokens)
                 }
 
                 self:match(tk)
+                return factor
             elseif tk == '(' then
                 self:match(tk)
-                expr = self:parseExpression()
+                local factor = self:parseExpression()
                 self:match(')')
+                return factor
             elseif tk == 'not' then
                 local line = self:line()
                 self:match(tk)
 
-                expr = access.const {
+                return access.const {
                     type = 'not',
                     line = line,
                     operand = self:parseFactor()
                 }
+            elseif tk == 'inherited' then
+                local line = self:line()
+                self:match(tk)
+
+                return access.const {
+                    type = 'inherited',
+                    line = line,
+                    designator = self:parseDesignator()
+                }
             elseif tk == '[' then
-                expr = self:parseSetConstructor()
+                return self:parseSetConstructor()
             else
                 local line = self:line()
                 local typeId = self:parseTypeId()
@@ -552,17 +585,16 @@ local function newParser(path, tokens)
                 local operand = self:parseExpression()
                 self:match(')')
 
-                expr = access.const {
+                return access.const {
                     type = 'cast',
                     line = line,
                     typeId = typeId,
                     operand = operand
                 }
             end
-
-            return expr
         end,
 
+        -- designator = qual_id { '.' id | '[' expr_list ']' | '(' expr_list ')' } .
         parseDesignator = function(self)
             local line = self:line()
 
@@ -620,6 +652,7 @@ local function newParser(path, tokens)
             return designator
         end,
 
+        -- expr_list = expression { ',' expression } .
         parseExprList = function(self)
             local list = {self:parseExpression()}
 
@@ -631,6 +664,7 @@ local function newParser(path, tokens)
             return access.const(list)
         end,
 
+        -- set_constructor = '[' set_element { ',' set_element } ']' .
         parseSetConstructor = function(self)
             local line = self:line()
 
@@ -652,6 +686,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- set_element = expression [ '..' expression ] .
         parseSetElement = function(self)
             local first = self:parseExpression()
             local last
@@ -667,6 +702,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- type_section = 'type' { id '=' [ 'type' ] ( type | restricted_type ) ';' } .
         parseTypeSection = function(self)
             local line = self:line()
             local list = {}
@@ -709,6 +745,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- exported_heading = ( 'procedure' | 'function' ) qual_id [ formal_parameters ] [ ':' type ] ';' .
         parseExportedHeading = function(self)
             local line = self:line()
             local subtype = self:token()
@@ -744,6 +781,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- procedure_decl_section = exported_heading block ';' .
         parseProcedureDeclSection = function(self)
             local line = self:line()
             local heading = self:parseExportedHeading()
@@ -758,6 +796,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- formal_parameters = '(' formal_param { ';' formal_param } ')' .
         parseFormalParameters = function(self)
             self:match('(')
             local list = {self:parseFormalParam()}
@@ -771,6 +810,7 @@ local function newParser(path, tokens)
             return access.const(list)
         end,
 
+        -- formal_param = [ 'var' | 'const' | 'out' ] ident_list ':' [ 'array' 'of' ] type [ '=' const_expr ] .
         parseFormalParam = function(self)
             local line = self:line()
             local varaccess, isarray, value
@@ -808,6 +848,8 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- type = id | string [ '[' const_expr ']' ] | 'array' [ '[' ordinal_type { ',' ordinal_type } ']' ] 'of' type | rec_type
+        --      | 'set' 'of' ( ordinal_type | id ) | simple_type .
         parseType = function(self)
             local tk = self:token()
 
@@ -862,11 +904,31 @@ local function newParser(path, tokens)
             elseif tk == 'record' then
                 -- RecType
                 return self:parseRecType()
+            elseif tk == 'set' then
+                -- SetType
+                local line = self:line()
+                self:match('set')
+                self:match('of')
+
+                local subtype = self:lexeme()
+
+                if self:token() == '<id>' then
+                    match:match('<id>')
+                else
+                    subtype = self:parseOrdinalType()
+                end
+
+                return access.const {
+                    type = 'set',
+                    line = line,
+                    subtype = subtype
+                }
             else
                 return self:parseSimpleType()
             end
         end,
 
+        -- rec_type = 'record' [ '(' id ')' ] { field_list } 'end' .
         parseRecType = function(self)
             local line = self:line()
             local list = {}
@@ -900,6 +962,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- simple_type = 'real48' | 'real' | 'single' | 'double' | 'extended' | 'currency' | 'comp' | ordinal_type .
         parseSimpleType = function(self)
             local tk = self:token()
 
@@ -919,6 +982,8 @@ local function newParser(path, tokens)
             end
         end,
 
+        -- ordinal_type = enumerated_type | 'shortint' | 'smallint' | 'integer' | 'byte' | 'longint' | 'int64' | 'word' | 'boolean'
+        --              | 'char' | 'widechar' | 'longword' | 'pchar' | const_expr '..' const_expr .
         parseOrdinalType = function(self)
             local tk = self:token()
 
@@ -951,6 +1016,7 @@ local function newParser(path, tokens)
             end
         end,
 
+        -- enumerated_type = '(' id [ '=' const_expr ] { ',' id [ '=' const_expr ] } ')' .
         parseEnumeratedType = function(self)
             local line = self:line()
             local list = {}
@@ -975,6 +1041,8 @@ local function newParser(path, tokens)
                 }
 
                 if self:token() ~= ',' then
+                    self:match(')')
+
                     return access.const {
                         type = 'enumerated',
                         line = line,
@@ -986,6 +1054,8 @@ local function newParser(path, tokens)
             end
         end,
 
+        -- restricted_type = 'class' [ '(' id ')' ] { const_section | type_section | var_section | exported_heading | field_list }
+        --                   'end' .
         parseRestrictedType = function(self)
             local line = self:line()
             local list = {}
@@ -1027,6 +1097,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- field_list = ident_list ':' type ';' .
         parseFieldList = function(self)
             local line = self:line()
             local ids = self:parseIdentList()
@@ -1042,6 +1113,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- type_id = id [ '.' id ] .
         parseTypeId = function(self)
             local line = self:line()
             local id = self:lexeme()
@@ -1063,6 +1135,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- qual_id = id { '.' id } .
         parseQualId = function(self)
             local line = self:line()
             local list = {self:lexeme()}
@@ -1082,6 +1155,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- var_section = 'var' { ident_list ':' type '=' const_expr ';' } .
         parseVarSection = function(self)
             local line = self:line()
             local list = {}
@@ -1118,6 +1192,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- block = { const_section | var_section } compound_stmt .
         parseBlock = function(self)
             local line = self:line()
             local list = {}
@@ -1141,6 +1216,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- compound_stmt = 'begin' [ stmt_list ] 'end' .
         parseCompoundStmt = function(self)
             local line = self:line()
             local list
@@ -1160,6 +1236,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- stmt_list = statement { ';' statement } .
         parseStmtList = function(self)
             local list = {self:parseStatement()}
 
@@ -1176,6 +1253,8 @@ local function newParser(path, tokens)
             return access.const(list)
         end,
 
+        -- statement = compound_stmt | if_stmt | case_stmt | repeat_stmt | while_stmt | for_stmt | with_stmt | simple_statement
+        --           | empty_stmt .
         parseStatement = function(self)
             local tk = self:token()
 
@@ -1192,7 +1271,7 @@ local function newParser(path, tokens)
             elseif tk == 'for' then
                 return self:parseForStmt()
             elseif tk == 'with' then
-                self:error(self:line(), '"with" statement not supported')
+                return self:parseWithStmt()
             elseif tk == '<id>' then
                 return self:parseSimpleStatement()
             else
@@ -1204,6 +1283,7 @@ local function newParser(path, tokens)
             end
         end,
 
+        -- if_stmt = 'if' expression 'then' statement [ 'else' statement ] .
         parseIfStmt = function(self)
             local line = self:line()
 
@@ -1227,6 +1307,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- case_stmt = 'case' expression 'of' case_selector { ';' case_selector } [ 'else' statement ] [ ';' ] 'end' .
         parseCaseStmt = function(self)
             local line = self:line()
 
@@ -1268,6 +1349,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- case_selector = case_label { ',' case_label } ':' statement '.'
         parseCaseSelector = function(self)
             local list = {self:parseCaseLabel()}
 
@@ -1281,6 +1363,7 @@ local function newParser(path, tokens)
             return access.const {labels = list, body = self:parseStatement()}
         end,
 
+        -- case_label = const_expr [ '..' const_expr ] .
         parseCaseLabel = function(self)
             local label = {value = self:parseConstExpr()}
 
@@ -1294,6 +1377,7 @@ local function newParser(path, tokens)
             return access.const(label)
         end,
 
+        -- repeat_stmt = 'repeat' statement [ ';' ] 'until' expression .
         parseRepeatStmt = function(self)
             local line = self:line()
 
@@ -1315,6 +1399,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- while_stmt = 'while' expression 'do' statement .
         parseWhileStmt = function(self)
             local line = self:line()
 
@@ -1330,6 +1415,7 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- for_stmt = 'for' qual_id ':=' expression ( 'to' | 'downto' ) expression 'do' statement .
         parseForStmt = function(self)
             local line = self:line()
 
@@ -1364,6 +1450,22 @@ local function newParser(path, tokens)
             }
         end,
 
+        -- with_stmt = 'with' ident_list 'do' statement .
+        parseWithStmt = function(self)
+            local line = self:line()
+            self:match('with')
+            local list = self:parseIdentList()
+            self:match('do')
+
+            return access.const {
+                type = 'with',
+                line = line,
+                ids = list,
+                body = self:parseStatement()
+            }
+        end,
+
+        -- simple_statement = designator [ ':=' expression | '(' expr_list ')' ] .
         parseSimpleStatement = function(self)
             local line = self:line()
             local designator = self:parseDesignator()
@@ -1449,11 +1551,12 @@ return {
             return nil, parser
         end
 
-        local ok, ast = pcall(parser.parse, parser)
+        local ast = parser:parse()
+        --[[local ok, ast = pcall(parser.parse, parser)
 
         if not ok then
             return nil, ast
-        end
+        end]]
 
         return ast
     end
