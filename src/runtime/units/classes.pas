@@ -6,7 +6,6 @@ type
     TShiftState = set of (ssShift, ssAlt, ssCtrl, ssLeft, ssRight, ssMiddle, ssDouble, ssTouch, ssPen, ssCommand, ssHorizontal);
     TAlignment = (taLeftJustify, taRightJustify, taCenter);
     TShortCut = Word;
-    TComponentClass = class of TComponent;
     TNotifyEvent = procedure(Sender: TObject) of object;
 
     TStrings = class

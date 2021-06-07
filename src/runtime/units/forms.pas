@@ -56,7 +56,6 @@ type
         procedure Initialize;
         procedure Run;
         procedure Terminate;
-        procedure CreateForm(InstanceClass: TComponentClass; var Reference);
 
     public
         MainForm: TForm;
@@ -78,11 +77,13 @@ var
 
 implementation
 
-constructor TCustomForm.Create; Assembler;
-asm
-    hh2.print("TForm.TCustomForm FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
-    const $mod = pas.hh2dfm;
-    hh2.print('################################ ', mod);
+constructor TCustomForm.Create;
+begin
+    asm
+        hh2.print("TForm.TCustomForm FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
+        const $mod = pas.hh2dfm;
+        hh2.print('################################ ', mod);
+    end;
 end;
 
 constructor TForm.Create;
@@ -108,18 +109,20 @@ procedure TApplication.Initialize;
 begin
 end;
 
-procedure TApplication.Run; Assembler;
-asm
-    rtl.hh2main.setup();
+procedure TApplication.Run;
+begin
+    asm
+        rtl.hh2main.setup();
+    end;
 end;
 
 procedure TApplication.Terminate;
 begin
 end;
 
-procedure TApplication.CreateForm(InstanceClass: TComponentClass; var Reference);
+procedure TApplication.CreateForm(InstanceClass: TComponentClass; var Reference: TForm);
 begin
-    Reference := InstanceClass.Create();
+    Reference := InstanceClass.Create;
 
     asm
         const instance = reference.get();

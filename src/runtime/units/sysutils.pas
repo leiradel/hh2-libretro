@@ -2,12 +2,12 @@ unit SysUtils;
 
 interface
 
-function FileExists(const FileName: String; FollowLink: Boolean = True): Boolean; external name 'hh2.fileExists';
+function FileExists(const FileName: String; FollowLink: Boolean = True): Boolean;
 function ExtractFilePath(const FileName: String): String;
 function IncludeTrailingPathDelimiter(const S: String): String;
 function StrToInt(const S: String): Integer;
 function StrToIntDef(const S: String; Default: Integer): Integer;
-function IntToStr(Value: Integer): String; external name 'String';
+function IntToStr(Value: Integer): String;
 function Now: TDateTime;
 procedure DecodeTime(const DateTime: TDateTime; var Hour, Min, Sec, MSec: Word);
 procedure Beep;

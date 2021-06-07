@@ -63,7 +63,7 @@ type
 
     TPicture = class
     public
-        procedure LoadFromFile(const Filename: String); virtual;
+        procedure LoadFromFile(const Filename: String);
 
     public
         Bitmap: TBitmap;
@@ -131,16 +131,20 @@ const
 
 implementation
 
-constructor TCanvas.Create; assembler;
-asm
+constructor TCanvas.Create;
+begin
+    asm
+    end;
 end;
 
 procedure TCanvas.Rectangle(X1, Y1, X2, Y2: Integer);
 begin
 end;
 
-constructor TBitmap.Create; assembler;
-asm
+constructor TBitmap.Create;
+begin
+    asm
+    end;
 end;
 
 procedure TPicture.LoadFromFile(const Filename: String);
