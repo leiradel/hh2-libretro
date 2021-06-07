@@ -1424,7 +1424,7 @@ local function newParser(path, tokens)
             local condition = self:parseExpression()
             self:match('then')
             local ontrue = self:parseStatement()
-            local onfalse
+            local onfalse = false
 
             if self:token() == 'else' then
                 self:match('else')
@@ -1434,7 +1434,7 @@ local function newParser(path, tokens)
             return access.const {
                 type = 'if',
                 line = line,
-                condition = consition,
+                condition = condition,
                 ontrue = ontrue,
                 onfalse = onfalse
             }
