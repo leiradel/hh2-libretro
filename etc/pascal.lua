@@ -24,7 +24,8 @@ local function tokenize(path, source)
             'unit', 'interface', 'uses', 'type', 'true', 'false', 'class', 'end', 'procedure', 'function', 'var', 'const', 'array',
             'initialization', 'nil',
             'of', 'record', 'implementation', 'begin', 'not',
-            'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until'
+            'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until', 'set', 'object', 'constructor',
+            'destructor', 'private', 'protected', 'public', 'published', 'virtual', 'inherited', 'with'
         },
 
         freeform = {{'asm', 'end'}}
@@ -185,7 +186,7 @@ local function newParser(path, tokens)
             local line = self:line()
             self:match('interface')
 
-            local uses = nil
+            local uses = false
 
             if self:token() == 'uses' then
                 uses = self:parseUsesClause()
@@ -221,7 +222,7 @@ local function newParser(path, tokens)
             local line = self:line()
             self:match('implementation')
 
-            local uses = nil
+            local uses = false
 
             if self:token() == 'uses' then
                 uses = self:parseUsesClause()
@@ -230,13 +231,15 @@ local function newParser(path, tokens)
             local list = {}
 
             while true do
-                if self:token() == 'const' then
+                local tk = self:token()
+
+                if tk == 'const' then
                     list[#list + 1] = self:parseConstSection()
-                elseif self:token() == 'type' then
+                elseif tk == 'type' then
                     list[#list + 1] = self:parseTypeSection()
-                elseif self:token() == 'var' then
+                elseif tk == 'var' then
                     list[#list + 1] = self:parseVarSection()
-                elseif self:token() == 'procedure' or self:token() == 'function' then
+                elseif tk == 'procedure' or tk == 'function' or tk == 'constructor' or tk == 'destructor' then
                     list[#list + 1] = self:parseProcedureDeclSection()
                 else
                     break
@@ -335,7 +338,7 @@ local function newParser(path, tokens)
             end
 
             return access.const {
-                tpye = 'constants',
+                type = 'constants',
                 line = line,
                 constants = access.const(list)
             }
@@ -517,7 +520,8 @@ local function newParser(path, tokens)
         end,
 
         -- factor = designator | 'true' | 'false' | decimal | binary | octal | hexadecimal | float | string | 'nil'
-        --        | '(' expression ')' | 'not' factor | 'inherited' designator | set_constructor | type_id '(' expression ')' .
+        --        | '(' expression ')' | 'not' factor | 'inherited' designator | set_constructor |
+        --        | type_id '(' expression ')' | simple_type '(' expression ')' .
         parseFactor = function(self)
             local tk = self:token()
 
@@ -580,7 +584,14 @@ local function newParser(path, tokens)
                 return self:parseSetConstructor()
             else
                 local line = self:line()
-                local typeId = self:parseTypeId()
+                local subtype
+
+                if self:token() == '<id>' then
+                    subtype = self:parseTypeId()
+                else
+                    subtype = self:parseSimpleType()
+                end
+
                 self:match('(')
                 local operand = self:parseExpression()
                 self:match(')')
@@ -588,7 +599,7 @@ local function newParser(path, tokens)
                 return access.const {
                     type = 'cast',
                     line = line,
-                    typeId = typeId,
+                    subtype = subtype,
                     operand = operand
                 }
             end
@@ -745,46 +756,84 @@ local function newParser(path, tokens)
             }
         end,
 
-        -- exported_heading = ( 'procedure' | 'function' ) qual_id [ formal_parameters ] [ ':' type ] ';' .
-        parseExportedHeading = function(self)
+        -- procedure_heading = 'procedure' id formal_parameters .
+        parseProcedureHeading = function(self, needid)
             local line = self:line()
-            local subtype = self:token()
+            self:match('procedure')
 
-            if self:token() ~= 'procedure' and self:token() ~= 'function' then
-                self:error(self:line(), '"procedure" or "function" expected, "%s" found', self:token())
+            local id = false
+
+            if needid then
+                id = self:parseQualId()
             end
 
-            self:match(self:token())
-            local id = self:parseQualId()
-            local paramList
+            local list = false
 
             if self:token() == '(' then
-                paramList = self:parseFormalParameters()
+                list = self:parseFormalParameters()
             end
-
-            local returnType
-
-            if subtype == 'function' then
-                self:match(':')
-                returnType = self:parseType()
-            end
-
-            self:match(';')
 
             return access.const {
-                type = 'heading',
+                type = 'prochead',
                 line = line,
-                subtype = subtype,
                 id = id,
-                paramList = paralList,
-                returnType = returnType
+                parameters = list
             }
         end,
 
-        -- procedure_decl_section = exported_heading block ';' .
+        -- function_heading = 'function' id formal_parameters .
+        parseFunctionHeading = function(self, needid)
+            local line = self:line()
+            self:match('function')
+
+            local id = false
+
+            if needid then
+                id = self:parseQualId()
+            end
+
+            local list = false
+
+            if self:token() == '(' then
+                list = self:parseFormalParameters()
+            end
+
+            self:match(':')
+
+            return access.const {
+                type = 'funchead',
+                line = line,
+                id = id,
+                parameters = list,
+                returnType = self:parseType()
+            }
+        end,
+
+        -- exported_heading = ( procedure_heading | function_heading ) ';' .
+        parseExportedHeading = function(self)
+            local heading
+
+            if self:token() == 'procedure' then
+                heading = self:parseProcedureHeading(true)
+            else
+                heading = self:parseFunctionHeading(true)
+            end
+
+            self:match(';')
+            return heading
+        end,
+
+        -- procedure_decl_section = ( exported_heading | class_method_heading ) block ';' .
         parseProcedureDeclSection = function(self)
             local line = self:line()
-            local heading = self:parseExportedHeading()
+            local heading
+
+            if self:token() == 'procedure' or self:token() == 'function' then
+                heading = self:parseExportedHeading(true)
+            else
+                heading = self:parseClassMethodHeading()
+            end
+
             local block = self:parseBlock()
             self:match(';')
 
@@ -913,7 +962,7 @@ local function newParser(path, tokens)
                 local subtype = self:lexeme()
 
                 if self:token() == '<id>' then
-                    match:match('<id>')
+                    self:match('<id>')
                 else
                     subtype = self:parseOrdinalType()
                 end
@@ -923,9 +972,37 @@ local function newParser(path, tokens)
                     line = line,
                     subtype = subtype
                 }
+            elseif tk == 'procedure' or tk == 'function' then
+                return self:parseProcedureType()
             else
                 return self:parseSimpleType()
             end
+        end,
+
+        -- procedure_type = ( procedure_heading | function_heading ) [ 'of' 'object' ] .
+        parseProcedureType = function(self)
+            local subtype
+
+            if self:token() == 'procedure' then
+                subtype = self:parseProcedureHeading(false)
+            else
+                subtype = self:parseFunctionHeading(false)
+            end
+
+            local ofObject = false
+
+            if self:token() == 'of' then
+                self:match('of')
+                self:match('object')
+                ofObject = true
+            end
+
+            return access.const {
+                type = 'proctype',
+                line = line,
+                subtype = subtype,
+                ofObject = ofObject
+            }
         end,
 
         -- rec_type = 'record' [ '(' id ')' ] { field_list } 'end' .
@@ -1072,16 +1149,21 @@ local function newParser(path, tokens)
             end
 
             while true do
-                if self:token() == 'const' then
+                local tk = self:token()
+
+                if tk == 'const' then
                     list[#list + 1] = self:parseConstSection()
-                elseif self:token() == 'type' then
+                elseif tk == 'type' then
                     list[#list + 1] = self:parseTypeSection()
-                elseif self:token() == 'var' then
+                elseif tk == 'var' then
                     list[#list + 1] = self:parseVarSection()
-                elseif self:token() == 'procedure' or self:token() == 'function' then
-                    list[#list + 1] = self:parseExportedHeading()
-                elseif self:token() == '<id>' then
+                elseif tk == 'procedure' or tk == 'function' or tk == 'constructor' or tk == 'destructor' then
+                    list[#list + 1] = self:parseClassMethodHeading()
+                elseif tk == '<id>' then
                     list[#list + 1] = self:parseFieldList()
+                elseif tk == 'private' or tk == 'protected' or tk == 'public' or tk == 'published' then
+                    -- We don't do anything with it for now
+                    self:match(tk)
                 else
                     break
                 end
@@ -1095,6 +1177,40 @@ local function newParser(path, tokens)
                 super = super,
                 declarations = access.const(list)
             }
+        end,
+
+        parseClassMethodHeading = function(self)
+            if self:token() == 'constructor' or self:token() == 'destructor' then
+                local line = self:line()
+                local type = self:token() == 'constructor' and 'consthead' or 'desthead'
+                self:match(self:token())
+
+                local id = self:parseQualId()
+                local list = false
+
+                if self:token() == '(' then
+                    list = self:parseFormalParameters()
+                end
+
+                self:match(';')
+
+                local virtual = self:token() == 'virtual'
+
+                if virtual then
+                    self:match('virtual')
+                    self:match(';')
+                end
+
+                return access.const {
+                    type = type,
+                    line = line,
+                    id = id,
+                    parameters = list,
+                    virtual = virtual
+                }
+            else
+                return self:parseExportedHeading()
+            end
         end,
 
         -- field_list = ident_list ':' type ';' .
@@ -1253,8 +1369,8 @@ local function newParser(path, tokens)
             return access.const(list)
         end,
 
-        -- statement = compound_stmt | if_stmt | case_stmt | repeat_stmt | while_stmt | for_stmt | with_stmt | simple_statement
-        --           | empty_stmt .
+        -- statement = compound_stmt | if_stmt | case_stmt | repeat_stmt | while_stmt | for_stmt | with_stmt
+        --           | simple_statement | empty_stmt .
         parseStatement = function(self)
             local tk = self:token()
 
@@ -1272,13 +1388,30 @@ local function newParser(path, tokens)
                 return self:parseForStmt()
             elseif tk == 'with' then
                 return self:parseWithStmt()
+            elseif tk == 'inherited' then
+                local line = self:line()
+                self:match('inherited')
+
+                return access.const {
+                    type = 'inherited',
+                    line = line,
+                    designator = self:parseDesignator()
+                }
             elseif tk == '<id>' then
                 return self:parseSimpleStatement()
+            elseif tk == '<freeform>' then
+                local stmt = {
+                    type = 'asm',
+                    line = self:line(),
+                    self:lexeme()
+                }
+
+                self:match('<freeform>')
+                return stmt
             else
-                local line = self:line()
                 return access.const {
                     type = 'emptystmt',
-                    line = line
+                    line = self:line()
                 }
             end
         end,
