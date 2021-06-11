@@ -360,27 +360,29 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genProcHead(node)
-        out('-- Procedure %s(', table.concat(node.id.id, '.'))
-        local semicolon = ''
         if node.id then
             out('-- Procedure %s(', table.concat(node.id.id, '.'))
         else
             out('-- Procedure(')
         end
 
-        for i = 1, #node.parameters do
-            local param = node.parameters[i]
-            local comma = ''
+        if node.parameters then
+            local semicolon = ''
 
-            out(semicolon)
-            semicolon = '; '
+            for i = 1, #node.parameters do
+                local param = node.parameters[i]
+                local comma = ''
 
-            for j = 1, #param.ids do
-                out('%s%s', comma, param.ids[j])
-                comma = ', '
+                out(semicolon)
+                semicolon = '; '
+
+                for j = 1, #param.ids do
+                    out('%s%s', comma, param.ids[j])
+                    comma = ', '
+                end
+
+                out(': %s', param.subtype.type == 'typeid' and param.subtype.id or param.subtype.subtype)
             end
-
-            out(': %s', param.subtype.type == 'typeid' and param.subtype.id or param.subtype.subtype)
         end
 
         out(')\n')
