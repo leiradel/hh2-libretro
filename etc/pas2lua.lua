@@ -222,6 +222,8 @@ local function generate(ast, searchPaths, macros, out)
                 ids[table.concat(node.id.id, ''):lower()] = node
             elseif node.type == 'funchead' then
                 ids[table.concat(node.id.id, ''):lower()] = node
+            elseif node.type == 'consthead' then
+                ids[table.concat(node.id.id, ''):lower()] = node
             elseif node.type == 'field' then
                 for i = 1, #node.ids do
                     ids[node.ids[i]:lower()] = node
