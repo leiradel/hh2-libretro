@@ -345,7 +345,17 @@ local function generate(ast, searchPaths, macros, out)
 
     local function genField(node)
         for i = 1, #node.ids do
-            out('%s = %s, -- %s\n', node.ids[i]:lower(), tostring(defaultTypes[node.subtype.id]), node.subtype.id)
+            if node.subtype.type == 'typeid' then
+                out('%s = nil, -- %s\n', node.ids[i]:lower(), node.subtype.id)
+            elseif node.subtype.type == 'ordident' then
+                out('%s = %s, -- %s\n', node.ids[i]:lower(), tostring(defaultTypes[node.subtype.subtype]), node.subtype.subtype)
+            elseif node.subtype.type == 'stringtype' then
+                out('%s = "", -- string\n', node.ids[i]:lower())
+            else
+                dump(node)
+                dump(node.subtype)
+                error('don\'t know how to generate this field')
+            end
         end
     end
 
