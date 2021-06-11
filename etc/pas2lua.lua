@@ -482,6 +482,7 @@ local function generate(ast, searchPaths, macros, out)
 
         for i = 1, #node.statements do
             gen(node.statements[i])
+            out('\n')
         end
     end
 
@@ -489,7 +490,6 @@ local function generate(ast, searchPaths, macros, out)
         gen(node.designator)
         out(' = ')
         gen(node.value)
-        out('\n')
     end
 
     local function genVariable(node)
@@ -521,7 +521,7 @@ local function generate(ast, searchPaths, macros, out)
         out:indent()
         gen(node.body)
         out:unindent()
-        out('end\n')
+        out('\nend\n')
     end
 
     local function genQualId(node)
@@ -555,7 +555,7 @@ local function generate(ast, searchPaths, macros, out)
             gen(node.arguments[i])
         end
 
-        out(')\n')
+        out(')')
     end
 
     local function genAccField(node)
