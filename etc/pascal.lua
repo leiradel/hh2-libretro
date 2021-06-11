@@ -1404,7 +1404,7 @@ local function newParser(path, tokens)
                 local stmt = {
                     type = 'asm',
                     line = self:line(),
-                    self:lexeme()
+                    code = self:lexeme()
                 }
 
                 self:match('<freeform>')
