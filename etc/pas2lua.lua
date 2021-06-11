@@ -232,7 +232,26 @@ local function generate(ast, searchPaths, macros, out)
         return ids
     end
 
+    local function findQid(qid)
+        local node = findId(qid[1])
+
+        for i = 2, #qid do
+            if node.type == 'class' or node.type == 'type' then
+                local ids = getDeclarations(node.subtype.declarations)
+                node = ids[qid[i]:lower()]
+            else
+                dump(qid)
+                dump(node)
+                error(string.format('Don\'t know how to find ids in node "%s"', node.type))
+            end
+
+            if not node then
+                return nil
+            end
         end
+
+        return node
+    end
 
     local function pop()
         scope = scope.previous
@@ -525,10 +544,16 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genQualId(node)
-        out('%s', accessId(node.id[1]))
+        local type = findQid(node.id)
 
-        for i = 2, #node.id do
-            out('.%s', node.id[i]:lower())
+        if type.type == 'consthead' then
+            out('hh2rt.newInstance(%s, %q)', accessId(node.id[1]), table.concat(type.id.id, ''):lower())
+        else
+            out('%s', accessId(node.id[1]))
+
+            for i = 2, #node.id do
+                out('.%s', node.id[i]:lower())
+            end
         end
     end
 
