@@ -163,7 +163,7 @@ local function generate(ast, searchPaths, macros, out)
         local scope = findScope(id)
 
         if scope and scope.access then
-            return string.format(scope.access, id)
+            return string.format(scope.access, id:lower())
         end
     end
 
@@ -173,7 +173,7 @@ local function generate(ast, searchPaths, macros, out)
         local scope = findScope(id)
 
         if scope and scope.declare then
-            return string.format(scope.declare, id)
+            return string.format(scope.declare, id:lower())
         end
     end
 
