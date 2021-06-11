@@ -331,6 +331,7 @@ local function newParser(path, tokens)
                 self:match(';')
 
                 list[#list + 1] = access.const {
+                    type = 'const',
                     id = id,
                     subtype = subtype,
                     value = value

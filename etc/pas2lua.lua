@@ -754,6 +754,59 @@ local function generate(ast, searchPaths, macros, out)
         out('})\n')
     end
 
+    local function genConstants(node)
+        out('-- Constants\n')
+
+        for i = 1, #node.constants do
+            out('%s = ', accessId(node.constants[i].id))
+            gen(node.constants[i].value)
+            out('\n')
+        end
+
+        out('\n')
+    end
+
+    local function genAdd(node)
+        local l, r = node.left, node.right
+        local op = '+'
+
+        -- TODO: this is too little to actually determine that we must do a string concatenation
+        if (l.type == 'literal' and l.subtype == '<string>') or (r.type == 'literal' and r.subtype == '<string>') then
+            op = '..'
+        end
+
+        out('(')
+        gen(l)
+        out(' %s ', op)
+        gen(r)
+        out(')')
+    end
+
+    local function genArrayConst(node)
+        local function value(v)
+            if #v ~= 0 then
+                out('{')
+                value(v[1])
+
+                for i = 2, #v do
+                    out(', ')
+                    value(v[i])
+                end
+
+                out('}')
+            elseif v.type == 'arrayconst' then
+                out('\n')
+                out:indent()
+                gen(v)
+                out:unindent()
+            else
+                gen(v)
+            end
+        end
+
+        value(node.value)
+    end
+
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -830,6 +883,12 @@ local function generate(ast, searchPaths, macros, out)
             genInitialization(node)
         elseif node.type == 'rectype' then
             genRecType(node)
+        elseif node.type == 'constants' then
+            genConstants(node)
+        elseif node.type == '+' then
+            genAdd(node)
+        elseif node.type == 'arrayconst' then
+            genArrayConst(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
