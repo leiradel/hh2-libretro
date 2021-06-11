@@ -742,6 +742,18 @@ local function generate(ast, searchPaths, macros, out)
         out('\n')
     end
 
+    local function genRecType(node)
+        out('hh2rt.newRecord({\n')
+        out:indent()
+
+        for i = 1, #node.declarations do
+            gen(node.declarations[i])
+        end
+
+        out:unindent()
+        out('})\n')
+    end
+
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -816,6 +828,8 @@ local function generate(ast, searchPaths, macros, out)
             genInherited(node)
         elseif node.type == 'initialization' then
             genInitialization(node)
+        elseif node.type == 'rectype' then
+            genRecType(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
