@@ -446,13 +446,15 @@ local function generate(ast, searchPaths, macros, out)
 
         local ids = {}
 
-        for i = 1, #node.heading.parameters do
-            local param = node.heading.parameters[i]
+        if node.heading.parameters then
+            for i = 1, #node.heading.parameters do
+                local param = node.heading.parameters[i]
 
-            for j = 1, #param.ids do
-                local id = param.ids[j]:lower()
-                ids[id] = param.subtype
-                out(', %s', id)
+                for j = 1, #param.ids do
+                    local id = param.ids[j]:lower()
+                    ids[id] = param.subtype
+                    out(', %s', id)
+                end
             end
         end
 
