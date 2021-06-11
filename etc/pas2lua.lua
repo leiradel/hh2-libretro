@@ -597,6 +597,126 @@ local function generate(ast, searchPaths, macros, out)
         out(')')
     end
 
+    local function genUnaryMinus(node)
+        out('(-')
+        gen(node.operand)
+        out(')')
+    end
+
+    local function genIf(node)
+        out('\n')
+        out('if ')
+        gen(node.condition)
+        out(' then\n')
+
+        out:indent()
+        gen(node.ontrue)
+        out:unindent()
+
+        if node.onfalse then
+            out('else\n')
+            out:indent()
+            gen(node.onfalse)
+            out:unindent()
+        end
+
+        out('\nend\n')
+    end
+
+    local function genAnd(node)
+        out('(')
+        gen(node.left)
+        out(' and ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genNotEqual(node)
+        out('(')
+        gen(node.left)
+        out(' ~= ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genNot(node)
+        out('(not ')
+        gen(node.operand)
+        out(')')
+    end
+
+    local function genEnumerated(node)
+        out('hh2rt.newEnumeration({%q', node.elements[1].id:lower())
+
+        for i = 2, #node.elements do
+            out(', %q', node.elements[i].id:lower())
+        end
+
+        out('})\n\n')
+    end
+
+    local function genSet(node)
+        if findId(node.subtype) then
+            out('hh2rt.newSet(%s)\n\n', accessId(node.subtype))
+        else
+            out('hh2rt.newSet() -- %s\n\n', node.subtype)
+        end
+    end
+
+    local function genProcType(node)
+        out('nil ')
+        gen(node.subtype)
+        out('\n')
+    end
+
+    local function genConstHead(node)
+        if node.id then
+            out('-- Constructor %s(', table.concat(node.id.id, '.'))
+        else
+            out('-- Constructor(')
+        end
+
+        if node.parameters then
+            local semicolon = ''
+
+            for i = 1, #node.parameters do
+                local param = node.parameters[i]
+                local comma = ''
+
+                out(semicolon)
+                semicolon = '; '
+
+                for j = 1, #param.ids do
+                    out('%s%s', comma, param.ids[j])
+                    comma = ', '
+                end
+
+                out(': %s', param.subtype.type == 'typeid' and param.subtype.id or param.subtype.subtype)
+            end
+        end
+
+        out(')\n')
+    end
+
+    local function genAsm(node)
+        out('%s', node.code:sub(4, -4))
+    end
+
+    local function genInherited(node)
+        out('hh2rt.callInherited(self, %q)', table.concat(node.designator.qid.id):lower())
+    end
+
+    local function genInitialization(node)
+        out('-- Initialization section\n')
+
+        for i = 1, #node.statements do
+            gen(node.statements[i])
+            out('\n')
+        end
+
+        out('\n')
+    end
+
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -647,6 +767,30 @@ local function generate(ast, searchPaths, macros, out)
             genAccIndex(node)
         elseif node.type == '-' then
             genSubtract(node)
+        elseif node.type == 'unm' then
+            genUnaryMinus(node)
+        elseif node.type == 'if' then
+            genIf(node)
+        elseif node.type == 'and' then
+            genAnd(node)
+        elseif node.type == '<>' then
+            genNotEqual(node)
+        elseif node.type == 'not' then
+            genNot(node)
+        elseif node.type == 'enumerated' then
+            genEnumerated(node)
+        elseif node.type == 'set' then
+            genSet(node)
+        elseif node.type == 'proctype' then
+            genProcType(node)
+        elseif node.type == 'consthead' then
+            genConstHead(node)
+        elseif node.type == 'asm' then
+            genAsm(node)
+        elseif node.type == 'inherited' then
+            genInherited(node)
+        elseif node.type == 'initialization' then
+            genInitialization(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
