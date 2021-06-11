@@ -262,6 +262,9 @@ local function generate(ast, searchPaths, macros, out)
         gen(node.implementation)
 
         gen(node.initialization)
+
+        out('-- Return the module\n')
+        out('return M\n')
     end
 
     local function genInterface(node)
@@ -307,13 +310,18 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genTypes(node)
+        out('-- Types\n')
+
         for i = 1, #node.types do
             gen(node.types[i])
+        end
+
+        if #node.types ~= 0 then
+            out('\n')
         end
     end
 
     local function genType(node)
-        out('-- Type %s\n', node.id)
         out('M.%s = ', node.id:lower())
         gen(node.subtype)
     end
