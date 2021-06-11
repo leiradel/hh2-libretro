@@ -981,6 +981,7 @@ local function newParser(path, tokens)
 
         -- procedure_type = ( procedure_heading | function_heading ) [ 'of' 'object' ] .
         parseProcedureType = function(self)
+            local line = self:line()
             local subtype
 
             if self:token() == 'procedure' then
