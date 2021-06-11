@@ -432,7 +432,16 @@ local function generate(ast, searchPaths, macros, out)
             out('hh2rt.newMethod(%s, %q, function(self', accessId(node.heading.id.id[1]), node.heading.id.id[2]:lower())
 
             local class = findId(node.heading.id.id[1])
-            pushDeclarations(class.subtype.declarations, nil, 'self.%s')
+
+            while true do
+                pushDeclarations(class.subtype.declarations, nil, 'self.%s')
+
+                if not class.subtype.super then
+                    break
+                end
+
+                class = findId(class.subtype.super)
+            end
         end
 
         local ids = {}
