@@ -1137,7 +1137,7 @@ local function newParser(path, tokens)
         parseRestrictedType = function(self)
             local line = self:line()
             local list = {}
-            local super
+            local super = false
 
             self:match('class')
 
