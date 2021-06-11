@@ -536,10 +536,23 @@ local function generate(ast, searchPaths, macros, out)
         if node.subtype == '<decimal>' then
             out('%s', tostring(node.value))
         elseif node.subtype == '<string>' then
+            local value = node.value
+            value = value:gsub('^\'', '')
+            value = value:gsub('\'$', '')
+            value = value:gsub('\'\'', '\'')
+
+            value = value:gsub('\'#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+            value = value:gsub('#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+            value = value:gsub('\'#(%d+)', function(x) return string.char(tonumber(x)) end)
+
+            out('%q', value)
+        elseif node.subtype == 'boolean' then
             out('%s', tostring(node.value))
+        elseif node.subtype == 'nil' then
+            out('nil')
         else
             dump(node)
-            fatal(node.line, 'Do not know how to generate literal "%s"', node.type)
+            error('Do not know how to generate literal "%s"', node.type)
         end
     end
 
