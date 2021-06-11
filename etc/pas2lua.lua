@@ -405,7 +405,7 @@ local function generate(ast, searchPaths, macros, out)
             end
         else
             for i = 1, #node.ids do
-                out('%s = hh2rt.newInstance(%s)\n', declareId(node.ids[i]), accessId(node.subtype.id))
+                out('%s = nil -- %s\n', declareId(node.ids[i]), node.subtype.id)
             end
         end
     end
