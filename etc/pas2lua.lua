@@ -573,7 +573,7 @@ local function generate(ast, searchPaths, macros, out)
 
     local function genAccField(node)
         gen(node.designator)
-        out('.%s', node.id)
+        out('.%s', node.id:lower())
     end
 
     local function genAccIndex(node)
