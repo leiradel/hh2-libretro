@@ -187,17 +187,12 @@ local function generate(ast, searchPaths, macros, out)
         end
     end
 
-    local function pop()
-        scope = scope.previous
-    end
-
-    local function pushDeclarations(declarations, declareFmt, accessFmt)
-        assert(type(declarations) == 'userdata')
-        assert(type(accessFmt) == 'string')
-
+    local function getDeclarations(declarations)
         local ids = {}
 
-        local function declare(node)
+        for i = 1, #declarations do
+            local node = declarations[i]
+
             if node.type == 'types' then
                 for i = 1, #node.types do
                     local type = node.types[i]
@@ -234,10 +229,20 @@ local function generate(ast, searchPaths, macros, out)
             end
         end
 
-        for i = 1, #declarations do
-            declare(declarations[i])
+        return ids
+    end
+
         end
 
+    local function pop()
+        scope = scope.previous
+    end
+
+    local function pushDeclarations(declarations, declareFmt, accessFmt)
+        assert(type(declarations) == 'userdata')
+        assert(type(accessFmt) == 'string')
+
+        local ids = getDeclarations(declarations)
         push(ids, declareFmt, accessFmt)
     end
 
