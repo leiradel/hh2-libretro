@@ -130,17 +130,7 @@ local function newParser(path, tokens)
 
         -- pascal = program | unit .
         parse = function(self)
-            local ast
-
-            if self:token() == 'program' then
-                ast = self:parseProgram()
-            elseif self:token() == 'unit' then
-                ast = self:parseUnit()
-            else
-                self:error(self:line(), '"program" or "unit" expected, found "%s"', self:token())
-                return
-            end
-
+            local ast = self:parseUnit()
             self:match('<eof>')
 
             local new_ast = {path = path}
@@ -150,10 +140,6 @@ local function newParser(path, tokens)
             end
 
             return access.const(new_ast)
-        end,
-
-        parseProgram = function(self)
-            self:error(self:line(), 'Only units are supported')
         end,
 
         -- unit = 'unit' id ';' interface_section implementation_section initialization_section .
