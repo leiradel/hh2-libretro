@@ -418,9 +418,9 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genVar(node)
-        if node.subtype.type == 'ordident' then
+        if node.subtype.type == 'ordident' or node.subtype.type == 'realtype' then
             for i = 1, #node.ids do
-                out('%s = %s\n', declareId(table.concat(node.ids, '.')), tostring(defaultTypes[node.subtype.subtype]))
+                out('%s = %s\n', declareId(node.ids[i]), tostring(defaultTypes[node.subtype.subtype]))
             end
         else
             for i = 1, #node.ids do
