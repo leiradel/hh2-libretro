@@ -99,6 +99,18 @@ end
 
 -- Returns a new parser for the given file
 local function newParser(path, tokens)
+    local validStatements = {
+        ['<id>'] = true,
+        inherited = true,
+        begin = true,
+        ['if'] = true,
+        case = true,
+        ['repeat'] = true,
+        ['while'] = true,
+        ['for'] = true,
+        with = true
+    }
+
     -- Creates and returns the parser instance
     return access.record {
         tokens = access.const(tokens),
@@ -1340,18 +1352,14 @@ local function newParser(path, tokens)
             }
         end,
 
-        -- stmt_list = statement { ';' statement } .
+        -- stmt_list = { statement ';' } .
         parseStmtList = function(self)
             local list = {self:parseStatement()}
+            self:match(';')
 
-            while self:token() == ';' do
-                self:match(';')
-
-                if self:token() == 'end' then
-                    break
-                end
-
+            while validStatements[self:token()] do
                 list[#list + 1] = self:parseStatement()
+                self:match(';')
             end
 
             return access.const(list)
