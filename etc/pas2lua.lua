@@ -473,7 +473,7 @@ local function generate(ast, searchPaths, macros, out)
             error('implement me')
         else
             -- class method
-            out('hh2rt.newMethod(%s, %q, function(self', accessId(node.heading.id.id[1]), node.heading.id.id[2]:lower())
+            out('%s.%s = function(self', accessId(node.heading.id.id[1]), node.heading.id.id[2]:lower())
 
             local class = findId(node.heading.id.id[1])
 
@@ -508,7 +508,7 @@ local function generate(ast, searchPaths, macros, out)
         out:indent()
         gen(node.block)
         out:unindent()
-        out('end)\n\n')
+        out('end\n\n')
     end
 
     local function genBlock(node)
