@@ -422,6 +422,31 @@ local function generate(ast, searchPaths, macros, out)
             for i = 1, #node.ids do
                 out('%s = %s\n', declareId(node.ids[i]), tostring(defaultTypes[node.subtype.subtype]))
             end
+        elseif node.subtype.type == 'arraytype' then
+            for i = 1, #node.ids do
+                out('%s = hh2rt.newArray(', declareId(node.ids[i]))
+
+                local limits = node.subtype.limits
+
+                for i = 1, #limits do
+                    gen(limits[i])
+                    out(', ')
+                end
+
+                local subtype = node.subtype.subtype
+
+                if subtype.type == 'typeid' then
+                    out('nil) -- %s\n', subtype.id)
+                elseif subtype.type == 'ordident' then
+                    out('%s) -- %s\n', tostring(defaultTypes[subtype.subtype]), subtype.subtype)
+                elseif subtype.type == 'stringtype' then
+                    out('"") -- string\n')
+                else
+                    dump(node)
+                    dump(node.subtype)
+                    error('don\'t know how to generate this variable')
+                end
+            end
         else
             for i = 1, #node.ids do
                 out('%s = nil -- %s\n', declareId(node.ids[i]), node.subtype.id)
