@@ -832,6 +832,18 @@ local function generate(ast, searchPaths, macros, out)
         value(node.value)
     end
 
+    local function genTypeId(node)
+        out('%s', accessId(node.id))
+    end
+
+    local function genSubRange(node)
+        out('{')
+        gen(node.min)
+        out(', ')
+        gen(node.max)
+        out('}')
+    end
+
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -914,6 +926,10 @@ local function generate(ast, searchPaths, macros, out)
             genAdd(node)
         elseif node.type == 'arrayconst' then
             genArrayConst(node)
+        elseif node.type == 'typeid' then
+            genTypeId(node)
+        elseif node.type == 'subrange' then
+            genSubRange(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
