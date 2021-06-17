@@ -220,13 +220,15 @@ local function generate(ast, searchPaths, macros, out)
                 ids[table.concat(node.id.id, ''):lower()] = node
             elseif node.type == 'consthead' then
                 ids[table.concat(node.id.id, ''):lower()] = node
+            elseif node.type == 'desthead' then
+                ids[table.concat(node.id.id, ''):lower()] = node
             elseif node.type == 'field' then
                 for i = 1, #node.ids do
                     ids[node.ids[i]:lower()] = node
                 end
             else
                 dump(node)
-                fatal(node.line, 'Do not know how to declare "%s"', node.type)
+                error(string.format('Do not know how to declare "%s"', node.type))
             end
         end
 
@@ -235,11 +237,13 @@ local function generate(ast, searchPaths, macros, out)
 
     local function findQid(qid)
         local node = findId(qid[1])
-
+        
         for i = 2, #qid do
             if node.type == 'class' or node.type == 'type' then
                 local ids = getDeclarations(node.subtype.declarations)
                 node = ids[qid[i]:lower()]
+            elseif node.type == 'var' then
+                -- do nothing, node is already what we want
             else
                 dump(qid)
                 dump(node)
@@ -314,13 +318,14 @@ local function generate(ast, searchPaths, macros, out)
 
         for i = 1, #node.declarations do
             gen(node.declarations[i])
+            out('\n')
         end
+
+        out('\n')
     end
 
     local function genUses(node)
-        if #node.units ~= 0 then
-            out('-- Require other units\n')
-        end
+        out('-- Require other units\n')
 
         for i = 1, #node.units do
             local unit = node.units[i]
@@ -342,21 +347,22 @@ local function generate(ast, searchPaths, macros, out)
             pushDeclarations(ast.interface.declarations, nil, unit .. '.%s')
         end
 
-        if #node.units ~= 0 then
-            out('\n')
-        end
+        out('\n')
     end
 
     local function genTypes(node)
+        if #node.types == 0 then
+            return
+        end
+
         out('-- Types\n')
 
         for i = 1, #node.types do
             gen(node.types[i])
-        end
-
-        if #node.types ~= 0 then
             out('\n')
         end
+
+        out('\n')
     end
 
     local function genType(node)
@@ -375,33 +381,26 @@ local function generate(ast, searchPaths, macros, out)
 
         for i = 1, #node.declarations do
             gen(node.declarations[i])
+            out('\n')
         end
 
         out:unindent()
-        out('})\n\n')
+        out('})')
     end
 
     local function genField(node)
         for i = 1, #node.ids do
-            if node.subtype.type == 'typeid' then
-                out('%s = nil, -- %s\n', node.ids[i]:lower(), node.subtype.id)
-            elseif node.subtype.type == 'ordident' then
-                out('%s = %s, -- %s\n', node.ids[i]:lower(), tostring(defaultTypes[node.subtype.subtype]), node.subtype.subtype)
-            elseif node.subtype.type == 'stringtype' then
-                out('%s = "", -- string\n', node.ids[i]:lower())
-            else
-                dump(node)
-                dump(node.subtype)
-                error('don\'t know how to generate this field')
-            end
+            out('%s = ', node.ids[i]:lower())
+            gen(node.subtype)
+            out(', ')
         end
     end
 
     local function genProcHead(node)
         if node.id then
-            out('-- Procedure %s(', table.concat(node.id.id, '.'))
+            out('--[[Procedure %s(', table.concat(node.id.id, '.'))
         else
-            out('-- Procedure(')
+            out('--[[Procedure(')
         end
 
         if node.parameters then
@@ -423,10 +422,14 @@ local function generate(ast, searchPaths, macros, out)
             end
         end
 
-        out(')\n')
+        out(')]]')
     end
 
     local function genVariables(node)
+        if #node.variables == 0 then
+            return
+        end
+
         out('-- Variables\n')
 
         for i = 1, #node.variables do
@@ -437,39 +440,10 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genVar(node)
-        if node.subtype.type == 'ordident' or node.subtype.type == 'realtype' then
-            for i = 1, #node.ids do
-                out('%s = %s\n', declareId(node.ids[i]), tostring(defaultTypes[node.subtype.subtype]))
-            end
-        elseif node.subtype.type == 'arraytype' then
-            for i = 1, #node.ids do
-                out('%s = hh2rt.newArray(', declareId(node.ids[i]))
-
-                local limits = node.subtype.limits
-
-                for i = 1, #limits do
-                    gen(limits[i])
-                    out(', ')
-                end
-
-                local subtype = node.subtype.subtype
-
-                if subtype.type == 'typeid' then
-                    out('nil) -- %s\n', subtype.id)
-                elseif subtype.type == 'ordident' then
-                    out('%s) -- %s\n', tostring(defaultTypes[subtype.subtype]), subtype.subtype)
-                elseif subtype.type == 'stringtype' then
-                    out('"") -- string\n')
-                else
-                    dump(node)
-                    dump(node.subtype)
-                    error('don\'t know how to generate this variable')
-                end
-            end
-        else
-            for i = 1, #node.ids do
-                out('%s = nil -- %s\n', declareId(node.ids[i]), node.subtype.id)
-            end
+        for i = 1, #node.ids do
+            out('%s = ', declareId(node.ids[i]))
+            gen(node.subtype)
+            out('\n')
         end
     end
 
@@ -482,7 +456,10 @@ local function generate(ast, searchPaths, macros, out)
 
         for i = 1, #node.declarations do
             gen(node.declarations[i])
+            out('\n')
         end
+
+        out('\n')
     end
 
     local function genDecl(node)
@@ -527,7 +504,7 @@ local function generate(ast, searchPaths, macros, out)
         out:indent()
         gen(node.block)
         out:unindent()
-        out('end\n\n')
+        out('end')
     end
 
     local function genBlock(node)
@@ -535,12 +512,17 @@ local function generate(ast, searchPaths, macros, out)
 
         for i = 1, #node.declarations do
             gen(node.declarations[i])
+            out('\n')
         end
 
         gen(node.statement)
     end
 
     local function genCompoundStmt(node)
+        if #node.statements == 0 then
+            return
+        end
+
         out('-- Statements\n')
 
         for i = 1, #node.statements do
@@ -568,8 +550,7 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genFor(node)
-        out('\n')
-        out('for ')
+        out('\nfor ')
         gen(node.variable)
         out(' = ')
         gen(node.first)
@@ -584,7 +565,7 @@ local function generate(ast, searchPaths, macros, out)
         out:indent()
         gen(node.body)
         out:unindent()
-        out('\nend\n')
+        out('end\n')
     end
 
     local function genQualId(node)
@@ -604,6 +585,8 @@ local function generate(ast, searchPaths, macros, out)
     local function genLiteral(node)
         if node.subtype == '<decimal>' then
             out('%s', tostring(node.value))
+        elseif node.subtype == '<hexadecimal>' then
+            out('0x%s', tostring(node.value:gsub('[^%x]', '')))
         elseif node.subtype == '<string>' then
             local value = node.value
             value = value:gsub('^\'', '')
@@ -621,7 +604,7 @@ local function generate(ast, searchPaths, macros, out)
             out('nil')
         else
             dump(node)
-            error('Do not know how to generate literal "%s"', node.type)
+            error(string.format('Do not know how to generate literal "%s"', node.type))
         end
     end
 
@@ -673,8 +656,7 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genIf(node)
-        out('\n')
-        out('if ')
+        out('\nif ')
         gen(node.condition)
         out(' then\n')
 
@@ -683,13 +665,13 @@ local function generate(ast, searchPaths, macros, out)
         out:unindent()
 
         if node.onfalse then
-            out('else\n')
+            out('\nelse\n')
             out:indent()
             gen(node.onfalse)
             out:unindent()
         end
 
-        out('\nend\n')
+        out('end\n')
     end
 
     local function genAnd(node)
@@ -721,28 +703,27 @@ local function generate(ast, searchPaths, macros, out)
             out(', %q', node.elements[i].id:lower())
         end
 
-        out('})\n\n')
+        out('})')
     end
 
     local function genSet(node)
         if findId(node.subtype) then
-            out('hh2rt.newSet(%s)\n\n', accessId(node.subtype))
+            out('hh2rt.newSet(%s)', accessId(node.subtype))
         else
-            out('hh2rt.newSet() -- %s\n\n', node.subtype)
+            out('hh2rt.newSet() --[[%s]]', node.subtype)
         end
     end
 
     local function genProcType(node)
         out('nil ')
         gen(node.subtype)
-        out('\n')
     end
 
     local function genConstHead(node)
         if node.id then
-            out('-- Constructor %s(', table.concat(node.id.id, '.'))
+            out('--[[Constructor %s(', table.concat(node.id.id, '.'))
         else
-            out('-- Constructor(')
+            out('--[[Constructor(')
         end
 
         if node.parameters then
@@ -764,7 +745,7 @@ local function generate(ast, searchPaths, macros, out)
             end
         end
 
-        out(')\n')
+        out(')]]')
     end
 
     local function genAsm(node)
@@ -776,6 +757,10 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genInitialization(node)
+        if #node.statements == 0 then
+            return
+        end
+
         out('-- Initialization section\n')
 
         for i = 1, #node.statements do
@@ -792,10 +777,11 @@ local function generate(ast, searchPaths, macros, out)
 
         for i = 1, #node.declarations do
             gen(node.declarations[i])
+            out('\n')
         end
 
         out:unindent()
-        out('})\n')
+        out('})')
     end
 
     local function genConstants(node)
@@ -852,7 +838,13 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genTypeId(node)
-        out('%s', accessId(node.id))
+        local subtype = findId(node.id)
+
+        if subtype.subtype.type == 'class' then
+            out('nil --[[%s]]', subtype.id)
+        else
+            gen(subtype.subtype)
+        end
     end
 
     local function genSubRange(node)
@@ -861,6 +853,33 @@ local function generate(ast, searchPaths, macros, out)
         out(', ')
         gen(node.max)
         out('}')
+    end
+
+    local function genArrayType(node)
+        out('hh2rt.newArray(')
+
+        for i = 1, #node.limits do
+            gen(node.limits[i])
+            out(', ')
+        end
+
+        gen(node.subtype)
+        out(')')
+    end
+
+    local function genOrdIdent(node)
+        out('%s', defaultTypes[node.subtype])
+    end
+
+    local function genStringType(node)
+        out('""')
+    end
+
+    local function genRealType(node)
+        out('%s', defaultTypes[node.subtype])
+    end
+
+    local function genEmptyStmt(node)
     end
 
     gen = function(node)
@@ -949,6 +968,16 @@ local function generate(ast, searchPaths, macros, out)
             genTypeId(node)
         elseif node.type == 'subrange' then
             genSubRange(node)
+        elseif node.type == 'arraytype' then
+            genArrayType(node)
+        elseif node.type == 'ordident' then
+            genOrdIdent(node)
+        elseif node.type == 'stringtype' then
+            genStringType(node)
+        elseif node.type == 'realtype' then
+            genRealType(node)
+        elseif node.type == 'emptystmt' then
+            genEmptyStmt(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
