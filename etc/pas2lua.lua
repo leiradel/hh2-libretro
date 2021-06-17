@@ -273,8 +273,25 @@ local function generate(ast, searchPaths, macros, out)
         out('-- Generated code for Pascal unit "%s"\n\n', node.id)
         out('-- Our exported module\n')
         out('local M = {}\n\n')
-        out('-- Load the runtime\n')
-        out('local hh2rt = require "hh2rt"\n\n')
+        out('-- Load the runtime and the implied system unit\n')
+        out('local hh2rt = require "hh2rt"\n')
+        out('local system = require "system"\n\n')
+
+        do
+            local path = findUnit('system', searchPaths)
+
+            if not path then
+                fatal(node.line, 'Cannot find the path to unit "system"')
+            end
+
+            local ast, err = parse(path, macros)
+
+            if not ast then
+                fatal(node.line, err)
+            end
+
+            pushDeclarations(ast.interface.declarations, nil, 'system.%s')
+        end
 
         pushDeclarations(node.interface.declarations, 'M.%s', 'M.%s')
         gen(node.interface)
