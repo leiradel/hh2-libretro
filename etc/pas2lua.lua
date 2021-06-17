@@ -130,6 +130,7 @@ local function generate(ast, searchPaths, macros, out)
 
     local function push(ids, declareFmt, accessFmt)
         assert(type(ids) == 'table')
+        assert(declareFmt == nil or type(declareFmt) == 'string')
         assert(type(accessFmt) == 'string')
 
         local new_scope = access.const {
@@ -259,6 +260,7 @@ local function generate(ast, searchPaths, macros, out)
 
     local function pushDeclarations(declarations, declareFmt, accessFmt)
         assert(type(declarations) == 'userdata')
+        assert(declareFmt == nil or type(declareFmt) == 'string')
         assert(type(accessFmt) == 'string')
 
         local ids = getDeclarations(declarations)
