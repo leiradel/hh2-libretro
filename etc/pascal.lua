@@ -172,7 +172,11 @@ local function newParser(path, tokens)
             local line = self:line()
             self:match('interface')
 
-            local uses = self:parseUsesClause()
+            local uses = false
+
+            if self:token() == 'uses' then
+                uses = self:parseUsesClause()
+            end
 
             -- InterfaceDecl
             local list = {}
@@ -204,7 +208,11 @@ local function newParser(path, tokens)
             local line = self:line()
             self:match('implementation')
 
-            local uses = self:parseUsesClause()
+            local uses = false
+
+            if self:token() == 'uses' then
+                uses = self:parseUsesClause()
+            end
 
             local list = {}
 
@@ -254,24 +262,10 @@ local function newParser(path, tokens)
         -- uses_clause = 'uses' ident_list ';' .
         parseUsesClause = function(self)
             local line = self:line()
-            local list
 
-            if self:token() == 'uses' then
-                self:match('uses')
-                list = self:parseIdentList()
-                self:match(';')
-
-                local newList = {}
-
-                for i = 1, #list do
-                    newList[i] = list[i]
-                end
-
-                newList[#newList + 1] = 'system'
-                list = access.const(newList)
-            else
-                list = access.const {'system'}
-            end
+            self:match('uses')
+            local list = self:parseIdentList()
+            self:match(';')
 
             return access.const {
                 type = 'uses',
