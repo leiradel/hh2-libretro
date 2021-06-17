@@ -1446,25 +1446,19 @@ local function newParser(path, tokens)
 
             local list = {self:parseCaseSelector()}
 
-            while self:token() == ';' do
-                self:match(';')
-
-                if self:token() == 'end' then
-                    break
-                end
-
+            while self:token() ~= 'else' and self:token() ~= 'end' do
                 list[#list + 1] = self:parseCaseSelector()
             end
 
-            local otherwise
+            local otherwise = false
 
             if self:token() == 'else' then
                 self:match('else')
                 otherwise = self:parseStatement()
-            end
 
-            if self:token() == ';' then
-                self:match(';')
+                if self:token() == ';' then
+                    self:match(';')
+                end
             end
 
             self:match('end')
@@ -1489,7 +1483,14 @@ local function newParser(path, tokens)
 
             self:match(':')
 
-            return access.const {labels = list, body = self:parseStatement()}
+            local stmt = access.const {
+                labels = list,
+                body = self:parseStatement()
+            }
+
+            if self:token() == ';' then
+                self:match(';')
+            end
         end,
 
         -- case_label = const_expr [ '..' const_expr ] .
