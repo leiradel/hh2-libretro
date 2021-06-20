@@ -697,15 +697,12 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genEnumerated(node)
-        out('hh2rt.newEnumeration({\n')
-        out:indent()
+        out('hh2rt.newEnumeration({%q', node.elements[1].id:lower())
 
-        for i = 1, #node.declarations do
-            gen(node.declarations[i])
-            out(',\n')
+        for i = 2, #node.elements do
+            out(', %q', node.elements[i].id:lower())
         end
 
-        out:unindent()
         out('})')
     end
 
@@ -885,17 +882,6 @@ local function generate(ast, searchPaths, macros, out)
     local function genEmptyStmt(node)
     end
 
-    local function genEnumField(node)
-        out('{%q', node.id:lower())
-
-        if node.value then
-            out(', ')
-            gen(node.value)
-        end
-
-        out('}')
-    end
-
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -992,8 +978,6 @@ local function generate(ast, searchPaths, macros, out)
             genRealType(node)
         elseif node.type == 'emptystmt' then
             genEmptyStmt(node)
-        elseif node.type == 'enumfield' then
-            genEnumField(node)
         else
             io.stderr:write('-------------------------------------------\n')
 

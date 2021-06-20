@@ -1090,11 +1090,10 @@ local function newParser(path, tokens)
 
             -- EnumerateTypeElement
             while true do
-                local line = self:line()
                 local id = self:lexeme()
                 self:match('<id>')
 
-                local value = false
+                local value
 
                 if self:token() == '=' then
                     self:match('=')
@@ -1102,8 +1101,6 @@ local function newParser(path, tokens)
                 end
 
                 list[#list + 1] = access.const {
-                    type = 'enumfield',
-                    line = line,
                     id = id,
                     value = value
                 }
@@ -1114,7 +1111,7 @@ local function newParser(path, tokens)
                     return access.const {
                         type = 'enumerated',
                         line = line,
-                        declarations = access.const(list)
+                        elements = access.const(list)
                     }
                 end
 
