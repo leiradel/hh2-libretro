@@ -198,6 +198,15 @@ local function generate(ast, searchPaths, macros, out)
                 for i = 1, #node.types do
                     local type = node.types[i]
                     ids[type.id:lower()] = type
+
+                    -- Enumerated fields have unit scope
+                    if type.subtype.type == 'enumerated' then
+                        local enum = type.subtype
+
+                        for i = 1, #enum.elements do
+                            ids[enum.elements[i].id:lower()] = type
+                        end
+                    end
                 end
             elseif node.type == 'constants' then
                 for i = 1, #node.constants do
@@ -697,12 +706,23 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genEnumerated(node)
-        out('hh2rt.newEnumeration({%q', node.elements[1].id:lower())
+        out('hh2rt.newEnumeration(M, {\n', node.elements[1].id:lower())
+        out:indent()
 
         for i = 2, #node.elements do
-            out(', %q', node.elements[i].id:lower())
+            local element = node.elements[i]
+
+            out('{%q', element.id:lower())
+
+            if element.value then
+                out(', ')
+                gen(element.value)
+            end
+
+            out('},\n')
         end
 
+        out:unindent()
         out('})')
     end
 
