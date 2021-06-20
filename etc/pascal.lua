@@ -688,15 +688,20 @@ local function newParser(path, tokens)
         parseSetElement = function(self)
             local first = self:parseExpression()
             local last
+            local value = false
 
             if self:token() == '..' then
                 self:match('..')
                 last = self:parseExpression()
+            else
+                value = first
+                first = nil
             end
 
             return access.const {
+                value = value,
                 first = first,
-                last = last
+                last = last,
             }
         end,
 

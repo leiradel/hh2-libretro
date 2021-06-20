@@ -611,9 +611,31 @@ local function generate(ast, searchPaths, macros, out)
             out('%s', tostring(node.value))
         elseif node.subtype == 'nil' then
             out('nil')
+        elseif node.subtype == 'set' then
+            out('hh2rt.newSet({')
+                local comma = ''
+
+            for i = 1, #node.elements do
+                local e = node.elements[i]
+
+                out(comma)
+                comma = ', '
+
+                if e.value then
+                    gen(e.value)
+                else
+                    out('{')
+                    gen(e.first)
+                    out(', ')
+                    gen(e.last)
+                    out('}')
+                end
+            end
+
+            out('})')
         else
             dump(node)
-            error(string.format('Do not know how to generate literal "%s"', node.type))
+            error(string.format('Do not know how to generate literal "%s"', node.subtype))
         end
     end
 
