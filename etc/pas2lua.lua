@@ -926,6 +926,14 @@ local function generate(ast, searchPaths, macros, out)
     local function genEmptyStmt(node)
     end
 
+    local function genMultiply(node)
+        out('(')
+        gen(node.left)
+        out(' * ')
+        gen(node.right)
+        out(')')
+    end
+
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -1022,6 +1030,8 @@ local function generate(ast, searchPaths, macros, out)
             genRealType(node)
         elseif node.type == 'emptystmt' then
             genEmptyStmt(node)
+        elseif node.type == '*' then
+            genMultiply(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
