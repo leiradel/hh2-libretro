@@ -1035,7 +1035,7 @@ local function generate(ast, searchPaths, macros, out)
                 end
             end
 
-            out('\n')
+            out(' then\n')
             out:indent()
             gen(sel.body)
             out:unindent()
