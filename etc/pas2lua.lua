@@ -576,7 +576,7 @@ local function generate(ast, searchPaths, macros, out)
         out:indent()
         gen(node.body)
         out:unindent()
-        out('end\n')
+        out('\nend\n')
     end
 
     local function genQualId(node)
@@ -704,7 +704,7 @@ local function generate(ast, searchPaths, macros, out)
             out:unindent()
         end
 
-        out('end\n')
+        out('\nend\n')
     end
 
     local function genAnd(node)
