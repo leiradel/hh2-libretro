@@ -1046,7 +1046,6 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genEqual(node)
-        dump(node)
         out('(')
         gen(node.left)
         out(' == ')
