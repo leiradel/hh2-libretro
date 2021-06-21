@@ -1048,6 +1048,7 @@ local function generate(ast, searchPaths, macros, out)
             out:unindent()
         end
 
+        out('\nend\n')
         out:unindent()
         out('\nend\n')
     end
