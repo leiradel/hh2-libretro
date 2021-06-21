@@ -1483,6 +1483,8 @@ local function newParser(path, tokens)
             if self:token() == ';' then
                 self:match(';')
             end
+
+            return stmt
         end,
 
         -- case_label = const_expr [ '..' const_expr ] .
