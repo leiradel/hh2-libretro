@@ -952,10 +952,10 @@ local function newParser(path, tokens)
                 self:match('set')
                 self:match('of')
 
-                local subtype = self:lexeme()
+                local subtype
 
                 if self:token() == '<id>' then
-                    self:match('<id>')
+                    subtype = self:parseQualId()
                 else
                     subtype = self:parseOrdinalType()
                 end
