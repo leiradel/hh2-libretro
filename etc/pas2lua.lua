@@ -206,6 +206,14 @@ local function generate(ast, searchPaths, macros, out)
                         for i = 1, #enum.elements do
                             ids[enum.elements[i].id:lower()] = type
                         end
+                    elseif type.subtype.type == 'set' then
+                        local enum = type.subtype.subtype
+
+                        if enum.type == 'enumerated' then
+                            for i = 1, #enum.elements do
+                                ids[enum.elements[i].id:lower()] = type
+                            end
+                        end
                     end
                 end
             elseif node.type == 'constants' then
