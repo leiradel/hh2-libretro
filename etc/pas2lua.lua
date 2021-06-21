@@ -934,6 +934,128 @@ local function generate(ast, searchPaths, macros, out)
         out(')')
     end
 
+    local function genGreaterThan(node)
+        out('(')
+        gen(node.left)
+        out(' > ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genLessEqual(node)
+        out('(')
+        gen(node.left)
+        out(' <= ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genWhile(node)
+        out('\nwhile ')
+        gen(node.condition)
+        out(' do\n')
+        out:indent()
+        gen(node.body)
+        out:unindent()
+        out('\nend\n')
+    end
+
+    local function genGreaterEqual(node)
+        out('(')
+        gen(node.left)
+        out(' >= ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genDec(node)
+        gen(node.qid)
+        out(' = ')
+        gen(node.qid)
+        out(' - ')
+
+        if node.amount then
+            gen(node.amount)
+        else
+            out('1')
+        end
+    end
+
+    local function genMod(node)
+        out('(')
+        gen(node.left)
+        out(' %% ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genDiv(node)
+        out('(')
+        gen(node.left)
+        out(' // ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genCase(node)
+        out('do\n')
+        out:indent()
+        out('local hh2selector = ')
+        gen(node.selector)
+        out('\n\n')
+
+        for i = 1, #node.selectors do
+            out(i == 1 and 'if ' or 'elseif ')
+
+            local sel = node.selectors[i]
+            local orop = ''
+
+            for j = 1, #sel.labels do
+                out(orop)
+                orop = ' or '
+
+                local label = sel.labels[j]
+
+                if label.value then
+                    out('(hh2selector == ')
+                    gen(label.value)
+                    out(')')
+                else
+                    out('((hh2selector >= ')
+                    gen(label.min)
+                    out(') and (hh2selector <=')
+                    gen(label.max)
+                    out('))')
+                end
+            end
+
+            out('\n')
+            out:indent()
+            gen(sel.body)
+            out:unindent()
+        end
+
+        out:unindent()
+        out('\nend\n')
+    end
+
+    local function genEqual(node)
+        dump(node)
+        out('(')
+        gen(node.left)
+        out(' == ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genIn(node)
+        out('(')
+        gen(node.right)
+        out('[')
+        gen(node.left)
+        out('])')
+    end
+
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -1032,6 +1154,26 @@ local function generate(ast, searchPaths, macros, out)
             genEmptyStmt(node)
         elseif node.type == '*' then
             genMultiply(node)
+        elseif node.type == '>' then
+            genGreaterThan(node)
+        elseif node.type == '<=' then
+            genLessEqual(node)
+        elseif node.type == 'while' then
+            genWhile(node)
+        elseif node.type == '>=' then
+            genGreaterEqual(node)
+        elseif node.type == 'dec' then
+            genDec(node)
+        elseif node.type == 'mod' then
+            genMod(node)
+        elseif node.type == 'div' then
+            genDiv(node)
+        elseif node.type == 'case' then
+            genCase(node)
+        elseif node.type == '=' then
+            genEqual(node)
+        elseif node.type == 'in' then
+            genIn(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
