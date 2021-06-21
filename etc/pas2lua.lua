@@ -1008,10 +1008,10 @@ local function generate(ast, searchPaths, macros, out)
         out:indent()
         out('local hh2selector = ')
         gen(node.selector)
-        out('\n\n')
+        out('\n')
 
         for i = 1, #node.selectors do
-            out(i == 1 and 'if ' or 'elseif ')
+            out(i == 1 and '\nif ' or '\nelseif ')
 
             local sel = node.selectors[i]
             local orop = ''
@@ -1029,7 +1029,7 @@ local function generate(ast, searchPaths, macros, out)
                 else
                     out('((hh2selector >= ')
                     gen(label.min)
-                    out(') and (hh2selector <=')
+                    out(') and (hh2selector <= ')
                     gen(label.max)
                     out('))')
                 end
@@ -1038,6 +1038,13 @@ local function generate(ast, searchPaths, macros, out)
             out('\n')
             out:indent()
             gen(sel.body)
+            out:unindent()
+        end
+
+        if node.otherwise then
+            out('\nelse\n')
+            out:indent()
+            gen(node.otherwise)
             out:unindent()
         end
 
