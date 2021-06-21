@@ -253,6 +253,8 @@ local function generate(ast, searchPaths, macros, out)
                 node = ids[qid[i]:lower()]
             elseif node.type == 'var' then
                 -- do nothing, node is already what we want
+            elseif node.type == 'field' then
+                node = findId(node.subtype.id)
             else
                 dump(qid)
                 dump(node)
