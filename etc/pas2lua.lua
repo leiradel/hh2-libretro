@@ -606,6 +606,8 @@ local function generate(ast, searchPaths, macros, out)
             out('%s', tostring(node.value))
         elseif node.subtype == '<hexadecimal>' then
             out('0x%s', tostring(node.value:gsub('[^%x]', '')))
+        elseif node.subtype == '<float>' then
+            out('%s', tostring(node.value))
         elseif node.subtype == '<string>' then
             local value = node.value
             value = value:gsub('^\'', '')
