@@ -28,7 +28,7 @@ local function tokenize(path, source)
             'destructor', 'private', 'protected', 'public', 'published', 'virtual', 'inherited', 'with'
         },
 
-        freeform = {{'asm', 'end'}}
+        freeform = {{'asm', 'end;'}}
     }
 
     -- Tokenizes the entire file
