@@ -25,7 +25,8 @@ local function tokenize(path, source)
             'initialization', 'nil',
             'of', 'record', 'implementation', 'begin', 'not',
             'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until', 'set', 'object', 'constructor',
-            'destructor', 'private', 'protected', 'public', 'published', 'virtual', 'inherited', 'with'
+            'destructor', 'private', 'protected', 'public', 'published', 'virtual', 'inherited', 'with',
+            'inc', 'dec'
         },
 
         freeform = {{'asm', 'end;'}}
@@ -1376,6 +1377,10 @@ local function newParser(path, tokens)
                 return self:parseForStmt()
             elseif tk == 'with' then
                 return self:parseWithStmt()
+            elseif tk == 'inc' then
+                return self:parseIncStmt()
+            elseif tk == 'dec' then
+                return self:parseDecStmt()
             elseif tk == 'inherited' then
                 local line = self:line()
                 self:match('inherited')
@@ -1586,6 +1591,54 @@ local function newParser(path, tokens)
                 line = line,
                 ids = list,
                 body = self:parseStatement()
+            }
+        end,
+
+        -- inc_stmt = 'inc' '(' qid [ ',' const_expression ] ')'
+        parseIncStmt = function(self)
+            local line = self:line()
+            self:match('inc')
+            self:match('(')
+            local qid = self:parseQualId()
+
+            local amount = false
+
+            if self:token() == ',' then
+                self:match(',')
+                amount = self:parseConstExpr();
+            end
+
+            self:match(')')
+
+            return access.const {
+                type = 'inc',
+                line = line,
+                qid = qid,
+                amount = amount
+            }
+        end,
+
+        -- dec_stmt = 'dec' '(' qid [ ',' const_expression ] ')'
+        parseDecStmt = function(self)
+            local line = self:line()
+            self:match('dec')
+            self:match('(')
+            local qid = self:parseQualId()
+
+            local amount = false
+
+            if self:token() == ',' then
+                self:match(',')
+                amount = self:parseConstExpr();
+            end
+
+            self:match(')')
+
+            return access.const {
+                type = 'dec',
+                line = line,
+                qid = qid,
+                amount = amount
             }
         end,
 
