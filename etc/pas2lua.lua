@@ -759,11 +759,9 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genSet(node)
-        if findId(node.subtype) then
-            out('hh2rt.newSet(%s)', accessId(node.subtype))
-        else
-            out('hh2rt.newSet() --[[%s]]', node.subtype)
-        end
+        out('hh2rt.newSet(')
+        gen(node.subtype)
+        out(')')
     end
 
     local function genProcType(node)
