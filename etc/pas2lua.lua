@@ -209,7 +209,7 @@ local function generate(ast, searchPaths, macros, out)
                     elseif type.subtype.type == 'set' then
                         local enum = type.subtype.subtype
 
-                        if enum.type == 'enumerated' then
+                        if enum and enum.type == 'enumerated' then
                             for i = 1, #enum.elements do
                                 ids[enum.elements[i].id:lower()] = type
                             end
@@ -230,15 +230,15 @@ local function generate(ast, searchPaths, macros, out)
                     end
                 end
             elseif node.type == 'decl' then
-                ids[table.concat(node.heading.id, ''):lower()] = node
+                ids[table.concat(node.heading.qid, ''):lower()] = node
             elseif node.type == 'prochead' then
-                ids[table.concat(node.id.id, ''):lower()] = node
+                ids[table.concat(node.qid.id, ''):lower()] = node
             elseif node.type == 'funchead' then
-                ids[table.concat(node.id.id, ''):lower()] = node
+                ids[table.concat(node.qid.id, ''):lower()] = node
             elseif node.type == 'consthead' then
-                ids[table.concat(node.id.id, ''):lower()] = node
+                ids[table.concat(node.qid.id, ''):lower()] = node
             elseif node.type == 'desthead' then
-                ids[table.concat(node.id.id, ''):lower()] = node
+                ids[table.concat(node.qid.id, ''):lower()] = node
             elseif node.type == 'field' then
                 for i = 1, #node.ids do
                     ids[node.ids[i]:lower()] = node
@@ -416,8 +416,8 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genProcHead(node)
-        if node.id then
-            out('--[[Procedure %s(', table.concat(node.id.id, '.'))
+        if node.qid then
+            out('--[[Procedure %s(', table.concat(node.qid.id, '.'))
         else
             out('--[[Procedure(')
         end
@@ -482,15 +482,15 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genDecl(node)
-        if #node.heading.id.id == 1 then
+        if #node.heading.qid.id == 1 then
             -- local function
             dump(node)
             error('implement me')
         else
             -- class method
-            out('%s.%s = function(self', accessId(node.heading.id.id[1]), node.heading.id.id[2]:lower())
+            out('%s.%s = function(self', accessId(node.heading.qid.id[1]), node.heading.qid.id[2]:lower())
 
-            local class = findId(node.heading.id.id[1])
+            local class = findId(node.heading.qid.id[1])
 
             while true do
                 pushDeclarations(class.subtype.declarations, nil, 'self.%s')
@@ -570,7 +570,7 @@ local function generate(ast, searchPaths, macros, out)
 
     local function genFor(node)
         out('\nfor ')
-        gen(node.variable)
+        gen(node.qid)
         out(' = ')
         gen(node.first)
         out(', ')
@@ -591,7 +591,7 @@ local function generate(ast, searchPaths, macros, out)
         local type = findQid(node.id)
 
         if type.type == 'consthead' then
-            out('hh2rt.newInstance(%s, %q)', accessId(node.id[1]), table.concat(type.id.id, ''):lower())
+            out('hh2rt.newInstance(%s, %q)', accessId(node.id[1]), table.concat(type.qid.id, ''):lower())
         else
             out('%s', accessId(node.id[1]))
 
