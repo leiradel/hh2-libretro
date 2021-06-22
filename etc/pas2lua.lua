@@ -1006,9 +1006,11 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genCase(node)
+        local id = string.format('hh2_%s', tostring(node):match('.*0x(%x+).*'))
+
         out('do\n')
         out:indent()
-        out('local hh2selector = ')
+        out('local %s = ', id)
         gen(node.selector)
         out('\n')
 
@@ -1025,13 +1027,13 @@ local function generate(ast, searchPaths, macros, out)
                 local label = sel.labels[j]
 
                 if label.value then
-                    out('(hh2selector == ')
+                    out('(%s == ', id)
                     gen(label.value)
                     out(')')
                 else
-                    out('((hh2selector >= ')
+                    out('((%s >= ', id)
                     gen(label.min)
-                    out(') and (hh2selector <= ')
+                    out(') and (%s <= ', id)
                     gen(label.max)
                     out('))')
                 end
