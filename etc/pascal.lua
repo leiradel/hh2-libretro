@@ -754,10 +754,10 @@ local function newParser(path, tokens)
             local line = self:line()
             self:match('procedure')
 
-            local id = false
+            local qid = false
 
             if needid then
-                id = self:parseQualId()
+                qid = self:parseQualId()
             end
 
             local list = false
@@ -769,7 +769,7 @@ local function newParser(path, tokens)
             return access.const {
                 type = 'prochead',
                 line = line,
-                id = id,
+                qid = qid,
                 parameters = list
             }
         end,
@@ -779,10 +779,10 @@ local function newParser(path, tokens)
             local line = self:line()
             self:match('function')
 
-            local id = false
+            local qid = false
 
             if needid then
-                id = self:parseQualId()
+                qid = self:parseQualId()
             end
 
             local list = false
@@ -796,7 +796,7 @@ local function newParser(path, tokens)
             return access.const {
                 type = 'funchead',
                 line = line,
-                id = id,
+                qid = qid,
                 parameters = list,
                 returnType = self:parseType()
             }
@@ -952,10 +952,10 @@ local function newParser(path, tokens)
                 self:match('set')
                 self:match('of')
 
-                local subtype
+                local qid, subtype = false, false
 
                 if self:token() == '<id>' then
-                    subtype = self:parseQualId()
+                    qid = self:parseQualId()
                 else
                     subtype = self:parseOrdinalType()
                 end
@@ -963,6 +963,7 @@ local function newParser(path, tokens)
                 return access.const {
                     type = 'set',
                     line = line,
+                    qid = qid,
                     subtype = subtype
                 }
             elseif tk == 'procedure' or tk == 'function' then
@@ -1179,7 +1180,7 @@ local function newParser(path, tokens)
                 local type = self:token() == 'constructor' and 'consthead' or 'desthead'
                 self:match(self:token())
 
-                local id = self:parseQualId()
+                local qid = self:parseQualId()
                 local list = false
 
                 if self:token() == '(' then
@@ -1198,7 +1199,7 @@ local function newParser(path, tokens)
                 return access.const {
                     type = type,
                     line = line,
-                    id = id,
+                    qid = qid,
                     parameters = list,
                     virtual = virtual
                 }
@@ -1499,7 +1500,7 @@ local function newParser(path, tokens)
             if self:token() == '..' then
                 self:match('..')
                 label.min = label.value
-                label.value = nil
+                label.value = false
                 label.max = self:parseConstExpr()
             end
 
@@ -1549,7 +1550,7 @@ local function newParser(path, tokens)
             local line = self:line()
 
             self:match('for')
-            local variable = self:parseQualId()
+            local qid = self:parseQualId()
             self:match(':=')
             local first = self:parseExpression()
 
@@ -1571,7 +1572,7 @@ local function newParser(path, tokens)
             return access.const {
                 type = 'for',
                 line = line,
-                variable = variable,
+                qid = qid,
                 first = first,
                 direction = direction,
                 last = last,
