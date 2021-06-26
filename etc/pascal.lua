@@ -600,7 +600,8 @@ local function newParser(path, tokens)
             local designator = access.const {
                 type = 'variable',
                 line = line,
-                qid = self:parseQualId()
+                qid = self:parseQualId(),
+                designator = false
             }
 
             local tk = self:token()
