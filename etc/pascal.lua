@@ -301,7 +301,8 @@ local function newParser(path, tokens)
                 local id = self:lexeme()
                 self:match('<id>')
 
-                local value, subtype
+                local value
+                local subtype = false
 
                 if self:token() == '=' then
                     self:match('=')
