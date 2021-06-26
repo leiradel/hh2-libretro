@@ -849,18 +849,10 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genAdd(node)
-        local l, r = node.left, node.right
-        local op = '+'
-
-        -- TODO: this is too little to actually determine that we must do a string concatenation
-        if (l.type == 'literal' and l.subtype == '<string>') or (r.type == 'literal' and r.subtype == '<string>') then
-            op = '..'
-        end
-
         out('(')
-        gen(l)
-        out(' %s ', op)
-        gen(r)
+        gen(node.left)
+        out(' + ')
+        gen(node.right)
         out(')')
     end
 
