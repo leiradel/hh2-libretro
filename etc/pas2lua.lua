@@ -840,8 +840,15 @@ local function generate(ast, searchPaths, macros, out)
         out('-- Constants\n')
 
         for i = 1, #node.constants do
-            out('%s = ', accessId(node.constants[i].id))
-            gen(node.constants[i].value)
+            local const = node.constants[i]
+            out('%s = ', declareId(const.id))
+            
+            if const.subtype then
+                gen(const.subtype, const.value)
+            else
+                gen(const.value)
+            end
+
             out('\n')
         end
 
@@ -854,31 +861,6 @@ local function generate(ast, searchPaths, macros, out)
         out(' + ')
         gen(node.right)
         out(')')
-    end
-
-    local function genArrayConst(node)
-        local function value(v)
-            if #v ~= 0 then
-                out('{')
-                value(v[1])
-
-                for i = 2, #v do
-                    out(', ')
-                    value(v[i])
-                end
-
-                out('}')
-            elseif v.type == 'arrayconst' then
-                out('\n')
-                out:indent()
-                gen(v)
-                out:unindent()
-            else
-                gen(v)
-            end
-        end
-
-        value(node.value)
     end
 
     local function genTypeId(node)
@@ -899,7 +881,7 @@ local function generate(ast, searchPaths, macros, out)
         out('}')
     end
 
-    local function genArrayType(node)
+    local function genArrayType(node, value)
         out('hh2rt.newArray(')
 
         for i = 1, #node.limits do
@@ -908,6 +890,35 @@ local function generate(ast, searchPaths, macros, out)
         end
 
         gen(node.subtype)
+
+        if value then
+            local function genValue(v)
+                if type(v) ~= 'userdata' then
+                    out('%s', tostring(v))
+                elseif #v ~= 0 then
+                    out('{')
+                    genValue(v[1])
+
+                    for i = 2, #v do
+                        out(', ')
+                        genValue(v[i])
+                    end
+
+                    out('}')
+                elseif v.type == 'arrayconst' then
+                    out('\n')
+                    out:indent()
+                    genValue(v.value)
+                    out:unindent()
+                else
+                    gen(v)
+                end
+            end
+
+            out(', ')
+            genValue(value)
+        end
+
         out(')')
     end
 
@@ -1102,132 +1113,130 @@ local function generate(ast, searchPaths, macros, out)
         out(')')
     end
 
-    gen = function(node)
+    gen = function(node, ...)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
-            genUnit(node)
+            genUnit(node, ...)
         elseif node.type == 'interface' then
-            genInterface(node)
+            genInterface(node, ...)
         elseif node.type == 'uses' then
-            genUses(node)
+            genUses(node, ...)
         elseif node.type == 'types' then
-            genTypes(node)
+            genTypes(node, ...)
         elseif node.type == 'type' then
-            genType(node)
+            genType(node, ...)
         elseif node.type == 'class' then
-            genClass(node)
+            genClass(node, ...)
         elseif node.type == 'field' then
-            genField(node)
+            genField(node, ...)
         elseif node.type == 'prochead' then
-            genProcHead(node)
+            genProcHead(node, ...)
         elseif node.type == 'variables' then
-            genVariables(node)
+            genVariables(node, ...)
         elseif node.type == 'var' then
-            genVar(node)
+            genVar(node, ...)
         elseif node.type == 'implementation' then
-            genImplementation(node)
+            genImplementation(node, ...)
         elseif node.type == 'decl' then
-            genDecl(node)
+            genDecl(node, ...)
         elseif node.type == 'block' then
-            genBlock(node)
+            genBlock(node, ...)
         elseif node.type == 'compoundstmt' then
-            genCompoundStmt(node)
+            genCompoundStmt(node, ...)
         elseif node.type == 'assignment' then
-            genAssignment(node)
+            genAssignment(node, ...)
         elseif node.type == 'variable' then
-            genVariable(node)
+            genVariable(node, ...)
         elseif node.type == 'proccall' then
-            genProcCall(node)
+            genProcCall(node, ...)
         elseif node.type == 'for' then
-            genFor(node)
+            genFor(node, ...)
         elseif node.type == 'qualid' then
-            genQualId(node)
+            genQualId(node, ...)
         elseif node.type == 'literal' then
-            genLiteral(node)
+            genLiteral(node, ...)
         elseif node.type == 'call' then
-            genCall(node)
+            genCall(node, ...)
         elseif node.type == 'accfield' then
-            genAccField(node)
+            genAccField(node, ...)
         elseif node.type == 'accindex' then
-            genAccIndex(node)
+            genAccIndex(node, ...)
         elseif node.type == '-' then
-            genSubtract(node)
+            genSubtract(node, ...)
         elseif node.type == 'unm' then
-            genUnaryMinus(node)
+            genUnaryMinus(node, ...)
         elseif node.type == 'if' then
-            genIf(node)
+            genIf(node, ...)
         elseif node.type == 'and' then
-            genAnd(node)
+            genAnd(node, ...)
         elseif node.type == '<>' then
-            genNotEqual(node)
+            genNotEqual(node, ...)
         elseif node.type == 'not' then
-            genNot(node)
+            genNot(node, ...)
         elseif node.type == 'enumerated' then
-            genEnumerated(node)
+            genEnumerated(node, ...)
         elseif node.type == 'set' then
-            genSet(node)
+            genSet(node, ...)
         elseif node.type == 'proctype' then
-            genProcType(node)
+            genProcType(node, ...)
         elseif node.type == 'consthead' then
-            genConstHead(node)
+            genConstHead(node, ...)
         elseif node.type == 'asm' then
-            genAsm(node)
+            genAsm(node, ...)
         elseif node.type == 'inherited' then
-            genInherited(node)
+            genInherited(node, ...)
         elseif node.type == 'initialization' then
-            genInitialization(node)
+            genInitialization(node, ...)
         elseif node.type == 'rectype' then
-            genRecType(node)
+            genRecType(node, ...)
         elseif node.type == 'constants' then
-            genConstants(node)
+            genConstants(node, ...)
         elseif node.type == '+' then
-            genAdd(node)
-        elseif node.type == 'arrayconst' then
-            genArrayConst(node)
+            genAdd(node, ...)
         elseif node.type == 'typeid' then
-            genTypeId(node)
+            genTypeId(node, ...)
         elseif node.type == 'subrange' then
-            genSubRange(node)
+            genSubRange(node, ...)
         elseif node.type == 'arraytype' then
-            genArrayType(node)
+            genArrayType(node, ...)
         elseif node.type == 'ordident' then
-            genOrdIdent(node)
+            genOrdIdent(node, ...)
         elseif node.type == 'stringtype' then
-            genStringType(node)
+            genStringType(node, ...)
         elseif node.type == 'realtype' then
-            genRealType(node)
+            genRealType(node, ...)
         elseif node.type == 'emptystmt' then
-            genEmptyStmt(node)
+            genEmptyStmt(node, ...)
         elseif node.type == '*' then
-            genMultiply(node)
+            genMultiply(node, ...)
         elseif node.type == '>' then
-            genGreaterThan(node)
+            genGreaterThan(node, ...)
         elseif node.type == '<=' then
-            genLessEqual(node)
+            genLessEqual(node, ...)
         elseif node.type == 'while' then
-            genWhile(node)
+            genWhile(node, ...)
         elseif node.type == '>=' then
-            genGreaterEqual(node)
+            genGreaterEqual(node, ...)
         elseif node.type == 'dec' then
-            genDec(node)
+            genDec(node, ...)
         elseif node.type == 'mod' then
-            genMod(node)
+            genMod(node, ...)
         elseif node.type == 'div' then
-            genDiv(node)
+            genDiv(node, ...)
         elseif node.type == 'case' then
-            genCase(node)
+            genCase(node, ...)
         elseif node.type == '=' then
-            genEqual(node)
+            genEqual(node, ...)
         elseif node.type == 'in' then
-            genIn(node)
+            genIn(node, ...)
         elseif node.type == 'or' then
-            genOr(node)
+            genOr(node, ...)
         elseif node.type == '<' then
-            genLessThan(node)
+            genLessThan(node, ...)
         elseif node.type == 'inc' then
-            genInc(node)
+            genInc(node, ...)
         elseif node.type == '/' then
-            genDivide(node)
+            genDivide(node, ...)
         else
             io.stderr:write('-------------------------------------------\n')
 
