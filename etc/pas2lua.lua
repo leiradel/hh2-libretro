@@ -1073,6 +1073,43 @@ local function generate(ast, searchPaths, macros, out)
         out('])')
     end
 
+    local function genOr(node)
+        out('(')
+        gen(node.left)
+        out(' or ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genLessThan(node)
+        out('(')
+        gen(node.left)
+        out(' < ')
+        gen(node.right)
+        out(')')
+    end
+
+    local function genInc(node)
+        gen(node.qid)
+        out(' = ')
+        gen(node.qid)
+        out(' + ')
+
+        if node.amount then
+            gen(node.amount)
+        else
+            out('1')
+        end
+    end
+
+    local function genDivide(node)
+        out('(')
+        gen(node.left)
+        out(' / ')
+        gen(node.right)
+        out(')')
+    end
+
     gen = function(node)
         -- Use a series of ifs to have better stack traces
         if node.type == 'unit' then
@@ -1191,6 +1228,14 @@ local function generate(ast, searchPaths, macros, out)
             genEqual(node)
         elseif node.type == 'in' then
             genIn(node)
+        elseif node.type == 'or' then
+            genOr(node)
+        elseif node.type == '<' then
+            genLessThan(node)
+        elseif node.type == 'inc' then
+            genInc(node)
+        elseif node.type == '/' then
+            genDivide(node)
         else
             io.stderr:write('-------------------------------------------\n')
 
