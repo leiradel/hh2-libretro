@@ -556,16 +556,13 @@ local function generate(ast, searchPaths, macros, out)
         gen(node.value)
     end
 
-    local function genVariable(node)
-        gen(node.qid)
+    local function genVariable(node, arguments)
+        gen(node.qid, arguments)
     end
 
     local function genProcCall(node)
         gen(node.designator)
-
-        if node.designator.type ~= 'call' then
-            out('()')
-        end
+        out('()')
     end
 
     local function genFor(node)
@@ -587,11 +584,18 @@ local function generate(ast, searchPaths, macros, out)
         out('\nend\n')
     end
 
-    local function genQualId(node)
+    local function genQualId(node, arguments)
         local type = findQid(node.id)
 
         if type.type == 'consthead' then
-            out('hh2rt.newInstance(%s, %q)', accessId(node.id[1]), table.concat(type.qid.id, ''):lower())
+            out('hh2rt.newInstance(%s, %q', accessId(node.id[1]), table.concat(type.qid.id, ''):lower())
+
+            for i = 1, #arguments do
+                out(', ')
+                gen(arguments[i])
+            end
+
+            out(')')
         else
             out('%s', accessId(node.id[1]))
 
@@ -652,18 +656,7 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genCall(node)
-        gen(node.designator)
-        out('(')
-
-        local comma = ''
-
-        for i = 1, #node.arguments do
-            out('%s', comma)
-            comma = ', '
-            gen(node.arguments[i])
-        end
-
-        out(')')
+        gen(node.designator, node.arguments)
     end
 
     local function genAccField(node)
