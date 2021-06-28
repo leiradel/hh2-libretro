@@ -49,20 +49,37 @@ local function tokenize(path, source)
 end
 
 -- Preprocesses a token stream
-local function preprocess(path, tokens)
-    local source = {
+local function preprocess(path, source, tokens)
+    local src = {
         'return function(macros)',
-        'local source = {}'
+        '    local source = {}',
+        '',
+        '    local function out(emit, code)',
+        '        if not emit then',
+        '            code = code:gsub("[^\\r\\n]", " ")',
+        '        end',
+        '',
+        '        source[#source + 1] = code',
+        '    end',
+        '',
     }
 
     local out = function(format, ...)
-        source[#source + 1] = string.format(format, ...)
+        src[#src + 1] = string.format(format, ...)
     end
+
+    local index = 0
+    local emit = 'true'
 
     for i =1, #tokens do
         local la = tokens[i]
 
         if la.token == '<blockdirective>' then
+            -- Flush current source code
+            out('    out(%s, %q)\n', emit, source:sub(index, la.index - 1))
+            out('    out(true, "\\n")')
+            index = la.index + #la.lexeme
+
             local dir, id = la.lexeme:match('{%$%s*([^%s}]+)%s*}'), ''
 
             if not dir then
@@ -72,30 +89,28 @@ local function preprocess(path, tokens)
             dir, id = dir:lower(), id:lower()
 
             if dir == 'ifdef' then
-                out('if macros.%s then', id)
+                emit = string.format('macros[%q]', id)
             elseif dir == 'ifndef' then
-                out('if not macros.%s then', id)
+                emit = string.format('not macros[%q]', id)
             elseif dir == 'else' then
-                out('else')
+                emit = 'not ' .. emit
             elseif dir == 'endif' then
-                out('end')
+                emit = 'true'
             elseif dir == 'r' then
                 -- Discard
             else
                 error(string.format('%s:%u: Unhandled directive "%s"', path, la.line, dir))
             end
         elseif la.token ~= '<eof>' then
-            out('source[%d] = (source[%d] or "") .. %q', la.line, la.line, la.lexeme .. ' ')
+            --out('source[%d] = (source[%d] or "") .. %q', la.line, la.line, la.lexeme .. ' ')
         end
     end
 
-    source[#source + 1] = 'for i = 1, ' .. tokens[#tokens].line .. ' do'
-    source[#source + 1] = 'source[i] = source[i] or ""'
-    source[#source + 1] = 'end'
-    source[#source + 1] = 'return table.concat(source, "\\n")'
-    source[#source + 1] = 'end'
+    out('    out(%s, %q)\n', emit, source:sub(index, -1))
+    out('    return table.concat(source, "")\n')
+    out('end\n')
 
-    return table.concat(source, '\n')
+    return table.concat(src, '\n')
 end
 
 -- Returns a new parser for the given file
@@ -1697,7 +1712,7 @@ return {
             return nil, tokens
         end
 
-        local ok, pp_source = pcall(preprocess, path, tokens)
+        local ok, pp_source = pcall(preprocess, path, source, tokens)
 
         if not ok then
             return nil, pp_source
