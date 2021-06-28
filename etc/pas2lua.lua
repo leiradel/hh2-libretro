@@ -484,11 +484,10 @@ local function generate(ast, searchPaths, macros, out)
     local function genDecl(node)
         if #node.heading.qid.id == 1 then
             -- local function
-            dump(node)
-            error('implement me')
+            out('%s = function(', declareId(node.heading.qid.id[1]))            
         else
             -- class method
-            out('%s.%s = function(self', accessId(node.heading.qid.id[1]), node.heading.qid.id[2]:lower())
+            out('%s.%s = function(self, ', accessId(node.heading.qid.id[1]), node.heading.qid.id[2]:lower())
 
             local class = findId(node.heading.qid.id[1])
 
@@ -506,13 +505,16 @@ local function generate(ast, searchPaths, macros, out)
         local ids = {}
 
         if node.heading.parameters then
+            local comma = ''
+
             for i = 1, #node.heading.parameters do
                 local param = node.heading.parameters[i]
 
                 for j = 1, #param.ids do
                     local id = param.ids[j]:lower()
                     ids[id] = param.subtype
-                    out(', %s', id)
+                    out('%s%s', comma, id)
+                    comma = ', '
                 end
             end
         end
