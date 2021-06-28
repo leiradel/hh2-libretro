@@ -259,7 +259,7 @@ local function newParser(path, tokens)
         -- initialization_section = ( 'initialization' | 'begin' ) stmt_list 'end' .
         parseInitializationSection = function(self)
             local line = self:line()
-            local list = nil
+            local list = false
 
             if self:token() == 'initialization' or self:token() == 'begin' then
                 self:match(self:token())

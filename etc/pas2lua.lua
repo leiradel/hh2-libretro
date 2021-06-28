@@ -802,7 +802,7 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     local function genInitialization(node)
-        if #node.statements == 0 then
+        if not node.statements or #node.statements == 0 then
             return
         end
 
