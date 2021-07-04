@@ -848,7 +848,7 @@ local function newParser(path, tokens)
             self:match(';')
 
             return access.const {
-                type = 'decl',
+                type = 'procdecl',
                 line = line,
                 heading = heading,
                 block = block
