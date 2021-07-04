@@ -20,11 +20,17 @@
 #include "units/fmodtypes.luagz.h"
 #include "units/forms.luagz.h"
 #include "units/graphics.luagz.h"
+#include "units/hh2.luagz.h"
+#include "units/inifiles.luagz.h"
 #include "units/jpeg.luagz.h"
 #include "units/math.luagz.h"
+#include "units/menus.luagz.h"
 #include "units/messages.luagz.h"
+#include "units/pngimage.luagz.h"
 #include "units/registry.luagz.h"
+#include "units/shellapi.luagz.h"
 #include "units/stdctrls.luagz.h"
+#include "units/system.luagz.h"
 #include "units/sysutils.luagz.h"
 #include "units/windows.luagz.h"
 
@@ -58,11 +64,17 @@ static const hh2_Module hh2_modules[] = {
     HH2_MODL("fmodtypes", fmodtypes_lua),
     HH2_MODL("forms", forms_lua),
     HH2_MODL("graphics", graphics_lua),
+    HH2_MODL("hh2", hh2_lua),
+    HH2_MODL("inifiles", inifiles_lua),
     HH2_MODL("jpeg", jpeg_lua),
     HH2_MODL("math", math_lua),
+    HH2_MODL("menus", menus_lua),
     HH2_MODL("messages", messages_lua),
+    HH2_MODL("pngimage", pngimage_lua),
     HH2_MODL("registry", registry_lua),
+    HH2_MODL("shellapi", shellapi_lua),
     HH2_MODL("stdctrls", stdctrls_lua),
+    HH2_MODL("system", system_lua),
     HH2_MODL("sysutils", sysutils_lua),
     HH2_MODL("windows", windows_lua)
 };

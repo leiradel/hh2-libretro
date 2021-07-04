@@ -1,6 +1,9 @@
 %.o: %.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
 
+%.lua: %.pas
+	$(LUA) etc/pas2lua.lua -Isrc/runtime/units -DHH2 "$<" > "$@"
+
 %.lua.h: %.lua
 	echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
@@ -64,9 +67,10 @@ LUA_HEADERS = \
 	src/runtime/boot.luagz.h src/runtime/class.luagz.h src/runtime/units/classes.luagz.h src/runtime/units/controls.luagz.h \
 	src/runtime/units/dialogs.luagz.h src/runtime/units/extctrls.luagz.h src/runtime/units/fmod.luagz.h \
 	src/runtime/units/fmodtypes.luagz.h src/runtime/units/forms.luagz.h src/runtime/units/graphics.luagz.h \
-	src/runtime/units/jpeg.luagz.h src/runtime/units/math.luagz.h src/runtime/units/messages.luagz.h \
-	src/runtime/units/registry.luagz.h src/runtime/units/stdctrls.luagz.h src/runtime/units/sysutils.luagz.h \
-	src/runtime/units/windows.luagz.h
+	src/runtime/units/hh2.luagz.h src/runtime/units/inifiles.luagz.h src/runtime/units/jpeg.luagz.h src/runtime/units/math.luagz.h \
+	src/runtime/units/menus.luagz.h src/runtime/units/messages.luagz.h src/runtime/units/pngimage.luagz.h \
+	src/runtime/units/registry.luagz.h src/runtime/units/shellapi.luagz.h src/runtime/units/stdctrls.luagz.h \
+	src/runtime/units/system.luagz.h src/runtime/units/sysutils.luagz.h src/runtime/units/windows.luagz.h
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
