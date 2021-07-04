@@ -159,12 +159,18 @@ type
     HWND = longint;
 
 function ShellExecute(wnd: HWND; lpOperation: String; lpFile: String; lpParameters: Longint; lpDirectory: String; nShowCmd: Integer): HINSTANCE;
+function MessageDlg(const Msg: string; DlgType: TMsgDlgType; Buttons: TMsgDlgButtons; HelpCtx: Longint): Integer;
 
 implementation
 
 function ShellExecute(wnd: HWND; lpOperation: String; lpFile: String; lpParameters: Longint; lpDirectory: String; nShowCmd: Integer): HINSTANCE;
 begin
     ShellExecute := 0;
+end;
+
+function MessageDlg(const Msg: string; DlgType: TMsgDlgType; Buttons: TMsgDlgButtons; HelpCtx: Longint): Integer;
+begin
+    MessageDlg := 0;
 end;
 
 end.
