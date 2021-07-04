@@ -746,6 +746,23 @@ local function generate(ast, searchPaths, macros, out)
             out('end\n\n')
         end
 
+        local function genAsm(node)
+            out('%s\n', node.code:sub(4, -5))
+        end
+
+        local function genInherited(node)
+            assert(node.designator.type == 'variable')
+
+            out('hh2rt.callInherited(%q, self', node.designator.qid.id[1]:lower())
+
+            if node.designator.previous then
+                dump(node.designator.previous)
+                (nil)()
+            end
+
+            out(')\n')
+        end
+
         local type = statement.type
 
         if type == 'compoundstmt' then
@@ -768,6 +785,10 @@ local function generate(ast, searchPaths, macros, out)
             genDec(statement)
         elseif type == 'while' then
             genWhile(statement)
+        elseif type == 'asm' then
+            genAsm(statement)
+        elseif type == 'inherited' then
+            genInherited(statement)
         elseif type == 'emptystmt' then
             -- nothing
         else
