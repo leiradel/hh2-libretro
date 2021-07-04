@@ -3,7 +3,7 @@ unit Forms;
 interface
 
 uses
-    Classes, Controls, Graphics, Types, Windows;
+    Classes, Controls, Graphics, Windows;
 
 type
     TCloseAction = (caNone, caHide, caFree, caMinimize);
@@ -88,10 +88,6 @@ end;
 
 constructor TForm.Create;
 begin
-    asm
-        hh2.print("TForm.Create FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
-    end;
-
     inherited Create;
 end;
 
@@ -118,27 +114,6 @@ end;
 
 procedure TApplication.Terminate;
 begin
-end;
-
-procedure TApplication.CreateForm(InstanceClass: TComponentClass; var Reference: TForm);
-begin
-    Reference := InstanceClass.Create;
-
-    asm
-        const instance = reference.get();
-
-        if (instance['$classname'] == 'tform1') {
-            InitTForm1(Reference);
-        }
-    end;
-
-    TForm(Reference).OnCreate(nil);
-
-    if not HasMainForm then
-    begin
-        MainForm := TForm(Reference);
-        HasMainForm := True;
-    end;
 end;
 
 initialization
