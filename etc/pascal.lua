@@ -617,7 +617,7 @@ local function newParser(path, tokens)
                 type = 'variable',
                 line = line,
                 qid = self:parseQualId(),
-                designator = false
+                previous = false
             }
 
             local tk = self:token()
@@ -632,7 +632,7 @@ local function newParser(path, tokens)
                         type = 'accfield',
                         line = line,
                         id = self:lexeme(),
-                        designator = designator
+                        previous = designator
                     }
 
                     self:match('<id>')
@@ -644,7 +644,7 @@ local function newParser(path, tokens)
                         type = 'accindex',
                         line = line,
                         indices = self:parseExprList(),
-                        designator = designator
+                        previous = designator
                     }
 
                     self:match(']')
@@ -656,7 +656,7 @@ local function newParser(path, tokens)
                         type = 'call',
                         line = line,
                         arguments = self:parseExprList(),
-                        designator = designator
+                        previous = designator
                     }
 
                     self:match(')')
