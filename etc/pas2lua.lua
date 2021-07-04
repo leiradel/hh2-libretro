@@ -7,11 +7,11 @@ local function dump(tab, level)
     local spaces = string.rep('    ', level or 0)
 
     if not level then
-        print('=======================================================')
+        io.stderr:write('=======================================================\n')
     end
 
     for k, v in pairs(tab) do
-        print(string.format('%s\t%s', tostring(k), tostring(v)))
+        io.stderr:write(string.format('%s\t%s\n', tostring(k), tostring(v)))
 
         if level and type(v) == 'table' then
             dump(v, level + 1)
@@ -19,7 +19,7 @@ local function dump(tab, level)
     end
 
     if not level then
-        print('-------------------------------------------------------')
+        io.stderr:write('-------------------------------------------------------\n')
     end
 end
 
@@ -100,7 +100,7 @@ local function generate(ast, searchPaths, macros, out)
     assert(type(macros) == 'table')
     assert(type(out) == 'table')
 
-    local defaultTypes = {
+    local defaultValues = {
         real48 = 0,
         real = 0,
         single = 0,
@@ -116,8 +116,8 @@ local function generate(ast, searchPaths, macros, out)
         int64 = 0,
         word = 0,
         boolean = false,
-        char = '#0',
-        widechar = '#0',
+        char = '"\0"',
+        widechar = '"\0"',
         longword = 0,
         pchar = nil
     }
@@ -128,19 +128,21 @@ local function generate(ast, searchPaths, macros, out)
         error(string.format('%s:%u: %s', ast.path, line, string.format(format, ...)))
     end
 
-    local function push(ids, declareFmt, accessFmt)
-        assert(type(ids) == 'table')
+    local function push(declareFmt, accessFmt)
         assert(declareFmt == nil or type(declareFmt) == 'string')
         assert(type(accessFmt) == 'string')
 
+        local ids = {}
+
         local new_scope = access.const {
             ids = ids,
-            declare = declareFmt,
+            declare = declareFmt or false,
             access = accessFmt,
             previous = scope
         }
 
         scope = new_scope
+        return ids
     end
 
     local function findScope(id)
@@ -188,112 +190,919 @@ local function generate(ast, searchPaths, macros, out)
         end
     end
 
-    local function getDeclarations(declarations)
-        local ids = {}
+    local function pushDeclarations(declarations, declareFmt, accessFmt)
+        local ids = push(declareFmt, accessFmt)
 
         for i = 1, #declarations do
-            local node = declarations[i]
+            local decl = declarations[i]
 
-            if node.type == 'types' then
-                for i = 1, #node.types do
-                    local type = node.types[i]
-                    ids[type.id:lower()] = type
+            if decl.type == 'types' then
+                for i = 1, #decl.types do
+                    local type = decl.types[i]
+                    local subtype = type.subtype
 
-                    -- Enumerated fields have unit scope
-                    if type.subtype.type == 'enumerated' then
-                        local enum = type.subtype
+                    ids[type.id:lower()] = subtype
 
-                        for i = 1, #enum.elements do
-                            ids[enum.elements[i].id:lower()] = type
+                    if subtype.type == 'enumerated' then
+                        for i = 1, #subtype.elements do
+                            ids[subtype.elements[i].id:lower()] = subtype
                         end
-                    elseif type.subtype.type == 'set' then
-                        local enum = type.subtype.subtype
+                    elseif subtype.type == 'set' then
+                        local subtype = subtype.subtype
 
-                        if enum and enum.type == 'enumerated' then
-                            for i = 1, #enum.elements do
-                                ids[enum.elements[i].id:lower()] = type
+                        if subtype then
+                            for i = 1, #subtype.elements do
+                                ids[subtype.elements[i].id:lower()] = subtype
                             end
                         end
                     end
                 end
-            elseif node.type == 'constants' then
-                for i = 1, #node.constants do
-                    local const = node.constants[i]
+            elseif decl.type == 'constants' then
+                for i = 1, #decl.constants do
+                    local const = decl.constants[i]
                     ids[const.id:lower()] = const
                 end
-            elseif node.type == 'variables' then
-                for i = 1, #node.variables do
-                    local var = node.variables[i]
+            elseif decl.type == 'variables' then
+                for i = 1, #decl.variables do
+                    local variable = decl.variables[i]
+                    local subtype = variable.subtype
 
-                    for j = 1, #var.ids do
-                        ids[var.ids[j]:lower()] = var
+                    for j = 1, #variable.ids do
+                        ids[variable.ids[j]:lower()] = subtype
                     end
                 end
-            elseif node.type == 'decl' then
-                ids[table.concat(node.heading.qid, ''):lower()] = node
-            elseif node.type == 'prochead' then
-                ids[table.concat(node.qid.id, ''):lower()] = node
-            elseif node.type == 'funchead' then
-                ids[table.concat(node.qid.id, ''):lower()] = node
-            elseif node.type == 'consthead' then
-                ids[table.concat(node.qid.id, ''):lower()] = node
-            elseif node.type == 'desthead' then
-                ids[table.concat(node.qid.id, ''):lower()] = node
-            elseif node.type == 'field' then
-                for i = 1, #node.ids do
-                    ids[node.ids[i]:lower()] = node
+            elseif decl.type == 'procdecl' then
+                -- nothing
+            elseif decl.type == 'prochead' or decl.type == 'funchead' or decl.type == 'consthead' or decl.type == 'desthead' then
+                ids[table.concat(decl.qid.id, '.'):lower()] = decl
+            elseif decl.type == 'field' then
+                for i = 1, #decl.ids do
+                    ids[decl.ids[i]:lower()] = decl.subtype
                 end
             else
-                dump(node)
-                error(string.format('Do not know how to declare "%s"', node.type))
+                dump(decl)
+                error(string.format('do not know how to push declaration %s', decl.type))
             end
         end
-
-        return ids
     end
 
-    local function findQid(qid)
-        local node = findId(qid[1])
-        
-        for i = 2, #qid do
-            if node.type == 'class' or node.type == 'type' then
-                local ids = getDeclarations(node.subtype.declarations)
-                node = ids[qid[i]:lower()]
-            elseif node.type == 'var' then
-                -- do nothing, node is already what we want
-            elseif node.type == 'field' then
-                node = findId(node.subtype.id)
+    local genExpression
+
+    local function genDesignator(designator)
+        if designator.previous then
+            genDesignator(designator.previous)
+        end
+
+        if designator.type == 'variable' then
+            out('%s', accessId(designator.qid.id[1]))
+
+            for i = 2, #designator.qid.id do
+                out('.%s', designator.qid.id[i]:lower())
+            end
+        elseif designator.type == 'accfield' then
+            out('.%s', designator.id:lower())
+        elseif designator.type == 'accindex' then
+            out('[')
+            genExpression(designator.indices[1])
+
+            for i = 2, #designator.indices do
+                out('][')
+                genExpression(designator.indices[i])
+            end
+
+            out(']')
+        elseif designator.type == 'call' then
+            out('(')
+
+            local comma = ''
+
+            for i = 1, #designator.arguments do
+                out(comma)
+                comma = ', '
+
+                genExpression(designator.arguments[i])
+            end
+
+            out(')')
+        else
+            dump(designator)
+            error(string.format('do not know how to generate designator %s', designator.type))
+        end
+    end
+
+    local function genLiteral(literal)
+        assert(type(literal) == 'userdata')
+        assert(literal.type == 'literal')
+
+        if literal.subtype == '<decimal>' then
+            out('%s', tostring(literal.value))
+        elseif literal.subtype == '<hexadecimal>' then
+            out('0x%s', tostring(literal.value:gsub('[^%x]', '')))
+        elseif literal.subtype == '<float>' then
+            out('%s', tostring(literal.value))
+        elseif literal.subtype == '<string>' then
+            local value = literal.value
+            value = value:gsub('^\'', '')
+            value = value:gsub('\'$', '')
+            value = value:gsub('\'\'', '\'')
+
+            value = value:gsub('\'#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+            value = value:gsub('#(%d+)\'', function(x) return string.char(tonumber(x)) end)
+            value = value:gsub('\'#(%d+)', function(x) return string.char(tonumber(x)) end)
+
+            out('%q', value)
+        elseif literal.subtype == 'boolean' then
+            out('%s', tostring(literal.value))
+        elseif literal.subtype == 'nil' then
+            out('nil')
+        elseif literal.subtype == 'set' then
+            out('hh2rt.instantiateSet({')
+            local comma = ''
+
+            for i = 1, #literal.elements do
+                local element = literal.elements[i]
+
+                out(comma)
+                comma = ', '
+
+                if element.value then
+                    genDesignator(element.value)
+                else
+                    dump(element)
+                    error('do not know how to generate literal set element without a value')
+                end
+            end
+
+            out('})')
+        else
+            dump(literal)
+            error(string.format('do not know how to generate literal %s', literal.subtype))
+        end
+    end
+
+    genExpression = function(expression)
+        local function genNot(notop)
+            out('(not ')
+            genExpression(notop.operand)
+            out(')')
+        end
+
+        local function genAdd(add)
+            out('(')
+            genExpression(add.left)
+            out(' + ')
+            genExpression(add.right)
+            out(')')
+        end
+
+        local function genAnd(andop)
+            out('(')
+            genExpression(andop.left)
+            out(' and ')
+            genExpression(andop.right)
+            out(')')
+        end
+
+        local function genNotEqual(ne)
+            out('(')
+            genExpression(ne.left)
+            out(' ~= ')
+            genExpression(ne.right)
+            out(')')
+        end
+
+        local function genCast(cast)
+            local subtype = cast.subtype
+
+            if subtype.type == 'ordident' then
+                if subtype.subtype == 'boolean' then
+                    out('(')
+                    genExpression(cast.operand)
+                    out(') ~= 0')
+                else
+                    dump(cast)
+                    dump(subtype)
+                    error(string.format('do not know how to generate cast to %s', subtype.subtype))
+                end
             else
-                dump(qid)
-                dump(node)
-                error(string.format('Don\'t know how to find ids in node "%s"', node.type))
-            end
-
-            if not node then
-                return nil
+                dump(cast)
+                dump(subtype)
+                error(string.format('do not know how to generate cast to %s', subtype.type))
             end
         end
 
-        return node
+        local function genDivide(divide)
+            out('(')
+            genExpression(divide.left)
+            out(' / ')
+            genExpression(divide.right)
+            out(')')
+        end
+
+        local function genSubtract(subtract)
+            out('(')
+            genExpression(subtract.left)
+            out(' - ')
+            genExpression(subtract.right)
+            out(')')
+        end
+
+        local function genDiv(div)
+            out('(')
+            genExpression(div.left)
+            out(' // ')
+            genExpression(div.right)
+            out(')')
+        end
+
+        local function genEqual(ne)
+            out('(')
+            genExpression(ne.left)
+            out(' == ')
+            genExpression(ne.right)
+            out(')')
+        end
+
+        local function genIn(inop)
+            genExpression(inop.right)
+            out('.containts(')
+            genExpression(inop.left)
+            out(')')
+        end
+
+        local function genGreaterThan(gt)
+            out('(')
+            genExpression(gt.left)
+            out(' > ')
+            genExpression(gt.right)
+            out(')')
+        end
+
+        local function genGreaterEqual(node)
+            out('(')
+            genExpression(node.left)
+            out(' >= ')
+            genExpression(node.right)
+            out(')')
+        end
+
+        local function genLessThan(lt)
+            out('(')
+            genExpression(lt.left)
+            out(' < ')
+            genExpression(lt.right)
+            out(')')
+        end
+
+        local function genLessEqual(le)
+            out('(')
+            genExpression(le.left)
+            out(' <= ')
+            genExpression(le.right)
+            out(')')
+        end
+
+        local function genUnaryMinus(minus)
+            out('(-')
+            genExpression(minus.operand)
+            out(')')
+        end
+
+        local function genMultiply(multiply)
+            out('(')
+            genExpression(multiply.left)
+            out(' * ')
+            genExpression(multiply.right)
+            out(')')
+        end
+
+        local function genModulus(node)
+            out('(')
+            genExpression(node.left)
+            out(' %% ')
+            genExpression(node.right)
+            out(')')
+        end
+
+        local function genOr(node)
+            out('(')
+            genExpression(node.left)
+            out(' or ')
+            genExpression(node.right)
+            out(')')
+        end
+
+        local type = expression.type
+
+        if type == 'literal' then
+            genLiteral(expression)
+        elseif type == 'variable' or type == 'accfield' or type == 'accindex' or type == 'call' then
+            genDesignator(expression)
+        elseif type == 'not' then
+            genNot(expression)
+        elseif type == '+' then
+            genAdd(expression)
+        elseif type == 'and' then
+            genAnd(expression)
+        elseif type == '<>' then
+            genNotEqual(expression)
+        elseif type == 'cast' then
+            genCast(expression)
+        elseif type == '/' then
+            genDivide(expression)
+        elseif type == '-' then
+            genSubtract(expression)
+        elseif type == 'div' then
+            genDiv(expression)
+        elseif type == '=' then
+            genEqual(expression)
+        elseif type == 'in' then
+            genIn(expression)
+        elseif type == '>' then
+            genGreaterThan(expression)
+        elseif type == '>=' then
+            genGreaterEqual(expression)
+        elseif type == '<' then
+            genLessThan(expression)
+        elseif type == '<=' then
+            genLessEqual(expression)
+        elseif type == 'unm' then
+            genUnaryMinus(expression)
+        elseif type == '*' then
+            genMultiply(expression)
+        elseif type == 'mod' then
+            genModulus(expression)
+        elseif type == 'or' then
+            genOr(expression)
+        else
+            dump(expression)
+            error(string.format('do not know how to generate expression %s', type))
+        end
     end
 
-    local function pop()
-        scope = scope.previous
+    local function genStatement(statement)
+        local function genCompound(stmt)
+            for i = 1, #stmt.statements do
+                genStatement(stmt.statements[i])
+            end
+        end
+
+        local function genWith(stmt)
+            out('\n')
+            local saved = scope
+
+            for i = 1, #stmt.ids do
+                local id = stmt.ids[i]
+                local accessFmt = string.format('%s.%%s', accessId(id))
+
+                local type = findId(id)
+
+                while type.type == 'typeid' do
+                    type = findId(type.id)
+                end
+
+                pushDeclarations(type.declarations, nil, accessFmt)
+
+                while type.super do
+                    type = findId(type.super)
+                    pushDeclarations(type.declarations, nil, accessFmt)
+                end
+            end
+
+            out('do\n')
+            out:indent()
+            genStatement(stmt.body)
+            out:unindent()
+            out('end\n\n')
+
+            scope = saved
+        end
+
+        local function genAssignment(assignment)
+            genDesignator(assignment.designator)
+            out(' = ')
+            genExpression(assignment.value)
+            out('\n')
+        end
+
+        local function genIf(ifstmt)
+            out('\n')
+            out('if ')
+            genExpression(ifstmt.condition)
+            out(' then\n')
+
+            out:indent()
+            genStatement(ifstmt.ontrue)
+            out:unindent()
+
+            if ifstmt.onfalse then
+                out('else\n')
+                out:indent()
+                genStatement(ifstmt.onfalse)
+                out:unindent()
+            end
+
+            out('end\n\n')
+        end
+
+        local function genProcedureCall(call)
+            genDesignator(call.designator)
+
+            if call.designator.type ~= 'call' then
+                out('()')
+            end
+
+            out('\n')
+        end
+
+        local function genCase(case)
+            out('\n')
+            out('do\n')
+            out:indent()
+
+            local id = string.format('hh2%s', tostring(case):match('.*0x(%x+).*'))
+            out('local %s = ', id)
+            genExpression(case.selector)
+            out('\n\n')
+
+            local stmt = 'if'
+
+            for i = 1, #case.selectors do
+                out('%s ', stmt)
+                stmt = 'elseif'
+
+                local sel = case.selectors[i]
+                local orop = ''
+
+                for j = 1, #sel.labels do
+                    out(orop)
+                    orop = ' or '
+
+                    local label = sel.labels[j]
+
+                    if label.value then
+                        out('(%s == ', id)
+                        genExpression(label.value)
+                        out(')')
+                    else
+                        out('((%s >= ', id)
+                        genExpression(label.min)
+                        out(') and (%s <= ', id)
+                        genExpression(label.max)
+                        out('))')
+                    end
+                end
+
+                out(' then\n')
+                out:indent()
+                genStatement(sel.body)
+                out:unindent()
+            end
+
+            if case.otherwise then
+                out('else\n')
+                out:indent()
+                genStatement(case.otherwise)
+                out:unindent()
+            end
+
+            out('end\n')
+            out:unindent()
+            out('end\n')
+        end
+
+        local function genFor(forstmt)
+            out('\n')
+            out('for %s', accessId(forstmt.qid.id[1]))
+
+            for i = 2, #forstmt.qid.id do
+                out('.%s', forstmt.qid.id[i]:lower())
+            end
+
+            out(' = ')
+            genExpression(forstmt.first)
+            out(', ')
+            genExpression(forstmt.last)
+
+            if forstmt.direction == 'down' then
+                out(', -1')
+            end
+
+            out(' do\n')
+            out:indent()
+            genStatement(forstmt.body)
+            out:unindent()
+            out('end\n\n')
+        end
+
+        local function genInc(inc)
+            local id = {accessId(inc.qid.id[1])}
+
+            for i = 2, #inc.qid.id do
+                id[#id + 1] = inc.qid.id[i]:lower()
+            end
+
+            id = table.concat(id, '.')
+
+            out('%s = %s + ', id, id)
+
+            if inc.amount then
+                genExpression(inc.amount)
+            else
+                out('1')
+            end
+
+            out('\n')
+        end
+
+        local function genDec(dec)
+            local id = {accessId(dec.qid.id[1])}
+
+            for i = 2, #dec.qid.id do
+                id[#id + 1] = dec.qid.id[i]:lower()
+            end
+
+            id = table.concat(id, '.')
+
+            out('%s = %s + ', id, id)
+
+            if dec.amount then
+                genExpression(dec.amount)
+            else
+                out('1')
+            end
+
+            out('\n')
+        end
+
+        local function genWhile(node)
+            out('\n')
+            out('while ')
+            genExpression(node.condition)
+            out(' do\n')
+            out:indent()
+            genStatement(node.body)
+            out:unindent()
+            out('end\n\n')
+        end
+
+        local type = statement.type
+
+        if type == 'compoundstmt' then
+            genCompound(statement)
+        elseif type == 'with' then
+            genWith(statement)
+        elseif type == 'assignment' then
+            genAssignment(statement)
+        elseif type == 'if' then
+            genIf(statement)
+        elseif type == 'proccall' then
+            genProcedureCall(statement)
+        elseif type == 'case' then
+            genCase(statement)
+        elseif type == 'for' then
+            genFor(statement)
+        elseif type == 'inc' then
+            genInc(statement)
+        elseif type == 'dec' then
+            genDec(statement)
+        elseif type == 'while' then
+            genWhile(statement)
+        elseif type == 'emptystmt' then
+            -- nothing
+        else
+            dump(statement)
+            error(string.format('do not know how to generate statement %s', statement.type))
+        end
     end
 
-    local function pushDeclarations(declarations, declareFmt, accessFmt)
-        assert(type(declarations) == 'userdata')
-        assert(declareFmt == nil or type(declareFmt) == 'string')
-        assert(type(accessFmt) == 'string')
+    local function genBlock(block)
+        local saved = scope
+        pushDeclarations(block.declarations, 'local %s', '%s')
 
-        local ids = getDeclarations(declarations)
-        push(ids, declareFmt, accessFmt)
+        if block.declarations then
+            out('\n')
+        end
+
+        genStatement(block.statement)
+        scope = saved
     end
 
-    local gen
+    local function genProcedureDeclaration(procedure, method)
+        out('function(%s', method and 'self' or '')
+        local saved = scope
+        local ids = push(nil, '%s')
+        local params = procedure.heading.parameters
 
-    local function genUnit(node)
-        out('-- Generated code for Pascal unit "%s"\n\n', node.id)
+        if params then
+            local comma = method and ', ' or ''
+
+            for i = 1, #params do
+                local param = params[i]
+
+                for j = 1, #param.ids do
+                    local id = param.ids[j]:lower()
+                    ids[id] = param
+
+                    out('%s%s', comma, id)
+                    comma = ', '
+                end
+            end
+        end
+
+        out(')\n')
+        out:indent()
+        genBlock(procedure.block)
+        out:unindent()
+        out('end\n')
+
+        scope = saved
+    end
+
+    genDeclarations = function(declarations, interface)
+        local function genClass(class)
+            if class.super then
+                out('hh2rt.newClass(%s)', accessId(class.super))
+            else
+                out('hh2rt.newClass(nil)')
+            end
+        end
+
+        local function genRecord(record)
+            out('hh2rt.newRecord()')
+        end
+
+        local function genArray(array, value)
+            local subtype = array.subtype
+
+            out('hh2rt.newArray({')
+            local comma = ''
+
+            for i = 1, #array.limits do
+                local limit = array.limits[i]
+                out('%s{', comma)
+                comma = ', '
+
+                genExpression(limit.min)
+                out(', ')
+                genExpression(limit.max)
+                out('}')
+            end
+
+            out('}, ')
+
+            if subtype.type == 'typeid' then
+                out('nil --[[%s]]', subtype.id)
+            elseif subtype.type == 'ordident' then
+                out('%s --[[%s]]', defaultValues[subtype.subtype], subtype.subtype)
+            elseif subtype.type == 'rectype' then
+                genRecord(subtype)
+            elseif subtype.type == 'stringtype' then
+                out('"" --[[%s]]', subtype.type)
+            else
+                dump(array)
+                dump(subtype)
+                error(string.format('do not know how to generate variable %s', subtype.type))
+            end
+
+            if value then
+                local function genValue(v)
+                    if type(v) ~= 'userdata' then
+                        out('%s', tostring(v))
+                    elseif #v ~= 0 then
+                        out('{')
+                        genValue(v[1])
+
+                        for i = 2, #v do
+                            out(', ')
+                            genValue(v[i])
+                        end
+
+                        out('}')
+                    elseif v.type == 'arrayconst' then
+                        out('\n')
+                        out:indent()
+                        genValue(v.value)
+                        out:unindent()
+                    else
+                        genLiteral(v)
+                    end
+                end
+
+                out(', ')
+                genValue(value.value)
+                out(')\n\n')
+            else
+                out(', nil)')
+            end
+        end
+
+        for i = 1, #declarations do
+            local decl = declarations[i]
+
+            if decl.type == 'types' then
+                for i = 1, #decl.types do
+                    local type = decl.types[i]
+                    local subtype = type.subtype
+                    local id = type.id
+
+                    if interface then
+                        if subtype.type == 'class' then
+                            out('%s = ', declareId(id))
+                            genClass(subtype, interface)
+                            out('\n')
+                        elseif subtype.type == 'ordident' then
+                            out('%s = %s\n', declareId(id), tostring(defaultValues[subtype.subtype]))
+                        else
+                            dump(type)
+                            dump(subtype)
+                            error(string.format('do not know how to generate type %s', subtype.type))
+                        end
+                    end
+                end
+            elseif decl.type == 'constants' then
+                for i = 1, #decl.constants do
+                    local const = decl.constants[i]
+                    local subtype = const.subtype
+                    local id = const.id
+                    
+                    if interface then
+                        if subtype then
+                            if subtype.type == 'arraytype' then
+                                out('%s = ', declareId(id))
+                                genArray(subtype, const.value)
+                                out('\n')
+                            else
+                                dump(subtype)
+                                error(string.format('do not know how to generate constant %s', subtype.type))
+                            end
+                        else
+                            out('%s = ', declareId(id))
+                            genExpression(const.value)
+                            out('\n')
+                        end
+                    end
+                end
+            elseif decl.type == 'variables' then
+                for i = 1, #decl.variables do
+                    local variable = decl.variables[i]
+                    local subtype = variable.subtype
+
+                    for j = 1, #variable.ids do
+                        local id = variable.ids[j]
+
+                        if interface then
+                            if subtype.type == 'typeid' then
+                                out('%s = nil -- %s\n', declareId(id), subtype.id)
+                            elseif subtype.type == 'arraytype' then
+                                out('%s = ', declareId(id))
+                                genArray(subtype)
+                                out('\n')
+                            elseif subtype.type == 'ordident' then
+                                out('%s = %s\n', declareId(id), defaultValues[subtype.subtype])
+                            elseif subtype.type == 'realtype' then
+                                out('%s = %s\n', declareId(id), defaultValues[subtype.subtype])
+                            elseif subtype.type == 'stringtype' then
+                                out('%s = ""\n', declareId(id))
+                            else
+                                dump(variable)
+                                dump(subtype)
+                                error(string.format('do not know how to generate variable %s', subtype.type))
+                            end
+                        end
+                    end
+                end
+            elseif decl.type == 'procdecl' then
+                if not interface then
+                    out('\n')
+                    out('%s', declareId(decl.heading.qid.id[1]))
+
+                    for i = 2, #decl.heading.qid.id do
+                        out('.%s', decl.heading.qid.id[i]:lower())
+                    end
+
+                    out(' = ')
+
+                    local type = findId(decl.heading.qid.id[1])
+                    local saved = scope
+
+                    if type.type == 'class' then
+                        pushDeclarations(type.declarations, nil, 'self.%s')
+                        local count = 1
+
+                        while type.super do
+                            type = findId(type.super)
+                            pushDeclarations(type.declarations, nil, 'self.%s')
+                            count = count + 1
+                        end
+                    end
+
+                    genProcedureDeclaration(decl, type.type == 'class')
+                    scope = saved
+                end
+            elseif decl.type == 'prochead' or decl.type == 'funchead' or decl.type == 'consthead' or decl.type == 'desthead' then
+                local id = table.concat(decl.qid.id, '.')
+                out('%s = nil -- %s', id:lower(), id)
+
+                if decl.parameters then
+                    out('(')
+                    local comma1 = ''
+
+                    for i = 1, #decl.parameters do
+                        local params = decl.parameters[i]
+                        local subtype = params.subtype
+                        local comma2 = ''
+
+                        out('%s', comma1)
+                        comma1 = '; '
+
+                        for j = 1, #params.ids do
+                            out('%s%s', comma2, params.ids[j])
+                            comma2 = ', '
+                        end
+
+                        if subtype.type == 'typeid' then
+                            out(': %s', subtype.id)
+                        elseif subtype.type == 'ordident' then
+                            out(': %s', subtype.subtype)
+                        else
+                            dump(subtype)
+                            error(string.format('do not know how to generate type %s', subtype.type))
+                        end
+                    end
+
+                    out(')')
+                end
+
+                if decl.type == 'funchead' then
+                    local rettype = decl.returnType
+
+                    if rettype.type == 'typeid' then
+                        out(': %s', rettype.id)
+                    elseif rettype.type == 'ordident' then
+                        out(': %s', rettype.subtype)
+                    else
+                        dump(rettype)
+                        error(string.format('do not know how to generate type %s', rettype.type))
+                    end
+                end
+
+                out('\n')
+            elseif decl.type == 'field' then
+                if interface then
+                    local subtype = decl.subtype
+
+                    for i = 1, #decl.ids do
+                        if subtype.type == 'typeid' then
+                            out('%s = nil, -- %s\n', decl.ids[i], subtype.id)
+                        elseif subtype.type == 'ordident' then
+                            out('%s = %s, -- %s\n', decl.ids[i], defaultValues[subtype.subtype], subtype.subtype)
+                        elseif subtype.type == 'stringtype' then
+                            out('%s = "", -- %s\n', decl.ids[i], subtype.type)
+                        else
+                            dump(subtype)
+                            error(string.format('do not know how to generate field %s', subtype.type))
+                        end
+                    end
+                end
+            else
+                dump(decl)
+                error(string.format('do not know how to generate declaration %s', decl.type))
+            end
+        end
+    end
+
+    local function genUses(uses)
+        if uses then
+            out('-- Require other units\n')
+
+            for i = 1, #uses.units do
+                local unit = uses.units[i]
+                local path = findUnit(unit, searchPaths)
+
+                if not path then
+                    fatal(uses.line, 'Cannot find the path to unit "%s"', unit)
+                end
+
+                unit = unit:lower()
+                out('local %s = require "%s"\n', unit, unit)
+
+                local ast, err = parse(path, macros)
+
+                if not ast then
+                    fatal(uses.line, err)
+                end
+
+                pushDeclarations(ast.interface.declarations, nil, unit .. '.%s')
+                push(nil, '%s')[unit:lower()] = ast
+            end
+
+            out('\n')
+        end
+    end
+
+    local function genUnit(unit)
+        out('-- Generated code for Pascal unit "%s"\n\n', unit.id)
         out('-- Our exported module\n')
         out('local M = {}\n\n')
         out('-- Load the runtime and the implied system unit\n')
@@ -310,941 +1119,32 @@ local function generate(ast, searchPaths, macros, out)
             local ast, err = parse(path, macros)
 
             if not ast then
-                fatal(node.line, err)
+                fatal(unit.line, err)
             end
 
             pushDeclarations(ast.interface.declarations, nil, 'system.%s')
+            push(nil, '%s')['system'] = ast
         end
 
-        pushDeclarations(node.interface.declarations, 'M.%s', 'M.%s')
-        gen(node.interface)
+        out('\n')
+        out('-- Interface section\n')
+        genUses(unit.interface.uses)
+        pushDeclarations(unit.interface.declarations, 'M.%s', 'M.%s')
+        genDeclarations(unit.interface.declarations, true)
 
-        pushDeclarations(node.implementation.declarations, 'local %s', '%s')
-        gen(node.implementation)
+        out('\n')
+        out('-- Implementation section\n')
+        genUses(unit.implementation.uses)
+        pushDeclarations(unit.implementation.declarations, 'local %s', '%s')
+        genDeclarations(unit.implementation.declarations, false)
 
-        gen(node.initialization)
-
+        out('\n')
         out('-- Return the module\n')
         out('return M\n')
     end
 
-    local function genInterface(node)
-        out('-- Interface section\n\n')
-
-        if node.uses then
-            gen(node.uses)
-        end
-
-        for i = 1, #node.declarations do
-            gen(node.declarations[i])
-            out('\n')
-        end
-
-        out('\n')
-    end
-
-    local function genUses(node)
-        out('-- Require other units\n')
-
-        for i = 1, #node.units do
-            local unit = node.units[i]
-            local path = findUnit(unit, searchPaths)
-
-            if not path then
-                fatal(node.line, 'Cannot find the path to unit "%s"', unit)
-            end
-
-            unit = unit:lower()
-            out('local %s = require "%s"\n', unit, unit)
-
-            local ast, err = parse(path, macros)
-
-            if not ast then
-                fatal(node.line, err)
-            end
-
-            pushDeclarations(ast.interface.declarations, nil, unit .. '.%s')
-        end
-
-        out('\n')
-    end
-
-    local function genTypes(node)
-        if #node.types == 0 then
-            return
-        end
-
-        out('-- Types\n')
-
-        for i = 1, #node.types do
-            gen(node.types[i])
-            out('\n')
-        end
-
-        out('\n')
-    end
-
-    local function genType(node)
-        out('M.%s = ', node.id:lower())
-        gen(node.subtype)
-    end
-
-    local function genClass(node)
-        if node.super then
-            out('hh2rt.newClass(%s, {\n', accessId(node.super))
-        else
-            out('hh2rt.newClass(nil, {\n')
-        end
-
-        out:indent()
-
-        for i = 1, #node.declarations do
-            gen(node.declarations[i])
-            out('\n')
-        end
-
-        out:unindent()
-        out('})')
-    end
-
-    local function genField(node)
-        for i = 1, #node.ids do
-            out('%s = ', node.ids[i]:lower())
-            gen(node.subtype)
-            out(', ')
-        end
-    end
-
-    local function genProcHead(node)
-        if node.qid then
-            out('--[[Procedure %s(', table.concat(node.qid.id, '.'))
-        else
-            out('--[[Procedure(')
-        end
-
-        if node.parameters then
-            local semicolon = ''
-
-            for i = 1, #node.parameters do
-                local param = node.parameters[i]
-                local comma = ''
-
-                out(semicolon)
-                semicolon = '; '
-
-                for j = 1, #param.ids do
-                    out('%s%s', comma, param.ids[j])
-                    comma = ', '
-                end
-
-                out(': %s', param.subtype.type == 'typeid' and param.subtype.id or param.subtype.subtype)
-            end
-        end
-
-        out(')]]')
-    end
-
-    local function genVariables(node)
-        if #node.variables == 0 then
-            return
-        end
-
-        out('-- Variables\n')
-
-        for i = 1, #node.variables do
-            gen(node.variables[i])
-        end
-
-        out('\n')
-    end
-
-    local function genVar(node)
-        for i = 1, #node.ids do
-            out('%s = ', declareId(node.ids[i]))
-            gen(node.subtype)
-            out('\n')
-        end
-    end
-
-    local function genImplementation(node)
-        out('-- Implementation section\n\n')
-
-        if node.uses then
-            gen(node.uses)
-        end
-
-        for i = 1, #node.declarations do
-            gen(node.declarations[i])
-            out('\n')
-        end
-
-        out('\n')
-    end
-
-    local function genDecl(node)
-        if #node.heading.qid.id == 1 then
-            -- local function
-            out('%s = function(', declareId(node.heading.qid.id[1]))            
-        else
-            -- class method
-            out('%s.%s = function(self, ', accessId(node.heading.qid.id[1]), node.heading.qid.id[2]:lower())
-
-            local class = findId(node.heading.qid.id[1])
-
-            while true do
-                pushDeclarations(class.subtype.declarations, nil, 'self.%s')
-
-                if not class.subtype.super then
-                    break
-                end
-
-                class = findId(class.subtype.super)
-            end
-        end
-
-        local ids = {}
-
-        if node.heading.parameters then
-            local comma = ''
-
-            for i = 1, #node.heading.parameters do
-                local param = node.heading.parameters[i]
-
-                for j = 1, #param.ids do
-                    local id = param.ids[j]:lower()
-                    ids[id] = param.subtype
-                    out('%s%s', comma, id)
-                    comma = ', '
-                end
-            end
-        end
-
-        push(ids, '%s', '%s')
-
-        out(')\n')
-        out:indent()
-        gen(node.block)
-        out:unindent()
-        out('end')
-    end
-
-    local function genBlock(node)
-        pushDeclarations(node.declarations, 'local %s', '%s')
-
-        for i = 1, #node.declarations do
-            gen(node.declarations[i])
-            out('\n')
-        end
-
-        gen(node.statement)
-    end
-
-    local function genCompoundStmt(node)
-        if #node.statements == 0 then
-            return
-        end
-
-        out('-- Statements\n')
-
-        for i = 1, #node.statements do
-            gen(node.statements[i])
-            out('\n')
-        end
-    end
-
-    local function genAssignment(node)
-        gen(node.designator)
-        out(' = ')
-        gen(node.value)
-    end
-
-    local function genVariable(node, arguments)
-        gen(node.qid, arguments)
-    end
-
-    local function genProcCall(node)
-        gen(node.designator)
-        out('()')
-    end
-
-    local function genFor(node)
-        out('\nfor ')
-        gen(node.qid)
-        out(' = ')
-        gen(node.first)
-        out(', ')
-        gen(node.last)
-
-        if node.direction == 'down' then
-            out(', -1')
-        end
-
-        out(' do\n')
-        out:indent()
-        gen(node.body)
-        out:unindent()
-        out('\nend\n')
-    end
-
-    local function genQualId(node, arguments)
-        local type = findQid(node.id)
-
-        if type.type == 'consthead' then
-            out('hh2rt.newInstance(%s, %q', accessId(node.id[1]), table.concat(type.qid.id, ''):lower())
-
-            for i = 1, #arguments do
-                out(', ')
-                gen(arguments[i])
-            end
-
-            out(')')
-        else
-            out('%s', accessId(node.id[1]))
-
-            for i = 2, #node.id do
-                out('.%s', node.id[i]:lower())
-            end
-        end
-    end
-
-    local function genLiteral(node)
-        if node.subtype == '<decimal>' then
-            out('%s', tostring(node.value))
-        elseif node.subtype == '<hexadecimal>' then
-            out('0x%s', tostring(node.value:gsub('[^%x]', '')))
-        elseif node.subtype == '<float>' then
-            out('%s', tostring(node.value))
-        elseif node.subtype == '<string>' then
-            local value = node.value
-            value = value:gsub('^\'', '')
-            value = value:gsub('\'$', '')
-            value = value:gsub('\'\'', '\'')
-
-            value = value:gsub('\'#(%d+)\'', function(x) return string.char(tonumber(x)) end)
-            value = value:gsub('#(%d+)\'', function(x) return string.char(tonumber(x)) end)
-            value = value:gsub('\'#(%d+)', function(x) return string.char(tonumber(x)) end)
-
-            out('%q', value)
-        elseif node.subtype == 'boolean' then
-            out('%s', tostring(node.value))
-        elseif node.subtype == 'nil' then
-            out('nil')
-        elseif node.subtype == 'set' then
-            out('hh2rt.newSet({')
-                local comma = ''
-
-            for i = 1, #node.elements do
-                local e = node.elements[i]
-
-                out(comma)
-                comma = ', '
-
-                if e.value then
-                    gen(e.value)
-                else
-                    out('{')
-                    gen(e.first)
-                    out(', ')
-                    gen(e.last)
-                    out('}')
-                end
-            end
-
-            out('})')
-        else
-            dump(node)
-            error(string.format('Do not know how to generate literal "%s"', node.subtype))
-        end
-    end
-
-    local function genCall(node)
-        gen(node.designator, node.arguments)
-    end
-
-    local function genAccField(node)
-        gen(node.designator)
-        out('.%s', node.id:lower())
-    end
-
-    local function genAccIndex(node)
-        gen(node.designator)
-        out('[')
-        gen(node.indices[1])
-
-        for i = 2, #node.indices do
-            out('][')
-            gen(node.indices[i])
-        end
-
-        out(']')
-    end
-
-    local function genSubtract(node)
-        out('(')
-        gen(node.left)
-        out(' - ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genUnaryMinus(node)
-        out('(-')
-        gen(node.operand)
-        out(')')
-    end
-
-    local function genIf(node)
-        out('\nif ')
-        gen(node.condition)
-        out(' then\n')
-
-        out:indent()
-        gen(node.ontrue)
-        out:unindent()
-
-        if node.onfalse then
-            out('\nelse\n')
-            out:indent()
-            gen(node.onfalse)
-            out:unindent()
-        end
-
-        out('\nend\n')
-    end
-
-    local function genAnd(node)
-        out('(')
-        gen(node.left)
-        out(' and ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genNotEqual(node)
-        out('(')
-        gen(node.left)
-        out(' ~= ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genNot(node)
-        out('(not ')
-        gen(node.operand)
-        out(')')
-    end
-
-    local function genEnumerated(node)
-        out('hh2rt.newEnumeration(M, {\n', node.elements[1].id:lower())
-        out:indent()
-
-        for i = 2, #node.elements do
-            local element = node.elements[i]
-
-            out('{%q', element.id:lower())
-
-            if element.value then
-                out(', ')
-                gen(element.value)
-            end
-
-            out('},\n')
-        end
-
-        out:unindent()
-        out('})')
-    end
-
-    local function genSet(node)
-        out('hh2rt.newSet(')
-        gen(node.subtype)
-        out(')')
-    end
-
-    local function genProcType(node)
-        out('nil ')
-        gen(node.subtype)
-    end
-
-    local function genConstHead(node)
-        if node.id then
-            out('--[[Constructor %s(', table.concat(node.id.id, '.'))
-        else
-            out('--[[Constructor(')
-        end
-
-        if node.parameters then
-            local semicolon = ''
-
-            for i = 1, #node.parameters do
-                local param = node.parameters[i]
-                local comma = ''
-
-                out(semicolon)
-                semicolon = '; '
-
-                for j = 1, #param.ids do
-                    out('%s%s', comma, param.ids[j])
-                    comma = ', '
-                end
-
-                out(': %s', param.subtype.type == 'typeid' and param.subtype.id or param.subtype.subtype)
-            end
-        end
-
-        out(')]]')
-    end
-
-    local function genAsm(node)
-        out('%s', node.code:sub(4, -4))
-    end
-
-    local function genInherited(node)
-        out('hh2rt.callInherited(self, %q)', table.concat(node.designator.qid.id):lower())
-    end
-
-    local function genInitialization(node)
-        if not node.statements or #node.statements == 0 then
-            return
-        end
-
-        out('-- Initialization section\n')
-
-        for i = 1, #node.statements do
-            gen(node.statements[i])
-            out('\n')
-        end
-
-        out('\n')
-    end
-
-    local function genRecType(node)
-        out('hh2rt.newRecord({\n')
-        out:indent()
-
-        for i = 1, #node.declarations do
-            gen(node.declarations[i])
-            out('\n')
-        end
-
-        out:unindent()
-        out('})')
-    end
-
-    local function genConstants(node)
-        out('-- Constants\n')
-
-        for i = 1, #node.constants do
-            local const = node.constants[i]
-            out('%s = ', declareId(const.id))
-            
-            if const.subtype then
-                gen(const.subtype, const.value)
-            else
-                gen(const.value)
-            end
-
-            out('\n')
-        end
-
-        out('\n')
-    end
-
-    local function genAdd(node)
-        out('(')
-        gen(node.left)
-        out(' + ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genTypeId(node)
-        local subtype = findId(node.id)
-
-        if subtype.subtype.type == 'class' then
-            out('nil --[[%s]]', subtype.id)
-        else
-            gen(subtype.subtype)
-        end
-    end
-
-    local function genSubRange(node)
-        out('{')
-        gen(node.min)
-        out(', ')
-        gen(node.max)
-        out('}')
-    end
-
-    local function genArrayType(node, value)
-        out('hh2rt.newArray(')
-
-        for i = 1, #node.limits do
-            gen(node.limits[i])
-            out(', ')
-        end
-
-        gen(node.subtype)
-
-        if value then
-            local function genValue(v)
-                if type(v) ~= 'userdata' then
-                    out('%s', tostring(v))
-                elseif #v ~= 0 then
-                    out('{')
-                    genValue(v[1])
-
-                    for i = 2, #v do
-                        out(', ')
-                        genValue(v[i])
-                    end
-
-                    out('}')
-                elseif v.type == 'arrayconst' then
-                    out('\n')
-                    out:indent()
-                    genValue(v.value)
-                    out:unindent()
-                else
-                    gen(v)
-                end
-            end
-
-            out(', ')
-            genValue(value)
-        end
-
-        out(')')
-    end
-
-    local function genOrdIdent(node)
-        out('%s', defaultTypes[node.subtype])
-    end
-
-    local function genStringType(node)
-        out('""')
-    end
-
-    local function genRealType(node)
-        out('%s', defaultTypes[node.subtype])
-    end
-
-    local function genEmptyStmt(node)
-    end
-
-    local function genMultiply(node)
-        out('(')
-        gen(node.left)
-        out(' * ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genGreaterThan(node)
-        out('(')
-        gen(node.left)
-        out(' > ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genLessEqual(node)
-        out('(')
-        gen(node.left)
-        out(' <= ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genWhile(node)
-        out('\nwhile ')
-        gen(node.condition)
-        out(' do\n')
-        out:indent()
-        gen(node.body)
-        out:unindent()
-        out('\nend\n')
-    end
-
-    local function genGreaterEqual(node)
-        out('(')
-        gen(node.left)
-        out(' >= ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genDec(node)
-        gen(node.qid)
-        out(' = ')
-        gen(node.qid)
-        out(' - ')
-
-        if node.amount then
-            gen(node.amount)
-        else
-            out('1')
-        end
-    end
-
-    local function genMod(node)
-        out('(')
-        gen(node.left)
-        out(' %% ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genDiv(node)
-        out('(')
-        gen(node.left)
-        out(' // ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genCase(node)
-        local id = string.format('hh2_%s', tostring(node):match('.*0x(%x+).*'))
-
-        out('do\n')
-        out:indent()
-        out('local %s = ', id)
-        gen(node.selector)
-        out('\n')
-
-        for i = 1, #node.selectors do
-            out(i == 1 and '\nif ' or '\nelseif ')
-
-            local sel = node.selectors[i]
-            local orop = ''
-
-            for j = 1, #sel.labels do
-                out(orop)
-                orop = ' or '
-
-                local label = sel.labels[j]
-
-                if label.value then
-                    out('(%s == ', id)
-                    gen(label.value)
-                    out(')')
-                else
-                    out('((%s >= ', id)
-                    gen(label.min)
-                    out(') and (%s <= ', id)
-                    gen(label.max)
-                    out('))')
-                end
-            end
-
-            out(' then\n')
-            out:indent()
-            gen(sel.body)
-            out:unindent()
-        end
-
-        if node.otherwise then
-            out('\nelse\n')
-            out:indent()
-            gen(node.otherwise)
-            out:unindent()
-        end
-
-        out('\nend\n')
-        out:unindent()
-        out('\nend\n')
-    end
-
-    local function genEqual(node)
-        out('(')
-        gen(node.left)
-        out(' == ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genIn(node)
-        out('(')
-        gen(node.right)
-        out('[')
-        gen(node.left)
-        out('])')
-    end
-
-    local function genOr(node)
-        out('(')
-        gen(node.left)
-        out(' or ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genLessThan(node)
-        out('(')
-        gen(node.left)
-        out(' < ')
-        gen(node.right)
-        out(')')
-    end
-
-    local function genInc(node)
-        gen(node.qid)
-        out(' = ')
-        gen(node.qid)
-        out(' + ')
-
-        if node.amount then
-            gen(node.amount)
-        else
-            out('1')
-        end
-    end
-
-    local function genDivide(node)
-        out('(')
-        gen(node.left)
-        out(' / ')
-        gen(node.right)
-        out(')')
-    end
-
-    gen = function(node, ...)
-        -- Use a series of ifs to have better stack traces
-        if node.type == 'unit' then
-            genUnit(node, ...)
-        elseif node.type == 'interface' then
-            genInterface(node, ...)
-        elseif node.type == 'uses' then
-            genUses(node, ...)
-        elseif node.type == 'types' then
-            genTypes(node, ...)
-        elseif node.type == 'type' then
-            genType(node, ...)
-        elseif node.type == 'class' then
-            genClass(node, ...)
-        elseif node.type == 'field' then
-            genField(node, ...)
-        elseif node.type == 'prochead' then
-            genProcHead(node, ...)
-        elseif node.type == 'variables' then
-            genVariables(node, ...)
-        elseif node.type == 'var' then
-            genVar(node, ...)
-        elseif node.type == 'implementation' then
-            genImplementation(node, ...)
-        elseif node.type == 'decl' then
-            genDecl(node, ...)
-        elseif node.type == 'block' then
-            genBlock(node, ...)
-        elseif node.type == 'compoundstmt' then
-            genCompoundStmt(node, ...)
-        elseif node.type == 'assignment' then
-            genAssignment(node, ...)
-        elseif node.type == 'variable' then
-            genVariable(node, ...)
-        elseif node.type == 'proccall' then
-            genProcCall(node, ...)
-        elseif node.type == 'for' then
-            genFor(node, ...)
-        elseif node.type == 'qualid' then
-            genQualId(node, ...)
-        elseif node.type == 'literal' then
-            genLiteral(node, ...)
-        elseif node.type == 'call' then
-            genCall(node, ...)
-        elseif node.type == 'accfield' then
-            genAccField(node, ...)
-        elseif node.type == 'accindex' then
-            genAccIndex(node, ...)
-        elseif node.type == '-' then
-            genSubtract(node, ...)
-        elseif node.type == 'unm' then
-            genUnaryMinus(node, ...)
-        elseif node.type == 'if' then
-            genIf(node, ...)
-        elseif node.type == 'and' then
-            genAnd(node, ...)
-        elseif node.type == '<>' then
-            genNotEqual(node, ...)
-        elseif node.type == 'not' then
-            genNot(node, ...)
-        elseif node.type == 'enumerated' then
-            genEnumerated(node, ...)
-        elseif node.type == 'set' then
-            genSet(node, ...)
-        elseif node.type == 'proctype' then
-            genProcType(node, ...)
-        elseif node.type == 'consthead' then
-            genConstHead(node, ...)
-        elseif node.type == 'asm' then
-            genAsm(node, ...)
-        elseif node.type == 'inherited' then
-            genInherited(node, ...)
-        elseif node.type == 'initialization' then
-            genInitialization(node, ...)
-        elseif node.type == 'rectype' then
-            genRecType(node, ...)
-        elseif node.type == 'constants' then
-            genConstants(node, ...)
-        elseif node.type == '+' then
-            genAdd(node, ...)
-        elseif node.type == 'typeid' then
-            genTypeId(node, ...)
-        elseif node.type == 'subrange' then
-            genSubRange(node, ...)
-        elseif node.type == 'arraytype' then
-            genArrayType(node, ...)
-        elseif node.type == 'ordident' then
-            genOrdIdent(node, ...)
-        elseif node.type == 'stringtype' then
-            genStringType(node, ...)
-        elseif node.type == 'realtype' then
-            genRealType(node, ...)
-        elseif node.type == 'emptystmt' then
-            genEmptyStmt(node, ...)
-        elseif node.type == '*' then
-            genMultiply(node, ...)
-        elseif node.type == '>' then
-            genGreaterThan(node, ...)
-        elseif node.type == '<=' then
-            genLessEqual(node, ...)
-        elseif node.type == 'while' then
-            genWhile(node, ...)
-        elseif node.type == '>=' then
-            genGreaterEqual(node, ...)
-        elseif node.type == 'dec' then
-            genDec(node, ...)
-        elseif node.type == 'mod' then
-            genMod(node, ...)
-        elseif node.type == 'div' then
-            genDiv(node, ...)
-        elseif node.type == 'case' then
-            genCase(node, ...)
-        elseif node.type == '=' then
-            genEqual(node, ...)
-        elseif node.type == 'in' then
-            genIn(node, ...)
-        elseif node.type == 'or' then
-            genOr(node, ...)
-        elseif node.type == '<' then
-            genLessThan(node, ...)
-        elseif node.type == 'inc' then
-            genInc(node, ...)
-        elseif node.type == '/' then
-            genDivide(node, ...)
-        else
-            io.stderr:write('-------------------------------------------\n')
-
-            for k, v in pairs(node) do
-                io.stderr:write(string.format('%s\t%s\n', tostring(k), tostring(v)))
-            end
-
-            fatal(node.line, 'Cannot generate code for node type "%s"', node.type)
-        end
-    end
-
     out('-- Generated from "%s"\n', ast.path)
-    gen(ast)
+    genUnit(ast)
 end
 
 if #arg == 0 then
@@ -1313,7 +1213,7 @@ local out
 do
     local props = {
         level = 0,
-        at_start = true,
+        code = {},
 
         indent = function(self)
             self.level = self.level + 1
@@ -1325,6 +1225,20 @@ do
 
         spaces = function(self)
             return string.rep('    ', self.level)
+        end,
+
+        result = function(self)
+            local str = table.concat(self.code, '')
+
+            while true do
+                local str2 = str:gsub('\n%s-\n%s-\n+', '\n\n')
+
+                if str2 == str then
+                    return str
+                end
+
+                str = str2
+            end
         end
     }
 
@@ -1332,14 +1246,37 @@ do
         __call = function(self, ...)
             local str = string.format(...)
 
-            if self.at_start then
-                io.write(self:spaces())
-                self.at_start = false
+            if #self.code ~= 0 and self.code[#self.code]:sub(-1, -1) == '\n' then
+                self.code[#self.code + 1] = self:spaces()
             end
 
-            str = str:gsub('\n([^\n])', string.format('\n%s%%1', self:spaces()))
-            io.write(str)
-            self.at_start = str:sub(-1, -1) == '\n'
+            local first = true
+
+            for line in str:gmatch('(.-)\n') do
+                if first then
+                    first = false
+                else
+                    self.code[#self.code + 1] = self:spaces()
+                end
+
+                self.code[#self.code + 1] = line
+                self.code[#self.code + 1] = '\n'
+            end
+
+            local last
+
+            for i = #str, 1, -1 do
+                if str:byte(i) == 10 then
+                    last = i
+                    break
+                end
+            end
+
+            if last == nil then
+                self.code[#self.code + 1] = str
+            elseif last ~= #str then
+                self.code[#self.code + 1] = last
+            end
         end,
     }
 
@@ -1353,4 +1290,10 @@ if not ok then
     os.exit(1)
 end]]
 
-generate(ast, searchPaths, macros, out)
+local ok, err = xpcall(generate, debug.traceback, ast, searchPaths, macros, out)
+
+print(out:result())
+
+if not ok then
+    io.stderr:write(err, '\n')
+end
