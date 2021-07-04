@@ -79,11 +79,6 @@ implementation
 
 constructor TCustomForm.Create;
 begin
-    asm
-        hh2.print("TForm.TCustomForm FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
-        const $mod = pas.hh2dfm;
-        hh2.print('################################ ', mod);
-    end;
 end;
 
 constructor TForm.Create;
