@@ -14,9 +14,6 @@ procedure Beep;
 
 implementation
 
-uses
-    Js;
-
 function ExtractFilePath(const FileName: string): string;
 begin
     ExtractFilePath := '';
@@ -29,15 +26,16 @@ end;
 
 function StrToInt(const S: String): Integer;
 begin
-    StrToInt := js.parseInt(S);
+    asm
+        return tonumber(s)
+    end;
 end;
 
 function StrToIntDef(const S: String; Default: Integer): Integer;
 begin
-    if not js.isInteger(S) then
-        StrToIntDef := Default
-    else
-        StrToIntDef := js.parseInt(S);
+    asm
+        return tonumber(s) or default
+    end;
 end;
 
 function Now: TDateTime;
