@@ -809,8 +809,70 @@ local function generate(ast, searchPaths, macros, out)
         scope = saved
     end
 
+    local function genPascalSignature(parameters, returnType)
+        if parameters then
+            out('(')
+            local comma1 = ''
+
+            for i = 1, #parameters do
+                local params = parameters[i]
+                local subtype = params.subtype
+                local comma2 = ''
+
+                out('%s', comma1)
+                comma1 = '; '
+
+                for j = 1, #params.ids do
+                    out('%s%s', comma2, params.ids[j])
+                    comma2 = ', '
+                end
+
+                if subtype.type == 'typeid' then
+                    out(': %s', subtype.id)
+                elseif subtype.type == 'ordident' then
+                    out(': %s', subtype.subtype)
+                elseif subtype.type == 'stringtype' then
+                    out(': String')
+                else
+                    dump(subtype)
+                    error(string.format('do not know how to generate type %s', subtype.type))
+                end
+            end
+
+            out(')')
+        end
+
+        if returnType then
+            out(': ')
+
+            if returnType.type == 'typeid' then
+                out(': %s', returnType.id)
+            elseif returnType.type == 'ordident' then
+                out(': %s', returnType.subtype)
+            else
+                dump(returnType)
+                error(string.format('do not know how to generate type %s', returnType.type))
+            end
+        end
+    end
+
     local function genProcedureDeclaration(procedure, method)
-        out('function(%s', method and 'self' or '')
+        local heading = procedure.heading
+
+        if heading.type == 'consthead' then
+            local ids = {}
+
+            for i = 2, #heading.qid.id do
+                ids[#ids + 1] = heading.qid.id[i]
+            end
+
+            out('hh2rt.newConstructor(%q, function(', table.concat(ids, '.'):lower())
+        else
+            out('function(')
+        end
+
+        out('%s', method and 'self' or '')
+
         local saved = scope
         local ids = push(nil, '%s')
         local params = procedure.heading.parameters
@@ -835,7 +897,13 @@ local function generate(ast, searchPaths, macros, out)
         out:indent()
         genBlock(procedure.block)
         out:unindent()
-        out('end\n')
+        out('end')
+
+        if heading.type == 'consthead' then
+            out(')\n')
+        else
+            out('\n')
+        end
 
         scope = saved
     end
@@ -851,6 +919,52 @@ local function generate(ast, searchPaths, macros, out)
 
         local function genRecord(record)
             out('hh2rt.newRecord()')
+        end
+
+        local function genEnumElements(enum)
+            local last
+
+            for i = 1, #enum.elements do
+                local element = enum.elements[i]
+
+                if element.value then
+                    out('%s = ', declareId(element.id))
+                    genExpression(element.value)
+                    out('\n')
+                else
+                    out('%s = %s\n', declareId(element.id), last and (accessId(last.id) .. ' + 1') or '0')
+                end
+
+                last = element
+            end
+        end
+
+        local function genEnum(enum)
+            out('hh2rt.newEnum({')
+            local comma = ''
+
+            for i = 1, #enum.elements do
+                out('%s%s', comma, accessId(enum.elements[i].id))
+                comma = ', '
+            end
+
+            out('})')
+        end
+
+        local function genSet(set)
+            out('hh2rt.newSet(')
+
+            if set.subtype then
+                genEnum(set.subtype)
+            else
+                out('%s', accessId(set.qid.id[1]))
+
+                for i = 2, #set.qid.id do
+                    out('.%s', set.qid.id[i]:lower())
+                end
+            end
+
+            out(')')
         end
 
         local function genArray(array, value)
@@ -934,6 +1048,31 @@ local function generate(ast, searchPaths, macros, out)
                             out('\n')
                         elseif subtype.type == 'ordident' then
                             out('%s = %s\n', declareId(id), tostring(defaultValues[subtype.subtype]))
+                        elseif subtype.type == 'set' then
+                            if subtype.subtype then
+                                genEnumElements(subtype.subtype)
+                            end
+
+                            out('%s = ', declareId(id))
+                            genSet(subtype)
+                            out('\n')
+                        elseif subtype.type == 'enumerated' then
+                            genEnumElements(subtype)
+                            out('%s = ', declareId(id))
+                            genEnum(subtype)
+                            out('\n')
+                        elseif subtype.type == 'proctype' then
+                            out('%s = nil -- Procedure', declareId(id))
+                            genPascalSignature(subtype.subtype.parameters, nil)
+                            out('\n')
+                        elseif subtype.type == 'subrange' then
+                            out('%s = 0 -- ', declareId(id))
+                            genExpression(subtype.min)
+                            out('..')
+                            genExpression(subtype.max)
+                            out('\n')
+                        elseif subtype.type == 'typeid' then
+                            out('%s = %s\n', declareId(id), accessId(subtype.id))
                         else
                             dump(type)
                             dump(subtype)
@@ -1022,53 +1161,10 @@ local function generate(ast, searchPaths, macros, out)
                     scope = saved
                 end
             elseif decl.type == 'prochead' or decl.type == 'funchead' or decl.type == 'consthead' or decl.type == 'desthead' then
-                local id = table.concat(decl.qid.id, '.')
+                --[[local id = table.concat(decl.qid.id, '.')
                 out('%s = nil -- %s', id:lower(), id)
-
-                if decl.parameters then
-                    out('(')
-                    local comma1 = ''
-
-                    for i = 1, #decl.parameters do
-                        local params = decl.parameters[i]
-                        local subtype = params.subtype
-                        local comma2 = ''
-
-                        out('%s', comma1)
-                        comma1 = '; '
-
-                        for j = 1, #params.ids do
-                            out('%s%s', comma2, params.ids[j])
-                            comma2 = ', '
-                        end
-
-                        if subtype.type == 'typeid' then
-                            out(': %s', subtype.id)
-                        elseif subtype.type == 'ordident' then
-                            out(': %s', subtype.subtype)
-                        else
-                            dump(subtype)
-                            error(string.format('do not know how to generate type %s', subtype.type))
-                        end
-                    end
-
-                    out(')')
-                end
-
-                if decl.type == 'funchead' then
-                    local rettype = decl.returnType
-
-                    if rettype.type == 'typeid' then
-                        out(': %s', rettype.id)
-                    elseif rettype.type == 'ordident' then
-                        out(': %s', rettype.subtype)
-                    else
-                        dump(rettype)
-                        error(string.format('do not know how to generate type %s', rettype.type))
-                    end
-                end
-
-                out('\n')
+                genPascalSignature(decl.parameters, decl.type == 'funchead' and decl.returnType)
+                out('\n')]]
             elseif decl.type == 'field' then
                 if interface then
                     local subtype = decl.subtype
