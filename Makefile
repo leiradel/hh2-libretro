@@ -11,9 +11,6 @@
 	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
 	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `wc -c "$<" | sed 's/ .*//'`;" >> "$@"
 
-%.bs: %.lua
-	$(LUA) etc/bsenc.lua $< $@
-
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 
