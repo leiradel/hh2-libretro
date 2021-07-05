@@ -624,7 +624,35 @@ local function encode( source )
   return table.concat( s )
 end
 
-return function( source )
-  return encode( source )
-end
+local function main( args )
+  if #args ~= 2 then
+    io.write( 'Usage: lua bsenc.lua <input.lua> <output.bs>\n' )
+    return 0
+  end
   
+  local file, err = io.open( args[ 1 ] )
+  
+  if not file then
+    errorout( 'Error opening %s', args[ 1 ] )
+  end
+  
+  local source = file:read( '*a' )
+  file:close()
+  
+  if not source then
+    errorout( 'Could not read from %s', args[ 1 ] )
+  end
+  
+  local encoded = encode( source )
+  
+  file, err = io.open( args[ 2 ], 'wb' )
+  
+  if not file then
+    errorout( 'Error opening %s', args[ 2 ] )
+  end
+  
+  file:write( encoded )
+  file:close()
+end
+
+return main( arg )
