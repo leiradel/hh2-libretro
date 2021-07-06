@@ -1,4 +1,4 @@
-return function(path, assets)
+local function riff(path, assets)
     local entries = {}
     local size = 4
 
@@ -59,3 +59,29 @@ return function(path, assets)
 
     file:close()
 end
+
+local function main(args)
+    if #args < 2 then
+        io.write( 'Usage: lua riff.lua <output> <input>[=<name>]...\n' )
+        return 0
+    end
+
+    local assets = {}
+
+    for i = 2, #args do
+        local path = args[i]
+        local entry
+
+        if path:find('=', 1, true) then
+            path, entry = path:match('(.*)=(.-)')
+        else
+            entry = path
+        end
+
+        assets[#assets + 1] = {path = path, entry = entry}
+    end
+
+    riff(args[1], assets)
+end
+
+return main(arg)
