@@ -1,18 +1,5 @@
--- Requires
-do
-    local cwd = arg[0]:match('(.*)/.-')
-
-    if cwd then
-        local template_separator, substitution = package.config:match('.-\n(.-)\n(.-)\n.*')
-        package.path = package.path .. template_separator .. cwd .. '/' .. substitution .. '.lua'
-        package.cpath = package.cpath .. template_separator .. cwd .. '/' .. substitution .. '.so'
-    end
-end
-
 local inifile = require 'inifile'
-local bsenc = require 'bsenc'
-local pas2lua = require 'pas2lua'
-local riff = require 'riff'
+local ddlt = require 'ddlt'
 
 -- Supporting functions
 local function dump(tab, indent)
@@ -36,137 +23,7 @@ local function dump(tab, indent)
     end
 end
 
-local function parseIniFile(game, path)
-    local function parse(path, skindir, skinprefix)
-        local profiles = {
-            dpadaction = {buttonup = true, buttondown = true, buttonleft = true, buttonright = true, buttonaction = true}
-        }
-
-        local ini = assert(io.open(path))
-        local settings = {skindir = skinprefix, controls = {}, buttons = {count = 0}, assets = {}}
-
-        for section, key, value, line in inifile.iterate(ini) do
-            local Value = value
-            section, key, value = section:lower(), key:lower(), value:lower()
-
-            if section == 'hh2' then
-                if key == 'controllerprofile' then
-                    if settings.controls.profile then
-                        error('controller profile already set: ' .. value)
-                    end
-
-                    if not profiles[value] then
-                        error('unknown controller profile: ' .. value)
-                    end
-
-                    settings.controls.profile = value
-                elseif key == 'backgroundimage' then
-                    if settings[key] then
-                        error('background image already set: ' .. value)
-                    end
-
-                    settings[key] = Value
-                elseif key == 'gamearea' then
-                    if settings.gamearea then
-                        error('game area already set: ' .. value)
-                    end
-
-                    local x0, y0, x1, y1 = value:match('(%d+)%s*,%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)')
-
-                    if not x0 then
-                        error('invalid gamearea: ' .. value)
-                    end
-
-                    settings.gamearea = {
-                        x0 = tonumber(x0),
-                        y0 = tonumber(y0),
-                        x1 = tonumber(x1),
-                        y1 = tonumber(y1)
-                    }
-                else
-                    local index, property = key:match('button(%d+)(.*)')
-
-                    if index then
-                        index = tonumber(index)
-
-                        if index < 1 then
-                            error('invalid button index: ' .. index)
-                        end
-
-                        properties = settings.buttons[index] or {}
-                        settings.buttons[index] = properties
-                        settings.buttons.count = math.max(settings.buttons.count, index)
-                        property = property:lower()
-
-                        if property == 'label' or property == 'name' then
-                            if properties[property] then
-                                error('button property ' .. property .. ' for index ' .. index .. ' already set: ' .. value)
-                            end
-
-                            properties[property] = Value
-                        else
-                            error('unknown button property for index ' .. index .. ': ' .. property .. ' (' .. key .. ')')
-                        end
-                    elseif settings.controls.profile and profiles[settings.controls.profile][key] then
-                        local button = key:match('button(.*)')
-
-                        if settings.controls[button] then
-                            error('button ' .. button .. ' already set: ' .. value)
-                        end
-
-                        settings.controls[button] = value
-                    else
-                        error('unknown setting: ' .. key)
-                    end
-                end
-            elseif section:match('image%d+') then
-                if key == 'filename' then
-                    local path = string.format('%s/%s', skindir, Value):gsub('\\', '/')
-                    local file = io.open(path)
-
-                    if file then
-                        file:close()
-
-                        settings.assets[#settings.assets + 1] = {
-                            path = path,
-                            entry = string.format('%s/%s', skinprefix, Value):gsub('\\', '/')
-                        }
-                    end
-                end
-            end
-        end
-
-        ini:close()
-
-        if not settings.controls.profile then
-            error('controller profile not set')
-        end
-
-        if not settings.backgroundimage then
-            error('background image not set')
-        end
-
-        for button in pairs(profiles[settings.controls.profile]) do
-            if not settings.controls[button:match('button(.*)')] then
-                error('missing button: ' .. button)
-            end
-        end
-
-        for i = 1, settings.buttons.count do
-            if not settings.buttons[i] then
-                error('missing button properties for index: ' .. i)
-            else
-                if not settings.buttons[i].name then
-                    error('missing button property "name" for index: ' .. i)
-                elseif not settings.buttons[i].label then
-                    error('missing button property "label" for index: ' .. i)
-                end
-            end
-        end
-
-        return settings
-    end
-
+local function findIniFile(game, path)
     local inipath = (game .. '/' .. path):gsub('\\', '/')
     local ini = assert(io.open(inipath))
 
@@ -180,14 +37,14 @@ local function parseIniFile(game, path)
                 ini:close()
                 local inipath = string.format('%s/%s/Config.ini', game, Value):gsub('\\', '/')
                 local skindir = string.format('%s/%s', game, Value):gsub('\\', '/')
-                return parse(inipath, skindir, Value)
+                return inipath, skindir, Value
             end
         elseif section == 'common' then
             if key == 'skindir' then
-                -- Found the skin directory, parse the INI file
+                -- Found the skin directory
                 ini:close()
                 local skindir = string.format('%s/%s', game, Value):gsub('\\', '/')
-                return parse(inipath, skindir, Value)
+                return inipath, skindir, Value
             end
         end
     end
@@ -195,19 +52,141 @@ local function parseIniFile(game, path)
     error('could not find the correct Config.ini')
 end
 
--- Args
-local game = assert(arg[1], 'pass the game folder name as the first parameter')
+local function parseIniFile(path, skindir, skinprefix)
+    local profiles = {
+        dpadaction = {buttonup = true, buttondown = true, buttonleft = true, buttonright = true, buttonaction = true},
+        leftright = {buttonleft = true, buttonright = true}
+    }
 
--- Parse the INI file
-local settings = parseIniFile(game, 'Config.ini')
+    local ini = assert(io.open(path))
+    local settings = {skindir = skinprefix, controls = {}, buttons = {count = 0}, assets = {}}
+
+    for section, key, value, line in inifile.iterate(ini) do
+        local Value = value
+        section, key, value = section:lower(), key:lower(), value:lower()
+
+        if section == 'hh2' then
+            if key == 'controllerprofile' then
+                if settings.controls.profile then
+                    error('controller profile already set: ' .. value)
+                end
+
+                if not profiles[value] then
+                    error('unknown controller profile: ' .. value)
+                end
+
+                settings.controls.profile = value
+            elseif key == 'backgroundimage' then
+                if settings[key] then
+                    error('background image already set: ' .. value)
+                end
+
+                settings[key] = Value
+            elseif key == 'gamearea' then
+                if settings.gamearea then
+                    error('game area already set: ' .. value)
+                end
+
+                local x0, y0, x1, y1 = value:match('(%d+)%s*,%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)')
+
+                if not x0 then
+                    error('invalid gamearea: ' .. value)
+                end
+
+                settings.gamearea = {
+                    x0 = tonumber(x0),
+                    y0 = tonumber(y0),
+                    x1 = tonumber(x1),
+                    y1 = tonumber(y1)
+                }
+            else
+                local index, property = key:match('button(%d+)(.*)')
+
+                if index then
+                    index = tonumber(index)
+
+                    if index < 1 then
+                        error('invalid button index: ' .. index)
+                    end
+
+                    properties = settings.buttons[index] or {}
+                    settings.buttons[index] = properties
+                    settings.buttons.count = math.max(settings.buttons.count, index)
+                    property = property:lower()
+
+                    if property == 'label' or property == 'name' then
+                        if properties[property] then
+                            error('button property ' .. property .. ' for index ' .. index .. ' already set: ' .. value)
+                        end
+
+                        properties[property] = Value
+                    else
+                        error('unknown button property for index ' .. index .. ': ' .. property .. ' (' .. key .. ')')
+                    end
+                elseif settings.controls.profile and profiles[settings.controls.profile][key] then
+                    local button = key:match('button(.*)')
+
+                    if settings.controls[button] then
+                        error('button ' .. button .. ' already set: ' .. value)
+                    end
+
+                    settings.controls[button] = value
+                else
+                    error('unknown setting: ' .. key)
+                end
+            end
+        elseif section:match('image%d+') then
+            if key == 'filename' then
+                local path = string.format('%s/%s', skindir, Value):gsub('\\', '/')
+                local file = io.open(path)
+
+                if file then
+                    file:close()
+
+                    settings.assets[#settings.assets + 1] = {
+                        path = path,
+                        entry = string.format('%s/%s', skinprefix, Value):gsub('\\', '/')
+                    }
+                end
+            end
+        end
+    end
+
+    ini:close()
+
+    if not settings.controls.profile then
+        error('controller profile not set')
+    end
+
+    if not settings.backgroundimage then
+        error('background image not set')
+    end
+
+    for button in pairs(profiles[settings.controls.profile]) do
+        if not settings.controls[button:match('button(.*)')] then
+            error('missing button: ' .. button)
+        end
+    end
+
+    for i = 1, settings.buttons.count do
+        if not settings.buttons[i] then
+            error('missing button properties for index: ' .. i)
+        else
+            if not settings.buttons[i].name then
+                error('missing button property "name" for index: ' .. i)
+            elseif not settings.buttons[i].label then
+                error('missing button property "label" for index: ' .. i)
+            end
+        end
+    end
+
+    return settings
+end
 
 -- Create main.lua
-local main = {}
-
-do
+local function genMain(settings)
     local out = function(format, ...)
         local str = string.format(format, ...)
-        main[#main + 1] = str
         io.write(str)
     end
 
@@ -243,43 +222,97 @@ do
 
     out('    background_image = %q\n', (settings.skindir .. '/'):gsub('\\', '/'):gsub('//', '/') .. settings.backgroundimage)
     out('}\n')
-
-    local file = assert(io.open('main.bs', 'wb'))
-    file:write(bsenc(table.concat(main, '')))
-    file:close()
 end
 
--- Create unit1.bs and gfxinit.bs
-do
-    do
-        local path = (game .. '/unit1.pas'):gsub('\\', '/')
-        local parser = pas2lua.newParser(path)
-        local ast = parser:parse()
-
-        local generator = pas2lua.newGenerator(path, ast)
-        local code = generator()
-
-        local file = assert(io.open('unit1.bs', 'wb'))
-        file:write(bsenc(code))
-        file:close()
+local function genMakefile(gamepath, soundpath, skinpath)
+    local out = function(format, ...)
+        local str = string.format(format, ...)
+        io.write(str)
     end
 
-    do
-        local path = (game .. '/gfxinit.pas'):gsub('\\', '/')
-        local parser = pas2lua.newParser(path)
-        local ast = parser:parse()
+    local outlist = function(path, predicate)
+        local list = {}
 
-        local generator = pas2lua.newGenerator(path, ast)
-        local code = generator()
+        for _, file in ipairs(ddlt.scandir(path)) do
+            local name = predicate(file)
 
-        local file = assert(io.open('gfxinit.bs', 'wb'))
-        file:write(bsenc(code))
-        file:close()
+            if name then
+                list[#list + 1] = name
+            end
+        end
+
+        if #list ~= 0 then
+            for i = 1, #list - 1 do
+                out('\t%s \\\n', list[i])
+            end
+
+            out('\t%s\n\n', list[#list])
+        end
     end
+
+    out('%%.lua: %%.pas\n\t$(LUA) ../etc/pas2lua.lua -I../src/runtime/units -DHH2 "$<" > "$@"\n\n')
+    out('%%.bs: %%.lua\n\t$(LUA) ../etc/bsenc.lua "$<" "$@"\n\n')
+    out('LUA ?= lua\nRIFF = $(LUA) ../../etc/riff.lua\n\n')
+
+    out('BS_FILES = \\\n')
+    out('\tmain.bs \\\n\tdfm.bs \\\n\tunit1.bs\n\n')
+    --[[outlist(gamepath, function(name)
+        if name:match('.*%.pas$') then
+            return name:gsub('%.pas', '.bs')
+        end
+    end)]]
+
+    out('WAV_FILES = \\\n')
+    outlist(soundpath, function(name)
+        if name:match('.*%.wav$') then
+            return name
+        end
+    end)
+
+    out('IMG_FILES = \\\n')
+    outlist(skinpath, function(name)
+        if name:match('.*%.png$') or name:match('.*%.jpg$') then
+            return name
+        end
+    end)
+
+    --[[out('DFM_FILES = \\\n')
+    outlist(gamepath, function(name)
+        if name:match('.*%.pas$') then
+            local dfm = name:gsub('%.pas$', '.txt')
+
+            if ddlt.stat(dfm) then
+                return dfm
+            end
+        end
+    end)]]
+
+    out('INI_FILE = \\\n\t%s/Config.ini\n\n', skinpath)
+    out('HH2_FILES = $(BS_FILES) $(WAV_FILES) $(IMG_FILES) $(INI_FILE)\n\n')
+    out('all: popeye.hh2\n\n')
+    out('popeye.hh2: $(HH2_FILES)\n\tcd popeye && $(RIFF) "../$@" $(subst popeye/,,$+)\n\n')
+    out('clean:\n\trm -f popeye.hh2 $(BS_FILES)\n')
 end
 
--- Create the RIFF file
-do
-    settings.assets[#settings.assets + 1] = {entry = 'main.bs', path = 'main.bs'}
-    riff(string.format('%s.hh2', game), settings.assets)
+if #arg ~= 2 then
+    print(string.format('Usage: lua %s (--main | --dfm | --makefile) <game folder>', arg[0]))
+    exit(1)
+end
+
+-- Find the INI file
+local inipath, skinpath, skinprefix = findIniFile(arg[2], 'Config.ini')
+
+-- Parse the INI file
+local settings = parseIniFile(inipath, skinpath, skinprefix)
+
+if arg[1] == '--main' then
+    -- Generate main.lua
+    genMain(settings)
+elseif arg[1] == '--dfm' then
+    genDfm(arg[2])
+elseif arg[1] == '--makefile' then
+    genMakefile(arg[2], arg[2] .. '/Sound', skinpath)
+else
+    io.stderr:write(string.format('Error: unknown option %s', arg[1]))
+    os.exit(1)
 end
