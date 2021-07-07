@@ -685,11 +685,16 @@ local function newParser(path, tokens)
             local line = self:line()
 
             self:match('[')
-            local list = {self:parseSetElement()}
+            local list = {}
 
-            while self:token() == ',' do
-                self:match(',')
+            while self:token() ~= ']' do
                 list[#list + 1] = self:parseSetElement()
+
+                if self:token() ~= ',' then
+                    break
+                end
+
+                self:match(',')
             end
 
             self:match(']')
