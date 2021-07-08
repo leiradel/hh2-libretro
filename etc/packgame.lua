@@ -190,8 +190,10 @@ local function genMain(settings)
         io.write(str)
     end
 
-    out('local unit1 = require \'unit1\'\n\n')
-    out('unit1.form1.oncreate()\n\n')
+    out('local unit1 = require \'unit1\'\n')
+    out('local dfm = require \'dfm\'\n\n')
+    out('unit1.form1.oncreate()\n')
+    out('dfm.inittform1(unit1.form1)\n')
 
     out('return {\n')
     out('    core_version = "0.0.1",\n')
@@ -252,10 +254,16 @@ local function genMakefile(gamepath, soundpath, skinpath)
 
     out('%%.lua: %%.pas\n\t$(LUA) ../etc/pas2lua.lua -I../src/runtime/units -DHH2 "$<" > "$@"\n\n')
     out('%%.bs: %%.lua\n\t$(LUA) ../etc/bsenc.lua "$<" "$@"\n\n')
-    out('LUA ?= lua\nRIFF = $(LUA) ../../etc/riff.lua\n\n')
+
+    out('LUA ?= \\\n')
+    out('\tLUA_PATH="/home/leiradel/Develop/luamods/access/src/?.lua;/home/leiradel/Develop/luamods/inifile/src/?.lua;../etc/?.lua" \\\n')
+    out('\tLUA_CPATH="/home/leiradel/Develop/luamods/proxyud/src/?.so;/home/leiradel/Develop/luamods/ddlt/?.so" \\\n')
+    out('\tlua\n\n')
+
+    out('RIFF = $(LUA) ../../etc/riff.lua\n\n')
 
     out('BS_FILES = \\\n')
-    out('\tmain.bs \\\n\tdfm.bs \\\n\tunit1.bs\n\n')
+    out('\t%s/main.bs \\\n\t%s/dfm.bs \\\n\t%s/unit1.bs\n\n', gamepath, gamepath, gamepath)
     --[[outlist(gamepath, function(name)
         if name:match('.*%.pas$') then
             return name:gsub('%.pas', '.bs')
@@ -289,9 +297,9 @@ local function genMakefile(gamepath, soundpath, skinpath)
 
     out('INI_FILE = \\\n\t%s/Config.ini\n\n', skinpath)
     out('HH2_FILES = $(BS_FILES) $(WAV_FILES) $(IMG_FILES) $(INI_FILE)\n\n')
-    out('all: popeye.hh2\n\n')
-    out('popeye.hh2: $(HH2_FILES)\n\tcd popeye && $(RIFF) "../$@" $(subst popeye/,,$+)\n\n')
-    out('clean:\n\trm -f popeye.hh2 $(BS_FILES)\n')
+    out('all: %s.hh2\n\n', gamepath)
+    out('%s.hh2: $(HH2_FILES)\n\tcd %s && $(RIFF) "../$@" $(subst %s/,,$+)\n\n', gamepath, gamepath, gamepath)
+    out('clean:\n\trm -f %s.hh2 $(BS_FILES)\n', gamepath)
 end
 
 if #arg ~= 2 then
