@@ -652,10 +652,16 @@ local function newParser(path, tokens)
                     local line = self:line()
                     self:match('(')
 
+                    local arguments = false
+
+                    if self:token() ~= ')' then
+                        arguments = self:parseExprList()
+                    end
+
                     designator = access.const {
                         type = 'call',
                         line = line,
-                        arguments = self:parseExprList(),
+                        arguments = arguments,
                         previous = designator
                     }
 

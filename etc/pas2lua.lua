@@ -274,13 +274,15 @@ local function generate(ast, searchPaths, macros, out)
         elseif designator.type == 'call' then
             out('(')
 
-            local comma = ''
+            if designator.arguments then
+                local comma = ''
 
-            for i = 1, #designator.arguments do
-                out(comma)
-                comma = ', '
+                for i = 1, #designator.arguments do
+                    out(comma)
+                    comma = ', '
 
-                genExpression(designator.arguments[i])
+                    genExpression(designator.arguments[i])
+                end
             end
 
             out(')')

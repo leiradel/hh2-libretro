@@ -308,7 +308,7 @@ local function generateObject(node, indent)
 
     for _, child in ipairs(node.children) do
         out('\n')
-        out('%s    %s := %s.Create;\n', spaces, child.id, child.type)
+        out('%s    %s := %s.Create();\n', spaces, child.id, child.type)
         generateObject(child, indent + 1)
     end
 
