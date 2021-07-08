@@ -885,7 +885,7 @@ local function generate(ast, searchPaths, macros, out)
 
                 for j = 1, #param.ids do
                     local id = param.ids[j]:lower()
-                    ids[id] = param
+                    ids[id] = param.subtype
 
                     out('%s%s', comma, id)
                     comma = ', '
