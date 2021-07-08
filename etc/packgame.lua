@@ -295,7 +295,7 @@ local function genMakefile(gamepath, soundpath, skinpath)
 end
 
 if #arg ~= 2 then
-    print(string.format('Usage: lua %s (--main | --dfm | --makefile) <game folder>', arg[0]))
+    print(string.format('Usage: lua %s (--main | --makefile) <game folder>', arg[0]))
     exit(1)
 end
 
@@ -308,8 +308,6 @@ local settings = parseIniFile(inipath, skinpath, skinprefix)
 if arg[1] == '--main' then
     -- Generate main.lua
     genMain(settings)
-elseif arg[1] == '--dfm' then
-    genDfm(arg[2])
 elseif arg[1] == '--makefile' then
     genMakefile(arg[2], arg[2] .. '/Sound', skinpath)
 else
