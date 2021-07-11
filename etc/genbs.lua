@@ -1,13 +1,6 @@
 local function code(paths)
     local function rle(contents)
-        contents = contents:gsub('\n%s-\n', '\n\n')
-
-        for i = 16, 1, -1 do
-            local spaces = string.rep(' ', i * 4)
-            contents = contents:gsub(spaces, string.char(0xf0 | (i - 1)))
-        end
-
-        return contents
+        return contents:gsub('\n%s-\n', '\n\n'):gsub('    ', '\t')
     end
 
     local counts = {}
@@ -112,14 +105,7 @@ if #arg ~= 1 then
 end
 
 local function rle(contents)
-    contents = contents:gsub('\n%s-\n', '\n\n')
-
-    for i = 16, 1, -1 do
-        local spaces = string.rep(' ', i * 4)
-        contents = contents:gsub(spaces, string.char(0xf0 | (i - 1)))
-    end
-
-    return contents
+    return contents:gsub('\n%s-\n', '\n\n'):gsub('    ', '\t')
 end
 
 local dict = {
@@ -129,14 +115,18 @@ local dict = {
         local node = dict[i]
         local symbol = string.byte(node.symbol, 1, 1)
 
-        if symbol < 0x20 or symbol >= 0x80 then
+        if symbol == 0x09 then
+            symbol = '"\\t"'
+        elseif symbol == 0x0a then
+            symbol = '"\\n"'
+        elseif symbol < 0x20 or symbol >= 0x80 then
             symbol = string.format('"\\x%02x"', symbol)
         elseif node.symbol == '"' then
-            symbol = '"\\""  '
+            symbol = '"\\""'
         elseif node.symbol == '\\' then
-            symbol = '"\\\\"  '
+            symbol = '"\\\\"'
         else
-            symbol = string.format('"%s"   ', node.symbol)
+            symbol = string.format('"%s" ', node.symbol)
         end
 
         out:write(string.format('    [%s] = "%s", -- %d\n', symbol, node.bits, node.weight))
@@ -189,7 +179,7 @@ char const* hh2_bsDecode(void const* const data, size_t* const size);
 typedef struct {
     uint8_t left;
     uint8_t right;
-    uint8_t symbol;
+    char symbol;
 }
 hh2_BsNode;
 
@@ -225,6 +215,8 @@ static hh2_BsNode const hh2_BsTree[] = {
 
         if symbol == 0 then
             symbol = '   0'
+        elseif symbol == 9 then
+            symbol = '\'\\t\''
         elseif symbol == 10 then
             symbol = '\'\\n\''
         elseif symbol < 0x20 or symbol >= 0x80 then
@@ -278,18 +270,7 @@ char const* hh2_bsDecode(void const* const data, size_t* const size) {
             }
         }
 
-        switch (hh2_BsTree[node].symbol) {
-            case 0xf0: case 0xf1: case 0xf2: case 0xf3: case 0xf4: case 0xf5: case 0xf6: case 0xf7:
-            case 0xf8: case 0xf9: case 0xfa: case 0xfb: case 0xfc: case 0xfd: case 0xfe: case 0xff:
-                for (int i = (hh2_BsTree[node].symbol & 0x0f) * 4; i >= 0 && decoded < end; i--) {
-                    *decoded++ = ' ';
-                }
-
-                break;
-
-            default:
-                *decoded++ = hh2_BsTree[node].symbol;
-        }
+        *decoded++ = hh2_BsTree[node].symbol;
     }
 
     return result;

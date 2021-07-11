@@ -253,7 +253,7 @@ local function genMakefile(gamepath, soundpath, skinpath)
     end
 
     out('%%.lua: %%.pas\n\t$(LUA) ../etc/pas2lua.lua -I../src/runtime/units -DHH2 "$<" > "$@"\n\n')
-    out('%%.bs: %%.lua\n\t$(LUA) ../etc/bsenc.lua "$<" "$@"\n\n')
+    out('%%.bs: %%.lua\n\t$(LUA) ../etc/bsencode.lua "$<" > "$@"\n\n')
 
     out('LUA ?= \\\n')
     out('\tLUA_PATH="/home/leiradel/Develop/luamods/access/src/?.lua;/home/leiradel/Develop/luamods/inifile/src/?.lua;../etc/?.lua" \\\n')

@@ -1,5 +1,5 @@
 #include "module.h"
-#include "bsreader.h"
+#include "bsdecode.h"
 #include "filesys.h"
 #include "log.h"
 #include "searcher.h"
@@ -45,29 +45,17 @@ static int hh2_contentLoader(lua_State* const L) {
 }
 
 static int hh2_bsDecoder(lua_State* const L) {
-    char const* const data = luaL_checkstring(L, 1);
-    hh2_BsStream const stream = hh2_createBsDecoder(data);
+    char const* const encoded = luaL_checkstring(L, 1);
 
-    if (stream == NULL) {
-        return luaL_error(L, "error creating bs stream");
+    size_t size = 0;
+    char const* const decoded = hh2_bsDecode(encoded, &size);
+
+    if (decoded == NULL) {
+        return luaL_error(L, "error decoding bs stream");
     }
 
-    luaL_Buffer B;
-    luaL_buffinit(L, &B);
-
-    for (lua_Integer i = 1;; i++) {
-        size_t length = 0;
-        char const* const decoded = hh2_decode(stream, &length);
-
-        if (decoded == NULL) {
-            break;
-        }
-
-        luaL_addlstring(&B, decoded, length);
-    }
-
-    hh2_destroyBsDecoder(stream);
-    luaL_pushresult(&B);
+    lua_pushlstring(L, decoded, size);
+    free((void*)decoded);
     return 1;
 }
 
