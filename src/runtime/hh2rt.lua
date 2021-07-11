@@ -1,11 +1,35 @@
+local meta = {}
+
 return {
     newClass = function(...)
-        return {__superClasses = {...}}
+        local class = {}
+        meta[class] = {...} -- super classes
+        return class
     end,
 
-    newConstructor = function(class, id, constructor)
-        class[id] = function(...)
-            return constructor({}, ...)
+    newConstructor = function(class, constructor)
+        local function setMethods(class, instance)
+            for k, v in pairs(class) do
+                if not instance[k] then
+                    print(k, v)
+                    instance[k] = function(...)
+                        return v(instance, ...)
+                    end
+                end
+            end
+
+            local superClasses = meta[class]
+
+            for i = #superClasses, 1, -1 do
+                setMethods(superClasses[i], instance)
+            end
+        end
+
+        return function(...)
+            local instance = {}
+            setMethods(class, instance)
+            constructor(instance, ...)
+            return instance
         end
     end,
 
@@ -14,7 +38,9 @@ return {
     end,
 
     newSet = function(enum)
-        return {__enum = enum}
+        local set = {}
+        meta[set] = enum
+        return set
     end,
 
     newArray = function(dimensions, default, value)
