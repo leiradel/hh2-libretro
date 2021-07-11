@@ -25,7 +25,11 @@ INCLUDES = \
 	-Isrc/zlib
 
 LIBS = -lm
-LUA ?= lua
+
+LUA ?= \
+	LUA_PATH="/home/leiradel/Develop/luamods/access/src/?.lua;/home/leiradel/Develop/luamods/inifile/src/?.lua;etc/?.lua" \
+	LUA_CPATH="/home/leiradel/Develop/luamods/proxyud/src/?.so;/home/leiradel/Develop/luamods/ddlt/?.so" \
+	lua
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -O0 -g -DHH2_DEBUG $(DEFINES)
