@@ -1226,7 +1226,12 @@ local function generate(ast, searchPaths, macros, out)
         out('local M = {}\n\n')
         out('-- Load the runtime and the implied system unit\n')
         out('local hh2rt = require "hh2rt"\n')
-        out('local system = require "system"\n\n')
+
+        if unit.id:lower() ~= 'system' then
+            out('local system = require "system"\n\n')
+        else
+            out('\n')
+        end
 
         do
             local path = findUnit('system', searchPaths)
