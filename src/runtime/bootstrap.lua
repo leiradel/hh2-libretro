@@ -30,8 +30,36 @@ return function(hh2)
             return decoded
         end
 
+        -- Pascal units can recursively require each other, implement a delayed load :/
         local chunk, err = load(decoded, modname, 't')
-        return chunk or err
+
+        if not chunk then
+            return err
+        end
+
+        return function()
+            local function delayedLoad(module)
+                local contents = chunk()
+
+                for k, v in pairs(contents) do
+                    rawset(module, k, v)
+                end
+            end
+
+            return setmetatable({}, {
+                __index = function(self, key)
+                    delayedLoad(self)
+                    setmetatable(self, nil)
+                    return rawget(self, key)
+                end,
+
+                __newindex = function(self, key, value)
+                    delayedLoad(self)
+                    setmetatable(self, nil)
+                    rawset(self, key, value)
+                end
+            })
+        end
     end
 
     -- Remove the other searchers
@@ -40,5 +68,5 @@ return function(hh2)
 
     -- Run boot.lua
     local boot = require 'boot'
-    return boot()
+    return boot.main()
 end
