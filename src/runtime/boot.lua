@@ -1,23 +1,5 @@
 local hh2 = require 'hh2'
 
-local function createGlobals()
-    -- Creates the global 'uses' function
-    --[[uses = function(unitname)
-        local unit = require(unitname)
-
-        -- Register the unit contents in the globals table
-        for key, value in pairs(unit) do
-            _G[key] = value
-        end
-    end]]
-
-    -- Make the addition operator concatenate string
-    -- Note: if both strings are convertible to numbers, the metamethod won't be called and a number addition will be performed
-    getmetatable('').__add = function(str1, str2)
-        return str1 .. str2
-    end
-end
-
 local function dump(tab, indent)
     indent = indent or 0
     local spaces = string.rep('    ', indent)
@@ -46,6 +28,11 @@ local function setupGame()
 end
 
 return function()
-    createGlobals()
+    -- Make the addition operator concatenate string
+    -- Note: if both strings are convertible to numbers, the metamethod won't be called and a number addition will be performed
+    getmetatable('').__add = function(str1, str2)
+        return str1 .. str2
+    end
+
     return setupGame()
 end
