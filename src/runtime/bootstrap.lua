@@ -24,7 +24,12 @@ return function(hh2)
             return encoded
         end
 
-        local decoded = hh2.bsDecoder(encoded)
+        local ok, decoded = pcall(hh2.bsDecoder, encoded)
+
+        if not ok then
+            return decoded
+        end
+
         local chunk, err = load(decoded, modname, 't')
         return chunk or err
     end
