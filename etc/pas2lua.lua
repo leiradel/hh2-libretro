@@ -868,7 +868,7 @@ local function generate(ast, searchPaths, macros, out)
                 ids[#ids + 1] = heading.qid.id[i]
             end
 
-            out('hh2rt.newConstructor(%q, function(', table.concat(ids, '.'):lower())
+            out('hh2rt.newConstructor(%s, %q, function(', accessId(heading.qid.id[1]), table.concat(ids, '.'):lower())
         else
             out('function(')
         end
