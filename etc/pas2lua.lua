@@ -862,13 +862,7 @@ local function generate(ast, searchPaths, macros, out)
         local heading = procedure.heading
 
         if heading.type == 'consthead' then
-            local ids = {}
-
-            for i = 2, #heading.qid.id do
-                ids[#ids + 1] = heading.qid.id[i]
-            end
-
-            out('hh2rt.newConstructor(%s, %q, function(', accessId(heading.qid.id[1]), table.concat(ids, '.'):lower())
+            out('hh2rt.newConstructor(%s, function(', accessId(heading.qid.id[1]))
         else
             out('function(')
         end
