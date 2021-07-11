@@ -1,45 +1,63 @@
 return {
     newClass = function(...)
-        local superClasses = {...}
-        local class = {}
+        return {__superClasses = {...}}
+    end,
 
-        -- Copy all methods from the super classes
-        for i = 1, #superClasses do
-            for name, method in pairs(superClasses[i]) do
-                -- Do not override methods already defined
-                if not class[name] then
-                    class[name] = method
+    newConstructor = function(class, id, constructor)
+        class[id] = function(...)
+            return constructor({}, ...)
+        end
+    end,
+
+    newEnum = function(elements)
+        return elements
+    end,
+
+    newSet = function(enum)
+        return {__enum = enum}
+    end,
+
+    newArray = function(dimensions, default, value)
+        local function init(array, dimensions, default, value, i)
+            local min = dimensions[i][1]
+            local max = dimensions[i][2]
+
+            if i < #dimensions then
+                if value then
+                    local k = 1
+
+                    for j = min, max do
+                        array[j] = {}
+                        init(array[j], dimensions, default, value[k], i + 1)
+                    end
+                else
+                    for j = min, max do
+                        array[j] = {}
+                        init(array[j], dimensions, default, nil, i + 1)
+                    end
+                end
+            else
+                if value then
+                    local k = 1
+
+                    for j = min, max do
+                        array[j] = value[k]
+                        k = k + 1
+                    end
+                else
+                    for j = min, max do
+                        array[j] = default
+                    end
                 end
             end
         end
 
-        return setmetatable(class, {
-            __call = function(self, ...)
-                -- Create an empty instance and the method cache
-                local instance = {}
-                local methods = {}
+        local array = {}
+        init(array, dimensions, default, value, 1)
+        return array
+    end,
 
-                -- Create the methods in the method cache
-                for name, method in pairs(class) do
-                    methods[name] = function(...)
-                        return method(instance, ...)
-                    end
-                end
-
-                -- Set the __index metamethod to return the methods from the cache
-                instance = setmetatable(instance, {
-                    __index = function(self, key)
-                        return methods[key]
-                    end
-                })
-
-                -- Call the new method to initialize the instance
-                if class.new then
-                    class.new(instance, ...)
-                end
-
-                return instance
-            end
-        })
+    newRecord = function()
+        return {}
     end
 }
