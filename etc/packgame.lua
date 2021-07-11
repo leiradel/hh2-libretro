@@ -263,12 +263,12 @@ local function genMakefile(gamepath, soundpath, skinpath)
     out('RIFF = $(LUA) ../../etc/riff.lua\n\n')
 
     out('BS_FILES = \\\n')
-    out('\t%s/main.bs \\\n\t%s/dfm.bs \\\n\t%s/unit1.bs\n\n', gamepath, gamepath, gamepath)
-    --[[outlist(gamepath, function(name)
+    out('\t%s/main.bs \\\n', gamepath)
+    outlist(gamepath, function(name)
         if name:match('.*%.pas$') then
             return name:gsub('%.pas', '.bs')
         end
-    end)]]
+    end)
 
     out('WAV_FILES = \\\n')
     outlist(soundpath, function(name)
