@@ -1,46 +1,99 @@
 local meta = {}
 
+local classMt = {
+    __index = function(self, key)
+        local super = meta[self].super
+
+        if super then
+            local method = super[key]
+
+            if method then
+                rawset(self, key, method)
+                return method
+            end
+        end
+    end
+}
+
+local instanceMt = {
+    __index = function(self, key)
+        local class = meta[self]
+        local value = class[key]
+
+        if value then
+            local method = function(...)
+                return value(self, ...)
+            end
+
+            rawset(self, key, method)
+            return method
+        end
+    end
+}
+
 return {
-    newClass = function(...)
+    newClass = function(super, init)
         local class = {}
-        meta[class] = {...} -- super classes
-        return class
+        meta[class] = {super = super, init = init}
+        return setmetatable(class, classMt)
     end,
 
     newConstructor = function(class, constructor)
-        local function setMethods(class, instance)
-            for k, v in pairs(class) do
-                if not instance[k] then
-                    print(k, v)
-                    instance[k] = function(...)
-                        return v(instance, ...)
-                    end
-                end
-            end
-
-            local superClasses = meta[class]
-
-            for i = #superClasses, 1, -1 do
-                setMethods(superClasses[i], instance)
-            end
-        end
-
         return function(...)
             local instance = {}
-            setMethods(class, instance)
+            meta[instance] = class
+            setmetatable(instance, instanceMt)
+            
+            local super = class
+
+            while super do
+                local init = meta[super].init
+
+                if init then
+                    init(instance)
+                end
+
+                super = meta[super].super
+            end
+
             constructor(instance, ...)
             return instance
         end
     end,
 
+    callInherited = function(name, instance, ...)
+        local class = meta[instance]
+        local super = meta[class].super
+
+        while super do
+            local method = super[name]
+
+            if method then
+                return method(instance, ...)
+            end
+
+            super = meta[super].super
+        end
+
+        error('class do not have an inherited method %s', name)
+    end,
+
     newEnum = function(elements)
-        return elements
+        local enum = {}
+        meta[enum] = elements
+        return enum
     end,
 
     newSet = function(enum)
         local set = {}
-        meta[set] = enum
+        meta[set] = meta[enum]
         return set
+    end,
+
+    instantiateSet = function(elements)
+        local instance = {}
+        meta[instance] = elements
+        return instance
     end,
 
     newArray = function(dimensions, default, value)
