@@ -907,10 +907,64 @@ local function generate(ast, searchPaths, macros, out)
     genDeclarations = function(declarations, interface)
         local function genClass(class)
             if class.super then
-                out('hh2rt.newClass(%s)', accessId(class.super))
+                out('hh2rt.newClass(%s, function(self)\n', accessId(class.super))
             else
-                out('hh2rt.newClass(nil)')
+                out('hh2rt.newClass(nil, function(self)\n')
             end
+
+            out:indent()
+
+            for i = 1, #class.declarations do
+                local decl = class.declarations[i]
+
+                if decl.type == 'consthead' or decl.type == 'desthead' or decl.type == 'prochead' or decl.type == 'funchead' then
+                    -- nothing
+                elseif decl.type == 'field' then
+                    local subtype = decl.subtype
+
+                    for i = 1, #decl.ids do
+                        out('self.%s = ', decl.ids[i]:lower())
+
+                        if subtype.type == 'typeid' then
+                            local type = findId(subtype.id)
+
+                            if type.type == 'enumerated' then
+                                out('%s', accessId(type.elements[1].id))
+                            elseif type.type == 'class' then
+                                out('%s.create()', accessId(subtype.id))
+                            elseif type.type == 'proctype' then
+                                out('function() end')
+                            elseif type.type == 'ordident' then
+                                out('%s', defaultValues[type.subtype])
+                            elseif type.type == 'subrange' then
+                                out('0')
+                            elseif type.type == 'set' then
+                                out('hh2rt.instantiateSet(%s)', accessId(subtype.id))
+                            else
+                                dump(decl)
+                                dump(subtype)
+                                dump(type)
+                                error(string.format('do not know how to initialize type %s', type.type))
+                            end
+                        elseif subtype.type == 'ordident' then
+                            out('%s', defaultValues[subtype.subtype])
+                        elseif subtype.type == 'stringtype' then
+                            out('""')
+                        else
+                            dump(decl)
+                            dump(subtype)
+                            error(string.format('do not know how to initialize field %s', subtype.type))
+                        end
+
+                        out('\n')
+                    end
+                else
+                    error(string.format('do not know how to initialize declaration %s', decl.type))
+                end
+            end
+
+            out:unindent()
+            out('end)\n\n')
         end
 
         local function genRecord(record)
