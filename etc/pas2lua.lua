@@ -858,7 +858,7 @@ local function generate(ast, searchPaths, macros, out)
         end
     end
 
-    local function genProcedureDeclaration(procedure, method)
+    local function genProcedureDeclaration(procedure, ismethod)
         local heading = procedure.heading
 
         if heading.type == 'consthead' then
@@ -867,14 +867,14 @@ local function generate(ast, searchPaths, macros, out)
             out('function(')
         end
 
-        out('%s', method and 'self' or '')
+        out('%s', ismethod and 'self' or '')
 
         local saved = scope
         local ids = push(nil, '%s')
         local params = procedure.heading.parameters
 
         if params then
-            local comma = method and ', ' or ''
+            local comma = ismethod and ', ' or ''
 
             for i = 1, #params do
                 local param = params[i]
