@@ -22,7 +22,7 @@ return function(hh2)
     end
 
     -- Register our searcher after the cache searcher
-    hh2.info('Registering the custom module searcher')
+    hh2.info('registering the custom module searcher')
     local searchers = package.searchers
 
     searchers[2] = function(modname)
@@ -37,6 +37,7 @@ return function(hh2)
         local module = hh2.nativeSearcher(modname)
 
         if type(module) == 'function' then
+            hh2.debug('found module %s using the native searcher', modname)
             return module
         end
 
@@ -60,11 +61,16 @@ return function(hh2)
             return err
         end
 
+        hh2.debug('found module %s in the content file, returning a delayed loader', modname)
+
         return function()
             local function delayedLoad(module)
+                hh2.info('delay-loading module %s', modname)
                 local contents = chunk()
+                hh2.info('delay-loaded module %s', modname)
 
                 for k, v in pairs(contents) do
+                    hh2.debug('\tsetting field %s.%s to %s', modname, k, v)
                     rawset(module, k, v)
                 end
             end
