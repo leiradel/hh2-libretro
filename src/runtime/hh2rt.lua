@@ -1,62 +1,103 @@
+local hh2 = require 'hh2'
 local meta = {}
+
+local function classId(class)
+    return hh2.DEBUG and string.format('%s: %s', meta[class].id, tostring(class):match('table: 0x(%x+)'))
+end
+
+local function instanceId(instance)
+    return hh2.DEBUG and string.format('%s (%s)', tostring(instance):match('table: 0x(%x+)'), classId(meta[instance]))
+end
 
 local classMt = {
     __index = function(self, key)
+        hh2.debug('looking for field %q in class %s', key, classId(self))
         local super = meta[self].super
 
         if super then
-            local method = super[key]
+            local field = super[key]
 
-            if method then
-                rawset(self, key, method)
-                return method
+            if field then
+                hh2.debug('\tfound %s', field)
+                rawset(self, key, field)
+                return field
             end
         end
+    end,
+
+    __newindex = function(self, key, value)
+        hh2.debug('setting field %q in class %s to %s', key, classId(self), value)
+        rawset(self, key, value)
     end
 }
 
 local instanceMt = {
     __index = function(self, key)
         local class = meta[self]
-        local value = class[key]
+        hh2.debug('looking for field %q in instance %s', key, instanceId(self))
 
-        if value then
+        local field = class[key]
+
+        if field then
+            hh2.debug('d', '\tfound %s', field)
             local method = function(...)
-                return value(self, ...)
+                return field(self, ...)
             end
 
             rawset(self, key, method)
             return method
         end
+
+        error(string.format('instance do not have field %q', key))
+    end,
+
+    __newindex = function(self, key, value)
+        hh2.debug('setting field %q in instance %s to %s', key, instanceId(self), value)
+        rawset(self, key, value)
     end
 }
 
 return {
     newClass = function(id, super, init)
-        if type(super) == 'function' then error('super is a function') end
         local class = {}
         meta[class] = {id = id, super = super, init = init}
+
+        hh2.info('creating class %q as %s', id, classId(class))
+
         return setmetatable(class, classMt)
     end,
 
     newConstructor = function(class, constructor)
+        hh2.info('creating constructor %s for class %s', constructor, classId(class))
+
         return function(...)
             local instance = {}
             meta[instance] = class
             setmetatable(instance, instanceMt)
             
+            local chain = {}
             local super = class
 
             while super do
-                local init = meta[super].init
-
-                if init then
-                    init(instance)
-                end
-
+                chain[#chain + 1] = super
                 super = meta[super].super
             end
 
+            for i = #chain, 1, -1 do
+                local super = chain[i]
+                local init = meta[super].init
+
+                if init then
+                    hh2.debug(
+                        'calling init method #%d from class %s inside constructor %s for instance %s',
+                        i, classId(super), constructor, instanceId(instance)
+                    )
+
+                    init(instance)
+                end
+            end
+
+            hh2.info('calling constructor %s with instance %s', constructor, instanceId(instance))
             constructor(instance, ...)
             return instance
         end
@@ -76,7 +117,7 @@ return {
             super = meta[super].super
         end
 
-        error('class do not have an inherited method %s', name)
+        error(string.format('class do not have an inherited method %q', name))
     end,
 
     newEnum = function(elements)
