@@ -25,6 +25,7 @@ type
         constructor Create; virtual;
 
     public
+        OnCreate: TNotifyEvent;
         OnClose: TCloseEvent;
         FormStyle: TFormStyle;
         TransparentColor: Boolean;
