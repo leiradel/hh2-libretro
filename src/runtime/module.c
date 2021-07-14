@@ -10,6 +10,24 @@
 
 #include <lauxlib.h>
 
+static int hh2_logLua(lua_State* const L) {
+    char const* const level = luaL_checkstring(L, 1);
+    char const* const message = luaL_checkstring(L, 2);
+
+    if (level[0] == 0 || level[1] != 0) {
+        return luaL_error(L, "invalid log level: %s", level);
+    }
+
+    switch (level[0]) {
+        case 'd': HH2_LOG(HH2_LOG_DEBUG, "LUA %s", message); break;
+        case 'i': HH2_LOG(HH2_LOG_INFO, "LUA %s", message); break;
+        case 'w': HH2_LOG(HH2_LOG_WARN, "LUA %s", message); break;
+        case 'e': HH2_LOG(HH2_LOG_ERROR, "LUA %s", message); break;
+    }
+
+    return 0;
+}
+
 static int hh2_contentLoader(lua_State* const L) {
     hh2_State* state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
     char const* const path = luaL_checkstring(L, 1);
@@ -61,9 +79,11 @@ static int hh2_bsDecoder(lua_State* const L) {
 
 void hh2_pushModule(lua_State* const L, hh2_State* const state) {
     static luaL_Reg const functions[] = {
+        {"log", hh2_logLua},
         {"bsDecoder", hh2_bsDecoder},
         {"contentLoader", hh2_contentLoader},
-        {"nativeSearcher", hh2_searcher}
+        {"nativeSearcher", hh2_searcher},
+        {NULL, NULL}
     };
 
     lua_createtable(L, 0, sizeof(functions) / sizeof(functions[0]) + 1);

@@ -1,5 +1,28 @@
 return function(hh2)
+    -- Augment hh2.log
+    do
+        local log = hh2.log
+        hh2.log = nil
+
+        hh2.debug = function(format, ...)
+            log('d', string.format(format, ...))
+        end
+
+        hh2.info = function(format, ...)
+            log('i', string.format(format, ...))
+        end
+
+        hh2.warn = function(format, ...)
+            log('w', string.format(format, ...))
+        end
+
+        hh2.error = function(format, ...)
+            log('e', string.format(format, ...))
+        end
+    end
+
     -- Register our searcher after the cache searcher
+    hh2.info('Registering the custom module searcher')
     local searchers = package.searchers
 
     searchers[2] = function(modname)
@@ -63,10 +86,12 @@ return function(hh2)
     end
 
     -- Remove the other searchers
+    hh2.info('removing the other searchers')
     searchers[3] = nil
     searchers[4] = nil
 
     -- Run boot.lua
+    hh2.info('running boot.lua')
     local boot = require 'boot'
     return boot.main()
 end
