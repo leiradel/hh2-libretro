@@ -39,7 +39,7 @@ local instanceMt = {
         local field = class[key]
 
         if field then
-            hh2.debug('d', '\tfound %s', field)
+            hh2.debug('\tfound %s', field)
             local method = function(...)
                 return field(self, ...)
             end
@@ -62,7 +62,10 @@ return {
         local class = {}
         meta[class] = {id = id, super = super, init = init}
 
-        hh2.info('creating class %q as %s', id, classId(class))
+        hh2.info(
+            'creating class %q as %s with super class %s and init function %s',
+            id, classId(class), super and classId(super) or 'none', init
+        )
 
         return setmetatable(class, classMt)
     end,
