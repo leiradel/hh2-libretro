@@ -8,12 +8,12 @@ type
     TShortCut = Word;
     TNotifyEvent = procedure(Sender: TObject) of object;
 
-    TStrings = class
+    TStrings = class(TObject)
     public
         procedure Add(Item: String);
     end;
 
-    TComponent = class
+    TComponent = class(TObject)
         constructor Create; virtual;
     end;
 

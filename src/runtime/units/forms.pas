@@ -65,7 +65,7 @@ type
         HasMainForm: Boolean;
     end;
 
-    TScreen = class
+    TScreen = class(TObject)
     public
         Width: Integer;
         Height: Integer;

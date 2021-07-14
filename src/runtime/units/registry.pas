@@ -3,7 +3,7 @@ unit Registry;
 interface
 
 type
-    TRegIniFile = class
+    TRegIniFile = class(TObject)
     public
         constructor Create(FileName: String);
         destructor Destroy;

@@ -20,7 +20,7 @@ type
         Transparent: Boolean;
     end;
 
-    TComboBox = class
+    TComboBox = class(TObject)
     public
         procedure SetFocus;
         procedure Clear;
@@ -33,12 +33,12 @@ type
         Style: TComboBoxStyle;
     end;
 
-    TCheckBox = class
+    TCheckBox = class(TObject)
     public
         Checked: Boolean;
     end;
 
-    TButton = class
+    TButton = class(TObject)
     public
         Enabled: Boolean;
     end;

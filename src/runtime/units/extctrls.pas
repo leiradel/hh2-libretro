@@ -18,7 +18,7 @@ type
         Transparent: Boolean;
     end;
 
-    TTimer = class
+    TTimer = class(TObject)
     public
         constructor Create; virtual;
 
@@ -28,7 +28,7 @@ type
         OnTimer: TNotifyEvent;
     end;
 
-    TShape = class
+    TShape = class(TObject)
     public
         Top: Integer;
         Left: Integer;
@@ -36,7 +36,7 @@ type
         Height: Integer;
     end;
 
-    TBevel = class
+    TBevel = class(TObject)
     end;
 
 implementation

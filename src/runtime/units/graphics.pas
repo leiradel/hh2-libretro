@@ -30,18 +30,18 @@ type
     TFontStyle = (fsBold, fsItalic, fsUnderline, fsStrikeOut);
     TFontStyles = set of TFontStyle;
 
-    TPen = class
+    TPen = class(TObject)
     public
         Color: TColor;
         Style: TPenStyle;
     end;
 
-    TBrush = class
+    TBrush = class(TObject)
     public
         Color: TColor;
     end;
 
-    TCanvas = class
+    TCanvas = class(TObject)
     public
         constructor Create;
         procedure Rectangle(X1, Y1, X2, Y2: Integer);
@@ -51,7 +51,7 @@ type
         Brush: TBrush;
     end;
 
-    TBitmap = class
+    TBitmap = class(TObject)
     public
         constructor Create;
 
@@ -61,7 +61,7 @@ type
         Canvas: TCanvas;
     end;
 
-    TPicture = class
+    TPicture = class(TObject)
     public
         procedure LoadFromFile(const Filename: String);
 
@@ -69,7 +69,7 @@ type
         Bitmap: TBitmap;
     end;
 
-    TFont = class
+    TFont = class(TObject)
     public
         Color: TColor;
         Charset: TFontCharset;

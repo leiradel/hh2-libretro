@@ -2,7 +2,7 @@ unit IniFiles;
 interface
 
 type
-    TIniFile = class
+    TIniFile = class(TObject)
     public
         constructor Create(FileName: String);
         destructor Destroy;

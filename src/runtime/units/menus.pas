@@ -8,7 +8,7 @@ uses
 type
     TMenuAutoFlag = (maAutomatic, maManual, maParent);
 
-    TPopupMenu = class
+    TPopupMenu = class(TObject)
     public
         constructor Create;
 
@@ -17,7 +17,7 @@ type
         OnPopup: TNotifyEvent;
     end;
 
-    TMenuItem = class
+    TMenuItem = class(TObject)
     public
         constructor Create;
 
