@@ -905,11 +905,11 @@ local function generate(ast, searchPaths, macros, out)
     end
 
     genDeclarations = function(declarations, interface)
-        local function genClass(class)
+        local function genClass(class, id)
             if class.super then
-                out('hh2rt.newClass(%s, function(self)\n', accessId(class.super))
+                out('hh2rt.newClass(%q, %s, function(self)\n', id, accessId(class.super))
             else
-                out('hh2rt.newClass(nil, function(self)\n')
+                out('hh2rt.newClass(%q, nil, function(self)\n', id)
             end
 
             out:indent()
@@ -1094,7 +1094,7 @@ local function generate(ast, searchPaths, macros, out)
                     if interface then
                         if subtype.type == 'class' then
                             out('%s = ', declareId(id))
-                            genClass(subtype, interface)
+                            genClass(subtype, id)
                             out('\n')
                         elseif subtype.type == 'ordident' then
                             out('%s = %s\n', declareId(id), tostring(defaultValues[subtype.subtype]))

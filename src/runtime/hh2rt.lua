@@ -32,9 +32,10 @@ local instanceMt = {
 }
 
 return {
-    newClass = function(super, init)
+    newClass = function(id, super, init)
+        if type(super) == 'function' then error('super is a function') end
         local class = {}
-        meta[class] = {super = super, init = init}
+        meta[class] = {id = id, super = super, init = init}
         return setmetatable(class, classMt)
     end,
 
