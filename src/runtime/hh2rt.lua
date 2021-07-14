@@ -88,16 +88,13 @@ return {
 
             for i = #chain, 1, -1 do
                 local super = chain[i]
-                local init = meta[super].init
 
-                if init then
-                    hh2.debug(
-                        'calling init method #%d from class %s inside constructor %s for instance %s',
-                        i, classId(super), constructor, instanceId(instance)
-                    )
+                hh2.debug(
+                    'calling init method #%d from class %s inside constructor %s for instance %s',
+                    i, classId(super), constructor, instanceId(instance)
+                )
 
-                    init(instance)
-                end
+                meta[super].init(instance)
             end
 
             hh2.info('calling constructor %s with instance %s', constructor, instanceId(instance))
