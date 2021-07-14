@@ -86,10 +86,18 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {NULL, NULL}
     };
 
-    lua_createtable(L, 0, sizeof(functions) / sizeof(functions[0]) + 1);
+    lua_createtable(L, 0, sizeof(functions) / sizeof(functions[0]) + 2);
 
     lua_pushliteral(L, HH2_VERSION);
     lua_setfield(L, -2, "VERSION");
+
+#ifdef HH2_DEBUG
+    lua_pushboolean(L, 1);
+#else
+    lua_pushboolean(L, 0);
+#endif
+
+    lua_setfield(L, -2, "DEBUG");
 
     lua_pushlightuserdata(L, state);
     luaL_setfuncs(L, functions, 1);
