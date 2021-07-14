@@ -15,14 +15,16 @@ local classMt = {
         local super = meta[self].super
 
         if super then
-            local field = super[key]
+            local value = super[key]
 
-            if field then
-                hh2.debug('\tfound %s', field)
-                rawset(self, key, field)
-                return field
+            if value then
+                hh2.debug('\tfound %s', value)
+                rawset(self, key, value)
+                return value
             end
         end
+        
+        error(string.format('class %s do not have field %q', classId(self), key))
     end,
 
     __newindex = function(self, key, value)
@@ -36,19 +38,19 @@ local instanceMt = {
         local class = meta[self]
         hh2.debug('looking for field %q in instance %s', key, instanceId(self))
 
-        local field = class[key]
+        local value = class[key]
 
-        if field then
-            hh2.debug('\tfound %s', field)
+        if value then
+            hh2.debug('\tfound %s', value)
             local method = function(...)
-                return field(self, ...)
+                return value(self, ...)
             end
 
             rawset(self, key, method)
             return method
         end
 
-        error(string.format('instance do not have field %q', key))
+        error(string.format('instance %s do not have field %q', instanceId(self), key))
     end,
 
     __newindex = function(self, key, value)
