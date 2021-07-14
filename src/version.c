@@ -15,6 +15,13 @@ void hh2_logVersions(void) {
     HH2_LOG(HH2_LOG_INFO, TAG "HH2 Version    %s", HH2_VERSION);
     HH2_LOG(HH2_LOG_INFO, TAG "HH2 Date:      %s", HH2_DATE);
     HH2_LOG(HH2_LOG_INFO, TAG "HH2 Commit:    %s", HH2_GITHASH);
+
+#ifdef HH2_DEBUG
+    HH2_LOG(HH2_LOG_INFO, TAG "HH2 Build:     Debug");
+#else
+    HH2_LOG(HH2_LOG_INFO, TAG "HH2 Build:     Release");
+#endif
+
     HH2_LOG(HH2_LOG_INFO, TAG "dr_wav:        %s", DRWAV_VERSION_STRING);
 
     HH2_LOG(
