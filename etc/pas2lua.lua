@@ -757,7 +757,11 @@ local function generate(ast, searchPaths, macros, out)
         end
 
         local function genAsm(node)
+            out('do\n')
+            out:indent()
             out('%s\n', node.code:sub(4, -5))
+            out:unindent()
+            out('end\n')
         end
 
         local function genInherited(node)
