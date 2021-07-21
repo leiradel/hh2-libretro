@@ -256,7 +256,13 @@ local function generate(ast, searchPaths, macros, out)
         end
 
         if designator.type == 'variable' then
-            out('%s', accessId(designator.qid.id[1]))
+            local acc = accessId(designator.qid.id[1])
+
+            if not acc then
+                fatal(designator.line, 'unknown identifier: %q', designator.qid.id[1])
+            end
+
+            out('%s', acc)
 
             for i = 2, #designator.qid.id do
                 out('.%s', designator.qid.id[i]:lower())
