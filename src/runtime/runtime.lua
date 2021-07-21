@@ -12,13 +12,10 @@ return function(hh2rt)
     local instanceMt = {
         __index = function(self, key)
             local class = meta[self]
-            hh2rt.debug('looking for field %q in instance %s', key, instanceId(self))
 
             local value = class[key]
 
             if value then
-                hh2rt.debug('\tfound %s', value)
-
                 local method = function(...)
                     return value(self, ...)
                 end
@@ -31,14 +28,11 @@ return function(hh2rt)
         end,
 
         __newindex = function(self, key, value)
-            hh2rt.debug('setting field %q in instance %s to %s', key, instanceId(self), value)
             rawset(self, key, value)
         end
     }
 
     local function newConstructor(class, constructor)
-        hh2rt.info('creating constructor %s for class %s', constructor, classId(class))
-
         return function(...)
             local instance = {}
             meta[instance] = class
@@ -54,16 +48,9 @@ return function(hh2rt)
 
             for i = #chain, 1, -1 do
                 local super = chain[i]
-
-                hh2rt.debug(
-                    'calling init method #%d from class %s inside constructor %s for instance %s',
-                    i, classId(super), constructor, instanceId(instance)
-                )
-
                 meta[super].init(instance)
             end
 
-            hh2rt.info('calling constructor %s with instance %s', constructor, instanceId(instance))
             constructor(instance, ...)
             return instance
         end
@@ -71,10 +58,7 @@ return function(hh2rt)
 
     local classMt = {
         __index = function(self, key)
-            hh2rt.debug('looking for field %q in class %s', key, classId(self))
-
             if key == 'create' then
-                hh2rt.debug('\tsynthetizing constructor for class %s', classId(self))
                 local value = newConstructor(self, function(instance) end)
                 rawset(self, key, value)
                 return value
@@ -86,7 +70,6 @@ return function(hh2rt)
                 local value = super[key]
 
                 if value then
-                    hh2rt.debug('\tfound %s in super class %s', value, classId(super))
                     rawset(self, key, value)
                     return value
                 end
@@ -96,20 +79,19 @@ return function(hh2rt)
         end,
 
         __newindex = function(self, key, value)
-            hh2rt.debug('setting field %q in class %s to %s', key, classId(self), value)
             rawset(self, key, value)
         end
     }
 
     hh2rt.newClass = function(id, super, init)
+        if super then
+            hh2rt.debug('creating class %s with super %s', id, meta[super].id)
+        else
+            hh2rt.debug('creating class %s', id)
+        end
+
         local class = {}
         meta[class] = {id = id, super = super, init = init}
-
-        hh2rt.info(
-            'creating class %q as %s with super class %s and init function %s',
-            id, classId(class), super and classId(super) or 'none', init
-        )
-
         return setmetatable(class, classMt)
     end
 
