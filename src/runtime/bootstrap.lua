@@ -1,5 +1,5 @@
 return function(hh2)
-    -- Augment hh2.log
+    -- Augment hh2.log and replace print
     do
         local log = hh2.log
         hh2.log = nil
@@ -18,6 +18,16 @@ return function(hh2)
 
         hh2.error = function(format, ...)
             log('e', string.format(format, ...))
+        end
+
+        print = function(...)
+            local args = {...}
+
+            for i = 1, #args do
+                args[i] = tostring(args[i])
+            end
+
+            log('d', table.concat(args, '\t'))
         end
     end
 
