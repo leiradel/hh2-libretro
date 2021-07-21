@@ -195,5 +195,7 @@ return {
 
     newRecord = function()
         return {}
-    end
+    end,
+
+    poke = hh2.poke
 }
