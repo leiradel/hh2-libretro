@@ -11,7 +11,7 @@
 #include <errno.h>
 
 #include "boot.luagz.h"
-#include "hh2rt.luagz.h"
+#include "runtime.luagz.h"
 #include "units/classes.luagz.h"
 #include "units/controls.luagz.h"
 #include "units/dialogs.luagz.h"
@@ -55,7 +55,7 @@ hh2_Module;
 
 static const hh2_Module hh2_modules[] = {
     HH2_MODL("boot", boot_lua),
-    HH2_MODL("hh2rt", hh2rt_lua),
+    HH2_MODL("runtime", runtime_lua),
     HH2_MODL("classes", classes_lua),
     HH2_MODL("controls", controls_lua),
     HH2_MODL("dialogs", dialogs_lua),
