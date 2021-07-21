@@ -232,7 +232,9 @@ local function generate(ast, searchPaths, macros, out)
                     end
                 end
             elseif decl.type == 'procdecl' then
-                -- nothing
+                if not findId(decl.heading.qid.id[1]) then
+                    ids[table.concat(decl.heading.qid.id, '.'):lower()] = decl
+                end
             elseif decl.type == 'prochead' or decl.type == 'funchead' or decl.type == 'consthead' or decl.type == 'desthead' then
                 ids[table.concat(decl.qid.id, '.'):lower()] = decl
             elseif decl.type == 'field' then
