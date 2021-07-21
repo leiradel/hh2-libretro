@@ -71,34 +71,7 @@ return function(hh2)
             return err
         end
 
-        hh2.debug('found module %s in the content file, returning a delayed loader', modname)
-
-        return function()
-            local function delayedLoad(module)
-                hh2.info('delay-loading module %s', modname)
-                local contents = chunk()
-                hh2.info('delay-loaded module %s', modname)
-
-                for k, v in pairs(contents) do
-                    hh2.debug('\tsetting field %s.%s to %s', modname, k, v)
-                    rawset(module, k, v)
-                end
-            end
-
-            return setmetatable({}, {
-                __index = function(self, key)
-                    delayedLoad(self)
-                    setmetatable(self, nil)
-                    return rawget(self, key)
-                end,
-
-                __newindex = function(self, key, value)
-                    delayedLoad(self)
-                    setmetatable(self, nil)
-                    rawset(self, key, value)
-                end
-            })
-        end
+        return chunk
     end
 
     -- Remove the other searchers
@@ -109,5 +82,5 @@ return function(hh2)
     -- Run boot.lua
     hh2.info('running boot.lua')
     local boot = require 'boot'
-    return boot.main()
+    return boot()
 end
