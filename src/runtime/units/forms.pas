@@ -113,5 +113,6 @@ begin
 end;
 
 initialization
-    Application := TApplication.Create;
+    Application := TApplication.Create();
+    Screen := TScreen.Create();
 end.
