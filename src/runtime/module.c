@@ -77,11 +77,17 @@ static int hh2_bsDecoder(lua_State* const L) {
     return 1;
 }
 
+static int hh2_poke(lua_State* const L) {
+    HH2_LOG(HH2_LOG_WARN, "poke not implemented");
+    return 0;
+}
+
 void hh2_pushModule(lua_State* const L, hh2_State* const state) {
     static luaL_Reg const functions[] = {
         {"log", hh2_logLua},
-        {"bsDecoder", hh2_bsDecoder},
         {"contentLoader", hh2_contentLoader},
+        {"bsDecoder", hh2_bsDecoder},
+        {"poke", hh2_poke},
         {"nativeSearcher", hh2_searcher},
         {NULL, NULL}
     };
