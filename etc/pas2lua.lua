@@ -903,7 +903,21 @@ local function generate(ast, searchPaths, macros, out)
 
         out(')\n')
         out:indent()
+
+        local resultId = string.format('hh2%s', tostring(procedure):match('.*0x(%x+).*'))
+
+        if heading.type == 'funchead' then
+            local resultIds = push(nil, resultId)
+            resultIds[heading.qid.id[#heading.qid.id]:lower()] = true
+            out('local %s = nil\n', resultId)
+        end
+
         genBlock(procedure.block)
+
+        if heading.type == 'funchead' then
+            out('return %s\n', resultId)
+        end
+
         out:unindent()
         out('end')
 
