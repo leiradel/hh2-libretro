@@ -1,124 +1,123 @@
-local hh2 = require 'hh2'
-local meta, props = {}, {}
+return function(hh2rt)
+    local meta, props = {}, {}
 
-local function classId(class)
-    return string.format('%s: %s', meta[class].id, tostring(class):match('table: 0x(%x+)'))
-end
-
-local function instanceId(instance)
-    return string.format('%s (%s)', tostring(instance):match('table: 0x(%x+)'), classId(meta[instance]))
-end
-
-local instanceMt = {
-    __index = function(self, key)
-        local class = meta[self]
-        hh2.debug('looking for field %q in instance %s', key, instanceId(self))
-
-        local value = class[key]
-
-        if value then
-            hh2.debug('\tfound %s', value)
-
-            local method = function(...)
-                return value(self, ...)
-            end
-
-            rawset(self, key, method)
-            return method
-        end
-
-        error(string.format('instance %s do not have field %q', instanceId(self), key))
-    end,
-
-    __newindex = function(self, key, value)
-        hh2.debug('setting field %q in instance %s to %s', key, instanceId(self), value)
-        rawset(self, key, value)
+    local function classId(class)
+        return string.format('%s: %s', meta[class].id, tostring(class):match('table: 0x(%x+)'))
     end
-}
 
-local function newConstructor(class, constructor)
-    hh2.info('creating constructor %s for class %s', constructor, classId(class))
-
-    return function(...)
-        local instance = {}
-        meta[instance] = class
-        setmetatable(instance, instanceMt)
-        
-        local chain = {}
-        local super = class
-
-        while super do
-            chain[#chain + 1] = super
-            super = meta[super].super
-        end
-
-        for i = #chain, 1, -1 do
-            local super = chain[i]
-
-            hh2.debug(
-                'calling init method #%d from class %s inside constructor %s for instance %s',
-                i, classId(super), constructor, instanceId(instance)
-            )
-
-            meta[super].init(instance)
-        end
-
-        hh2.info('calling constructor %s with instance %s', constructor, instanceId(instance))
-        constructor(instance, ...)
-        return instance
+    local function instanceId(instance)
+        return string.format('%s (%s)', tostring(instance):match('table: 0x(%x+)'), classId(meta[instance]))
     end
-end
 
-local classMt = {
-    __index = function(self, key)
-        hh2.debug('looking for field %q in class %s', key, classId(self))
+    local instanceMt = {
+        __index = function(self, key)
+            local class = meta[self]
+            hh2rt.debug('looking for field %q in instance %s', key, instanceId(self))
 
-        if key == 'create' then
-            hh2.debug('\tsynthetizing constructor for class %s', classId(self))
-            local value = newConstructor(self, function(instance) end)
-            rawset(self, key, value)
-            return value
-        end
-
-        local super = meta[self].super
-
-        if super then
-            local value = super[key]
+            local value = class[key]
 
             if value then
-                hh2.debug('\tfound %s in super class %s', value, classId(super))
+                hh2rt.debug('\tfound %s', value)
+
+                local method = function(...)
+                    return value(self, ...)
+                end
+
+                rawset(self, key, method)
+                return method
+            end
+
+            error(string.format('instance %s do not have field %q', instanceId(self), key))
+        end,
+
+        __newindex = function(self, key, value)
+            hh2rt.debug('setting field %q in instance %s to %s', key, instanceId(self), value)
+            rawset(self, key, value)
+        end
+    }
+
+    local function newConstructor(class, constructor)
+        hh2rt.info('creating constructor %s for class %s', constructor, classId(class))
+
+        return function(...)
+            local instance = {}
+            meta[instance] = class
+            setmetatable(instance, instanceMt)
+            
+            local chain = {}
+            local super = class
+
+            while super do
+                chain[#chain + 1] = super
+                super = meta[super].super
+            end
+
+            for i = #chain, 1, -1 do
+                local super = chain[i]
+
+                hh2rt.debug(
+                    'calling init method #%d from class %s inside constructor %s for instance %s',
+                    i, classId(super), constructor, instanceId(instance)
+                )
+
+                meta[super].init(instance)
+            end
+
+            hh2rt.info('calling constructor %s with instance %s', constructor, instanceId(instance))
+            constructor(instance, ...)
+            return instance
+        end
+    end
+
+    local classMt = {
+        __index = function(self, key)
+            hh2rt.debug('looking for field %q in class %s', key, classId(self))
+
+            if key == 'create' then
+                hh2rt.debug('\tsynthetizing constructor for class %s', classId(self))
+                local value = newConstructor(self, function(instance) end)
                 rawset(self, key, value)
                 return value
             end
+
+            local super = meta[self].super
+
+            if super then
+                local value = super[key]
+
+                if value then
+                    hh2rt.debug('\tfound %s in super class %s', value, classId(super))
+                    rawset(self, key, value)
+                    return value
+                end
+            end
+            
+            error(string.format('class %s do not have field %q', classId(self), key))
+        end,
+
+        __newindex = function(self, key, value)
+            hh2rt.debug('setting field %q in class %s to %s', key, classId(self), value)
+            rawset(self, key, value)
         end
-        
-        error(string.format('class %s do not have field %q', classId(self), key))
-    end,
+    }
 
-    __newindex = function(self, key, value)
-        hh2.debug('setting field %q in class %s to %s', key, classId(self), value)
-        rawset(self, key, value)
-    end
-}
-
-return {
-    newClass = function(id, super, init)
+    hh2rt.newClass = function(id, super, init)
         local class = {}
         meta[class] = {id = id, super = super, init = init}
 
-        hh2.info(
+        hh2rt.info(
             'creating class %q as %s with super class %s and init function %s',
             id, classId(class), super and classId(super) or 'none', init
         )
 
         return setmetatable(class, classMt)
-    end,
+    end
 
-    newConstructor = function(class, constructor)
+    hh2rt.newConstructor = function(class, constructor)
         return newConstructor(class,constructor)
-    end,
+    end
 
-    callInherited = function(name, instance, ...)
+    hh2rt.callInherited = function(name, instance, ...)
         local class = meta[instance]
         local super = meta[class].super
 
@@ -133,27 +132,27 @@ return {
         end
 
         error(string.format('class do not have an inherited method %q', name))
-    end,
+    end
 
-    newEnum = function(elements)
+    hh2rt.newEnum = function(elements)
         local enum = {}
         meta[enum] = elements
         return enum
-    end,
+    end
 
-    newSet = function(enum)
+    hh2rt.newSet = function(enum)
         local set = {}
         meta[set] = meta[enum]
         return set
-    end,
+    end
 
-    instantiateSet = function(elements)
+    hh2rt.instantiateSet = function(elements)
         local instance = {}
         meta[instance] = elements
         return instance
-    end,
+    end
 
-    newArray = function(dimensions, default, value)
+    hh2rt.newArray = function(dimensions, default, value)
         local function init(array, dimensions, default, value, i)
             local min = dimensions[i][1]
             local max = dimensions[i][2]
@@ -191,11 +190,9 @@ return {
         local array = {}
         init(array, dimensions, default, value, 1)
         return array
-    end,
+    end
 
-    newRecord = function()
+    hh2rt.newRecord = function()
         return {}
-    end,
-
-    poke = hh2.poke
-}
+    end
+end
