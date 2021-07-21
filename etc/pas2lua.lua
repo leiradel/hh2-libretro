@@ -1336,6 +1336,15 @@ local function generate(ast, searchPaths, macros, out)
         pushDeclarations(unit.implementation.declarations, 'local %s', '%s')
         genDeclarations(unit.implementation.declarations, false)
 
+        if unit.initialization.statements then
+            out('\n')
+            out('-- Initialization section\n')
+
+            for i = 1, #unit.initialization.statements do
+                genStatement(unit.initialization.statements[i])
+            end
+        end
+
         out('\n')
         out('-- Return the module\n')
         out('return M\n')
