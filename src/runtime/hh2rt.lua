@@ -1,37 +1,13 @@
 local hh2 = require 'hh2'
-local meta = {}
+local meta, props = {}, {}
 
 local function classId(class)
-    return hh2.DEBUG and string.format('%s: %s', meta[class].id, tostring(class):match('table: 0x(%x+)'))
+    return string.format('%s: %s', meta[class].id, tostring(class):match('table: 0x(%x+)'))
 end
 
 local function instanceId(instance)
-    return hh2.DEBUG and string.format('%s (%s)', tostring(instance):match('table: 0x(%x+)'), classId(meta[instance]))
+    return string.format('%s (%s)', tostring(instance):match('table: 0x(%x+)'), classId(meta[instance]))
 end
-
-local classMt = {
-    __index = function(self, key)
-        hh2.debug('looking for field %q in class %s', key, classId(self))
-        local super = meta[self].super
-
-        if super then
-            local value = super[key]
-
-            if value then
-                hh2.debug('\tfound %s', value)
-                rawset(self, key, value)
-                return value
-            end
-        end
-        
-        error(string.format('class %s do not have field %q', classId(self), key))
-    end,
-
-    __newindex = function(self, key, value)
-        hh2.debug('setting field %q in class %s to %s', key, classId(self), value)
-        rawset(self, key, value)
-    end
-}
 
 local instanceMt = {
     __index = function(self, key)
@@ -42,6 +18,7 @@ local instanceMt = {
 
         if value then
             hh2.debug('\tfound %s', value)
+
             local method = function(...)
                 return value(self, ...)
             end
@@ -55,6 +32,71 @@ local instanceMt = {
 
     __newindex = function(self, key, value)
         hh2.debug('setting field %q in instance %s to %s', key, instanceId(self), value)
+        rawset(self, key, value)
+    end
+}
+
+local function newConstructor(class, constructor)
+    hh2.info('creating constructor %s for class %s', constructor, classId(class))
+
+    return function(...)
+        local instance = {}
+        meta[instance] = class
+        setmetatable(instance, instanceMt)
+        
+        local chain = {}
+        local super = class
+
+        while super do
+            chain[#chain + 1] = super
+            super = meta[super].super
+        end
+
+        for i = #chain, 1, -1 do
+            local super = chain[i]
+
+            hh2.debug(
+                'calling init method #%d from class %s inside constructor %s for instance %s',
+                i, classId(super), constructor, instanceId(instance)
+            )
+
+            meta[super].init(instance)
+        end
+
+        hh2.info('calling constructor %s with instance %s', constructor, instanceId(instance))
+        constructor(instance, ...)
+        return instance
+    end
+end
+
+local classMt = {
+    __index = function(self, key)
+        hh2.debug('looking for field %q in class %s', key, classId(self))
+
+        if key == 'create' then
+            hh2.debug('\tsynthetizing constructor for class %s', classId(self))
+            local value = newConstructor(self, function(instance) end)
+            rawset(self, key, value)
+            return value
+        end
+
+        local super = meta[self].super
+
+        if super then
+            local value = super[key]
+
+            if value then
+                hh2.debug('\tfound %s in super class %s', value, classId(super))
+                rawset(self, key, value)
+                return value
+            end
+        end
+        
+        error(string.format('class %s do not have field %q', classId(self), key))
+    end,
+
+    __newindex = function(self, key, value)
+        hh2.debug('setting field %q in class %s to %s', key, classId(self), value)
         rawset(self, key, value)
     end
 }
@@ -73,36 +115,7 @@ return {
     end,
 
     newConstructor = function(class, constructor)
-        hh2.info('creating constructor %s for class %s', constructor, classId(class))
-
-        return function(...)
-            local instance = {}
-            meta[instance] = class
-            setmetatable(instance, instanceMt)
-            
-            local chain = {}
-            local super = class
-
-            while super do
-                chain[#chain + 1] = super
-                super = meta[super].super
-            end
-
-            for i = #chain, 1, -1 do
-                local super = chain[i]
-
-                hh2.debug(
-                    'calling init method #%d from class %s inside constructor %s for instance %s',
-                    i, classId(super), constructor, instanceId(instance)
-                )
-
-                meta[super].init(instance)
-            end
-
-            hh2.info('calling constructor %s with instance %s', constructor, instanceId(instance))
-            constructor(instance, ...)
-            return instance
-        end
+        return newConstructor(class,constructor)
     end,
 
     callInherited = function(name, instance, ...)
