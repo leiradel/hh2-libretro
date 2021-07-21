@@ -43,6 +43,7 @@ implementation
 
 constructor TImage.Create;
 begin
+    Picture := TPicture.Create();
 end;
 
 constructor TTimer.Create;
