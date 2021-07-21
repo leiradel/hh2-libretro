@@ -136,6 +136,9 @@ local function parseIniFile(path, skindir, skinprefix)
                 end
             end
         elseif section:match('image%d+') then
+            local asset = settings.assets[section] or {}
+            settings.assets[section] = asset
+
             if key == 'filename' then
                 local path = string.format('%s/%s', skindir, Value):gsub('\\', '/')
                 local file = io.open(path)
@@ -143,11 +146,11 @@ local function parseIniFile(path, skindir, skinprefix)
                 if file then
                     file:close()
 
-                    settings.assets[#settings.assets + 1] = {
-                        path = path,
-                        entry = string.format('%s/%s', skinprefix, Value):gsub('\\', '/')
-                    }
+                    asset.path = path
+                    asset.entry = string.format('%s/%s', skinprefix, Value):gsub('\\', '/')
                 end
+            else
+                asset[key] = Value
             end
         end
     end
@@ -183,19 +186,13 @@ local function parseIniFile(path, skindir, skinprefix)
     return settings
 end
 
--- Create main.lua
-local function genMain(settings)
+local function genSettings(settings)
     local out = function(format, ...)
         local str = string.format(format, ...)
         io.write(str)
     end
 
-    out('local unit1 = require \'unit1\'\n')
-    out('local dfm = require \'dfm\'\n\n')
-    out('unit1.form1 = unit1.tform1.create()\n')
-    out('dfm.inittform1(unit1.form1)\n')
-    out('unit1.form1.oncreate()\n\n')
-
+    out('local unit1 = require \'unit1\'\n\n')
     out('return {\n')
     out('    core_version = "0.0.1",\n')
     out('    unmapped_buttons = {\n')
@@ -227,7 +224,45 @@ local function genMain(settings)
     out('}\n')
 end
 
-local function genMakefile(gamepath, soundpath, skinpath)
+local function genGfxInit(settings, skinpath)
+    local out = function(format, ...)
+        local str = string.format(format, ...)
+        io.write(str)
+    end
+
+    local assets = {}
+
+    for section, asset in pairs(settings.assets) do
+        asset.index = tonumber(section:match('.-(%d+)'))
+        assets[#assets + 1] = asset
+    end
+
+    table.sort(assets, function(a, b) return a.index < b.index end)
+
+    for _, asset in ipairs(assets) do
+        if asset.entry then
+            out('    Form1.aImages[%d].Picture.LoadFromFile(\'%s\');\n', asset.index, asset.entry)
+        end
+
+        if asset.top then
+            out('    Form1.aImages[%d].Top := %s;\n', asset.index, asset.top);
+        end
+
+        if asset.left then
+            out('    Form1.aImages[%d].Left := %s;\n', asset.index, asset.left);
+        end
+        
+        if asset.width then
+            out('    Form1.aImages[%d].Width := %s;\n', asset.index, asset.width);
+        end
+
+        if asset.height then
+            out('    Form1.aImages[%d].Height := %s;\n', asset.index, asset.height);
+        end
+    end
+end
+
+local function genMakefile(settings, gamepath, soundpath, skinpath)
     local out = function(format, ...)
         local str = string.format(format, ...)
         io.write(str)
@@ -264,12 +299,10 @@ local function genMakefile(gamepath, soundpath, skinpath)
     out('RIFF = $(LUA) ../../etc/riff.lua\n\n')
 
     out('BS_FILES = \\\n')
-    out('\t%s/main.bs \\\n', gamepath)
-    outlist(gamepath, function(name)
-        if name:match('.*%.pas$') then
-            return name:gsub('%.pas', '.bs')
-        end
-    end)
+    out('\t%s/hh2config.bs \\\n', gamepath)
+    out('\t%s/hh2dfm.bs \\\n', gamepath)
+    out('\t%s/hh2main.bs \\\n', gamepath)
+    out('\t%s/unit1.bs\n\n', gamepath)
 
     out('WAV_FILES = \\\n')
     outlist(soundpath, function(name)
@@ -279,32 +312,30 @@ local function genMakefile(gamepath, soundpath, skinpath)
     end)
 
     out('IMG_FILES = \\\n')
-    outlist(skinpath, function(name)
-        if name:match('.*%.png$') or name:match('.*%.jpg$') then
-            return name
+    local images = {}
+
+    for _, asset in pairs(settings.assets) do
+        images[#images + 1] = asset.path
+    end
+
+    for i, path in ipairs(images) do
+        out('\t%s', path)
+
+        if i < #images then
+            out(' \\\n')
         end
-    end)
+    end
 
-    --[[out('DFM_FILES = \\\n')
-    outlist(gamepath, function(name)
-        if name:match('.*%.pas$') then
-            local dfm = name:gsub('%.pas$', '.txt')
+    out('\n\n')
 
-            if ddlt.stat(dfm) then
-                return dfm
-            end
-        end
-    end)]]
-
-    out('INI_FILE = \\\n\t%s/Config.ini\n\n', skinpath)
-    out('HH2_FILES = $(BS_FILES) $(WAV_FILES) $(IMG_FILES) $(INI_FILE)\n\n')
+    out('HH2_FILES = $(BS_FILES) $(WAV_FILES) $(IMG_FILES)\n\n')
     out('all: %s.hh2\n\n', gamepath)
     out('%s.hh2: $(HH2_FILES)\n\tcd %s && $(RIFF) "../$@" $(subst %s/,,$+)\n\n', gamepath, gamepath, gamepath)
     out('clean:\n\trm -f %s.hh2 $(BS_FILES)\n', gamepath)
 end
 
 if #arg ~= 2 then
-    print(string.format('Usage: lua %s (--main | --makefile) <game folder>', arg[0]))
+    print(string.format('Usage: lua %s (--settings | --gfxinit | --makefile) <game folder>', arg[0]))
     exit(1)
 end
 
@@ -314,11 +345,12 @@ local inipath, skinpath, skinprefix = findIniFile(arg[2], 'Config.ini')
 -- Parse the INI file
 local settings = parseIniFile(inipath, skinpath, skinprefix)
 
-if arg[1] == '--main' then
-    -- Generate main.lua
-    genMain(settings)
+if arg[1] == '--settings' then
+    genSettings(settings)
+elseif arg[1] == '--gfxinit' then
+    genGfxInit(settings, skinpath)
 elseif arg[1] == '--makefile' then
-    genMakefile(arg[2], arg[2] .. '/Sound', skinpath)
+    genMakefile(settings, arg[2], arg[2] .. '/Sound', skinpath)
 else
     io.stderr:write(string.format('Error: unknown option %s', arg[1]))
     os.exit(1)
