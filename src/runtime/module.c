@@ -28,7 +28,7 @@ static int hh2_logLua(lua_State* const L) {
     return 0;
 }
 
-static int hh2_contentLoader(lua_State* const L) {
+static int hh2_contentLoaderLua(lua_State* const L) {
     hh2_State* state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
     char const* const path = luaL_checkstring(L, 1);
     long const size = hh2_fileSize(state->filesys, path);
@@ -62,7 +62,7 @@ static int hh2_contentLoader(lua_State* const L) {
     return 1;
 }
 
-static int hh2_bsDecoder(lua_State* const L) {
+static int hh2_bsDecoderLua(lua_State* const L) {
     char const* const encoded = luaL_checkstring(L, 1);
 
     size_t size = 0;
@@ -77,7 +77,7 @@ static int hh2_bsDecoder(lua_State* const L) {
     return 1;
 }
 
-static int hh2_poke(lua_State* const L) {
+static int hh2_pokeLua(lua_State* const L) {
     HH2_LOG(HH2_LOG_WARN, "poke not implemented");
     return 0;
 }
@@ -85,9 +85,9 @@ static int hh2_poke(lua_State* const L) {
 void hh2_pushModule(lua_State* const L, hh2_State* const state) {
     static luaL_Reg const functions[] = {
         {"log", hh2_logLua},
-        {"contentLoader", hh2_contentLoader},
-        {"bsDecoder", hh2_bsDecoder},
-        {"poke", hh2_poke},
+        {"contentLoader", hh2_contentLoaderLua},
+        {"bsDecoder", hh2_bsDecoderLua},
+        {"poke", hh2_pokeLua},
         {"nativeSearcher", hh2_searcher},
         {NULL, NULL}
     };
