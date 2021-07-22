@@ -3,6 +3,8 @@
 #include "filesys.h"
 #include "log.h"
 #include "state.h"
+#include "sound.h"
+#include "sprite.h"
 #include "version.h"
 
 #include <stdio.h>
@@ -23,6 +25,7 @@ static retro_audio_sample_batch_t audio_sample_batch_cb;
 static void* content;
 static hh2_Filesys filesys;
 static hh2_State state;
+static bool first_frame;
 
 // The logger function to hh2_setLogger
 static void logger(hh2_LogLevel const level, char const* const format, va_list ap) {
@@ -124,6 +127,7 @@ bool retro_load_game(struct retro_game_info const* const info) {
         return false;
     }
 
+    first_frame = true;
     return true;
 }
 
@@ -159,14 +163,40 @@ void* retro_get_memory_data(unsigned id) {
 }
 
 void retro_run() {
-    /*hh2_RGB565 const* const framebuffer = hh2_canvasPixel(hh2c_canvas, 0, 0);
-    size_t const pitch = hh2_canvasPitch(hh2c_canvas);
-    hh2c_video_refresh_cb(framebuffer, 256, 192, pitch);
+    hh2_RGB565 const* const framebuffer = hh2_canvasPixel(state.canvas, 0, 0);
+
+    unsigned const width = hh2_canvasWidth(state.canvas);
+    unsigned const height = hh2_canvasHeight(state.canvas);
+
+    if (!first_frame) {
+        hh2_unblitSprites(state.canvas);
+    }
+    else {
+        first_frame = false;
+
+        struct retro_system_av_info info;
+
+        info.geometry.base_width = width;
+        info.geometry.base_height = height;
+        info.geometry.max_width = width;
+        info.geometry.max_height = height;
+        info.geometry.aspect_ratio = 0.0f;
+        info.timing.fps = 60.0;
+        info.timing.sample_rate = 44100.0;
+
+        environment_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
+    }
+
+    // run game logic
+
+    hh2_blitSprites(state.canvas);
+    size_t const pitch = hh2_canvasPitch(state.canvas);
+
+    video_refresh_cb(framebuffer, width, height, pitch);
 
     size_t frames;
-    int16_t const* samples = hh2_soundMix(&frames);
-    hh2c_audio_sample_batch_cb(samples, frames);*/
-    video_refresh_cb(NULL, 0, 0, 0);
+    int16_t const* const samples = hh2_soundMix(&frames);
+    audio_sample_batch_cb(samples, frames);
 }
 
 void retro_set_controller_port_device(unsigned const port, unsigned const device) {
