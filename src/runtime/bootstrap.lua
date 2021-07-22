@@ -1,4 +1,10 @@
 return function(hh2rt)
+    -- Make the addition operator concatenate string
+    -- Note: if both strings are convertible to numbers, the metamethod won't be called and a number addition will be performed
+    getmetatable('').__add = function(str1, str2)
+        return str1 .. str2
+    end
+
     -- Augment hh2rt.log and replace print
     do
         local log = hh2rt.log
