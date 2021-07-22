@@ -121,6 +121,10 @@ static int hh2_compareSprites(void const* e1, void const* e2) {
 }
 
 void hh2_blitSprites(hh2_Canvas const canvas) {
+    if (hh2_spriteCount == 0) {
+        return;
+    }
+
     qsort(hh2_sprites, hh2_spriteCount, sizeof(*hh2_sprites), hh2_compareSprites);
 
     size_t i = 0;
@@ -159,6 +163,10 @@ void hh2_blitSprites(hh2_Canvas const canvas) {
 }
 
 void hh2_unblitSprites(hh2_Canvas const canvas) {
+    if (hh2_spriteCount == 0) {
+        return;
+    }
+
     size_t i = 0;
     hh2_Sprite sprite = hh2_sprites[0];
 
