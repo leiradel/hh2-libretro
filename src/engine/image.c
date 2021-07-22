@@ -81,7 +81,7 @@ static size_t hh2_rleRowDryRun(size_t* const pixels_used, hh2_PixelSource const 
         x = xx;
     }
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG, "row %d needs %zu words for RLE and changes %zu pixels", words, *pixels_used);
+    HH2_LOG(HH2_LOG_DEBUG, TAG "row %d needs %zu words for RLE and changes %zu pixels", words, *pixels_used);
     return words;
 }
 
