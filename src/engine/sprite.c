@@ -32,6 +32,7 @@ struct hh2_Sprite {
 static hh2_Sprite* hh2_sprites = NULL;
 static size_t hh2_spriteCount = 0;
 static size_t hh2_reservedSprites = 0;
+static size_t hh2_visibleSpriteCount = 0;
 
 hh2_Sprite hh2_createSprite(void) {
     hh2_Sprite sprite = (hh2_Sprite)malloc(sizeof(*sprite));
@@ -134,6 +135,8 @@ void hh2_blitSprites(hh2_Canvas const canvas) {
         while (i < hh2_spriteCount && (sprite->flags & HH2_SPRITE_FLAGS) == 0 && sprite->image != NULL);
     }
 
+    hh2_visibleSpriteCount = i;
+
     // Skip invisible sprites
     if (i < hh2_spriteCount && ((sprite->flags & HH2_SPRITE_FLAGS) == HH2_SPRITE_INVISIBLE || sprite->image == NULL)) {
         do {
@@ -162,14 +165,14 @@ void hh2_unblitSprites(hh2_Canvas const canvas) {
         return;
     }
 
-    size_t i = 0;
-    hh2_Sprite sprite = hh2_sprites[0];
+    size_t i = hh2_visibleSpriteCount;
+    hh2_Sprite sprite = hh2_sprites[i - 1];
 
-    if (i < hh2_spriteCount) {
+    if (i > 0) {
         do {
             hh2_unblit(sprite->image, canvas, sprite->x, sprite->y, sprite->bg);
-            sprite = hh2_sprites[++i];
+            sprite = hh2_sprites[--i - 1];
         }
-        while (i < hh2_spriteCount);
+        while (i > 0);
     }
 }
