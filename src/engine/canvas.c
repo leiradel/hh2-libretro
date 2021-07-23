@@ -17,12 +17,8 @@ struct hh2_Canvas {
 };
 
 hh2_Canvas hh2_createCanvas(unsigned const width, unsigned const height) {
-    HH2_LOG(HH2_LOG_INFO, TAG "creating %u x %u canvas", width, height);
-
     size_t const pitch = ((width + 3) & ~3) * sizeof(hh2_RGB565);
     size_t const size = pitch * height;
-
-    HH2_LOG(HH2_LOG_DEBUG, TAG "canvas pitch is %zu bytes, data is %zu bytes", pitch, size);
 
     hh2_Canvas const canvas = (hh2_Canvas)malloc(sizeof(*canvas) + size - sizeof(canvas->pixels[0]));
 
@@ -35,12 +31,10 @@ hh2_Canvas hh2_createCanvas(unsigned const width, unsigned const height) {
     canvas->height = height;
     canvas->pitch = pitch;
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG "created canvas %p", canvas);
     return canvas;
 }
 
 void hh2_destroyCanvas(hh2_Canvas const canvas) {
-    HH2_LOG(HH2_LOG_INFO, TAG "destroying canvas %p", canvas);
     free(canvas);
 }
 

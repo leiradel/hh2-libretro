@@ -133,8 +133,6 @@ static bool hh2_resample(
 }
 
 hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
-    HH2_LOG(HH2_LOG_INFO, TAG "creating PCM \"%s\" from filesys %p", path, filesys);
-
     hh2_File const file = hh2_openFile(filesys, path);
 
     if (file == NULL) {
@@ -201,7 +199,6 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
         free(samples);
     }
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG "created pcm %p", pcm);
     return pcm;
 }
 

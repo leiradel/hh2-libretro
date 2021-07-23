@@ -81,7 +81,6 @@ static size_t hh2_rleRowDryRun(size_t* const pixels_used, hh2_PixelSource const 
         x = xx;
     }
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG "row %d needs %zu words for RLE and changes %zu pixels", words, *pixels_used);
     return words;
 }
 
@@ -168,8 +167,6 @@ static hh2_RGB565 hh2_compose(hh2_RGB565 const src, hh2_RGB565 const dst, uint8_
 }
 
 hh2_Image hh2_createImage(hh2_PixelSource const source) {
-    HH2_LOG(HH2_LOG_INFO, TAG "creating image from pixel source %p", source);
-
     size_t total_words = 0;
     size_t total_pixels_used = 0;
 
@@ -182,11 +179,6 @@ hh2_Image hh2_createImage(hh2_PixelSource const source) {
         total_words += words;
         total_pixels_used += pixels_used;
     }
-
-    HH2_LOG(
-        HH2_LOG_DEBUG, TAG "image needs %zu bytes for RLE data, and changes %zu pixels when blit",
-        total_words * 2, total_pixels_used
-    );
 
     hh2_Image const image = (hh2_Image)malloc(sizeof(*image) + sizeof(image->rows[0]) * (height - 1) + total_words * 2);
 
@@ -207,12 +199,10 @@ hh2_Image hh2_createImage(hh2_PixelSource const source) {
         rle += words;
     }
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG "created image %p", image);
     return image;
 }
 
 void hh2_destroyImage(hh2_Image const image) {
-    HH2_LOG(HH2_LOG_INFO, TAG "destroying image %p", image);
     free(image);
 }
 

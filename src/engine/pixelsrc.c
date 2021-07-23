@@ -45,8 +45,6 @@ static void hh2_pngRead(png_structp const png, png_bytep const buffer, size_t co
 }
 
 static hh2_PixelSource hh2_readPng(hh2_File const file) {
-    HH2_LOG(HH2_LOG_INFO, TAG "reading pixel source from file %p", file);
-
     hh2_PixelSource source = NULL;
     png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, hh2_pngError, hh2_pngWarn);
 
@@ -137,7 +135,6 @@ static hh2_PixelSource hh2_readPng(hh2_File const file) {
     
     png_read_end(png, info);
     png_destroy_read_struct(&png, &info, NULL);
-    HH2_LOG(HH2_LOG_DEBUG, TAG "created pixel source %p with dimensions (%u, %u)", source, width, height);
     return source;
 }
 
@@ -208,7 +205,7 @@ static void hh2_jpegErr(j_common_ptr cinfo) {
     char buffer[JMSG_LENGTH_MAX];
 
     cinfo->err->format_message(cinfo, buffer);
-    HH2_LOG(HH2_LOG_ERROR, TAG "%s", buffer);
+    HH2_LOG(HH2_LOG_ERROR, TAG "error reading JPEG: %s", buffer);
 }
 
 static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
@@ -275,8 +272,6 @@ static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
 }
 
 hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const path) {
-    HH2_LOG(HH2_LOG_INFO, TAG "reading pixel source \"%s\" from filesys %p", path, filesys);
-
     hh2_File const file = hh2_openFile(filesys, path);
 
     if (file == NULL) {
@@ -295,12 +290,6 @@ hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const
 }
 
 hh2_PixelSource hh2_subPixelSource(hh2_PixelSource const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height) {
-    HH2_LOG(
-        HH2_LOG_INFO,
-        TAG "creating sub pixel source from %p at (%u, %u) with dimensions (%u, %u)",
-        parent, x0, y0, width, height
-    );
-
     if ((x0 + width) > parent->width) {
         return NULL;
     }
@@ -326,12 +315,10 @@ hh2_PixelSource hh2_subPixelSource(hh2_PixelSource const parent, unsigned const 
     source->abgr = parent->abgr + y0 * parent->pitch + x0;
     source->parent = parent;
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG "create sub pixel source %p", source);
     return source;
 }
 
 void hh2_destroyPixelSource(hh2_PixelSource const source) {
-    HH2_LOG(HH2_LOG_INFO, TAG "destroying pixel source %p", source);
     free(source);
 }
 

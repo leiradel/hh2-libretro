@@ -33,8 +33,6 @@ static size_t hh2_spriteCount = 0;
 static size_t hh2_reservedSprites = 0;
 
 hh2_Sprite hh2_createSprite(void) {
-    HH2_LOG(HH2_LOG_INFO, TAG "creating sprite");
-
     hh2_Sprite sprite = (hh2_Sprite)malloc(sizeof(*sprite));
 
     if (sprite == NULL) {
@@ -44,8 +42,6 @@ hh2_Sprite hh2_createSprite(void) {
 
     if (hh2_spriteCount == hh2_reservedSprites) {
         size_t const new_reserved = hh2_reservedSprites == 0 ? HH2_MIN_SPRITES : hh2_reservedSprites * 2;
-        HH2_LOG(HH2_LOG_DEBUG, TAG "sprite list full, growing from %zu to %zu", hh2_reservedSprites, new_reserved);
-
         hh2_Sprite* const new_entries = realloc(hh2_sprites, sizeof(hh2_Sprite) * new_reserved);
 
         if (new_entries == NULL) {
@@ -59,13 +55,10 @@ hh2_Sprite hh2_createSprite(void) {
     }
 
     hh2_sprites[hh2_spriteCount++] = sprite;
-
-    HH2_LOG(HH2_LOG_DEBUG, TAG "created sprite %p", sprite);
     return sprite;
 }
 
 void hh2_destroySprite(hh2_Sprite const sprite) {
-    HH2_LOG(HH2_LOG_INFO, TAG "freeing sprite %p", sprite);
     sprite->flags = HH2_SPRITE_DESTROY;
 }
 

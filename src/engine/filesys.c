@@ -186,12 +186,12 @@ static hh2_Entry* hh2_fileFind(hh2_Filesys filesys, char const* path) {
     hh2_Entry* found = bsearch(&key, filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), hh2_compareEntries);
 
     if (found == NULL) {
-        HH2_LOG(HH2_LOG_INFO, TAG "file system %p does not contain path \"%s\"", filesys, path);
+        HH2_LOG(HH2_LOG_INFO, TAG "could not find \"%s\" in file system %p", path, filesys);
     }
     else {
         HH2_LOG(
-            HH2_LOG_INFO, TAG "file system %p does contain path \"%s\", data=%p, size=%ld, hash=" HH2_PRI_DJB2HASH,
-            filesys, path, found->data, found->size, found->hash
+            HH2_LOG_INFO, TAG "found \"%s\" in file system %p, data=%p, size=%ld, hash=" HH2_PRI_DJB2HASH,
+            path, filesys, found->data, found->size, found->hash
         );
     }
 
@@ -295,8 +295,6 @@ long hh2_fileSize(hh2_Filesys filesys, char const* path) {
 }
 
 hh2_File hh2_openFile(hh2_Filesys filesys, char const* path) {
-    HH2_LOG(HH2_LOG_INFO, TAG "opening \"%s\" in file system %p", path, filesys);
-
     hh2_Entry const* const found = hh2_fileFind(filesys, path);
 
     if (found == NULL) {
@@ -314,13 +312,10 @@ hh2_File hh2_openFile(hh2_Filesys filesys, char const* path) {
     file->size = found->size;
     file->pos = 0;
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG "opened \"%s\" in file system %p as %p", path, filesys, file);
     return file;
 }
 
 int hh2_seek(hh2_File file, long offset, int whence) {
-    HH2_LOG(HH2_LOG_INFO, TAG "seeking file %p to %ld based off %d", file, offset, whence);
-
     long pos = 0;
 
     switch (whence) {
@@ -344,24 +339,19 @@ int hh2_seek(hh2_File file, long offset, int whence) {
 }
 
 long hh2_tell(hh2_File file) {
-    HH2_LOG(HH2_LOG_INFO, TAG "returning current position %ld for file %p", file->pos, file);
     return file->pos;
 }
 
 size_t hh2_read(hh2_File file, void* buffer, size_t size) {
-    HH2_LOG(HH2_LOG_INFO, TAG "reading from file %p to %p, %zu bytes", file, buffer, size);
-
     size_t const available = file->size - file->pos;
     size_t const toread = size < available ? size : available;
 
     memcpy(buffer, file->data + file->pos, toread);
     file->pos += toread;
 
-    HH2_LOG(HH2_LOG_DEBUG, TAG "read from file %p to %p, %zu bytes", file, buffer, toread);
     return toread;
 }
 
 void hh2_close(hh2_File file) {
-    HH2_LOG(HH2_LOG_INFO, TAG "closing file %p", file);
     free(file);
 }
