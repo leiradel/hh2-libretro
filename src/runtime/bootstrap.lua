@@ -85,10 +85,14 @@ return function(hh2rt)
     searchers[3] = nil
     searchers[4] = nil
 
-    -- Augment the module for the Pascal runtime
     do
+        -- Augment the module for the Pascal runtime
         local runtime = require 'runtime'
-        runtime(hh2rt)
+        runtime.extendHh2rt(hh2rt)
+
+        -- Create the TImage class directly in Lua
+        local extctrls = require 'extctrls'
+        runtime.extendExtctrls(extctrls, hh2rt)
     end
 
     -- Run boot.lua

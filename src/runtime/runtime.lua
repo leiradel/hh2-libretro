@@ -1,4 +1,4 @@
-return function(hh2rt)
+local function extendHh2rt(hh2rt)
     local meta, props = {}, {}
 
     local function classId(class)
@@ -96,7 +96,7 @@ return function(hh2rt)
     end
 
     hh2rt.newConstructor = function(class, constructor)
-        return newConstructor(class,constructor)
+        return newConstructor(class, constructor)
     end
 
     hh2rt.callInherited = function(name, instance, ...)
@@ -178,3 +178,49 @@ return function(hh2rt)
         return {}
     end
 end
+
+local function extendExtctrls(extctrls, hh2rt)
+    extctrls.timage = {
+        create = function()
+            local instance = {}
+            local info = {}
+
+            instance.picture = {
+                loadfromfile = function(path)
+                    hh2rt.debug('%q loading %q', tostring(instance), path)
+                    local pixelsrc = hh2rt.readPixelSource(path)
+                    local image = hh2rt.createImage(pixelsrc)
+                    info.sprite:setImage(image)
+                end
+            }
+
+            info.sprite = hh2rt.createSprite()
+            info.top = 0
+            info.left = 0
+
+            setmetatable(instance, {
+                __index = function(self, key)
+                    hh2rt.debug('%q reading %q', tostring(self), key)
+                    return info[key]
+                end,
+
+                __newindex = function(self, key, value)
+                    hh2rt.debug('%q setting %q to %q', tostring(self), key, tostring(value))
+
+                    info[key] = value
+
+                    if key == 'top' or key == 'left' then
+                        info.sprite:setPosition(info.left, info.top)
+                    end
+                end
+            })
+
+            return instance
+        end
+    }
+end
+
+return {
+    extendHh2rt = extendHh2rt,
+    extendExtctrls = extendExtctrls
+}

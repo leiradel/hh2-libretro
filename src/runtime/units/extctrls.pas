@@ -7,15 +7,6 @@ uses
 
 type
     TImage = class(TControl)
-    public
-        constructor Create; virtual;
-
-    public
-        Picture: TPicture;
-        Stretch: Boolean;
-        AutoSize: Boolean;
-        Center: Boolean;
-        Transparent: Boolean;
     end;
 
     TTimer = class(TObject)
@@ -40,11 +31,6 @@ type
     end;
 
 implementation
-
-constructor TImage.Create;
-begin
-    Picture := TPicture.Create();
-end;
 
 constructor TTimer.Create;
 begin
