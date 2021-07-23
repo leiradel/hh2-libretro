@@ -2,6 +2,7 @@
 #include "log.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #define TAG "SPT "
 
@@ -55,6 +56,7 @@ hh2_Sprite hh2_createSprite(void) {
     }
 
     hh2_sprites[hh2_spriteCount++] = sprite;
+    memset(sprite, 0, sizeof(*sprite));
     return sprite;
 }
 
