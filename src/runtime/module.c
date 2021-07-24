@@ -36,6 +36,36 @@ static int hh2_logLua(lua_State* const L) {
     return 0;
 }
 
+static int hh2_nowLua(lua_State* const L) {
+    hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
+    lua_pushinteger(L, state->now);
+    return 1;
+}
+
+static int hh2_decodeTimeUsLua(lua_State* const L) {
+    lua_Integer now = luaL_checkinteger(L, 1);
+
+    //lua_Integer const usecs = now % 1000;
+    now /= 1000;
+
+    lua_Integer const msecs = now % 1000;
+    now /= 1000;
+
+    lua_Integer const seconds = now % 60;
+    now /= 60;
+
+    lua_Integer const minutes = now % 60;
+    now /= 60;
+
+    lua_Integer const hours = now;
+
+    lua_pushinteger(L, hours);
+    lua_pushinteger(L, minutes);
+    lua_pushinteger(L, seconds);
+    lua_pushinteger(L, msecs);
+    return 4;
+}
+
 static int hh2_contentLoaderLua(lua_State* const L) {
     hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
     char const* const path = luaL_checkstring(L, 1);
@@ -309,6 +339,8 @@ static int hh2_createSpriteLua(lua_State* const L) {
 void hh2_pushModule(lua_State* const L, hh2_State* const state) {
     static luaL_Reg const functions[] = {
         {"log", hh2_logLua},
+        {"now", hh2_nowLua},
+        {"decodeTimeUs", hh2_decodeTimeUsLua},
         {"contentLoader", hh2_contentLoaderLua},
         {"bsDecoder", hh2_bsDecoderLua},
         {"poke", hh2_pokeLua},
