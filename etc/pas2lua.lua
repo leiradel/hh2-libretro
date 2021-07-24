@@ -777,6 +777,12 @@ local function generate(ast, searchPaths, macros, out)
             out(')\n')
         end
 
+        local function genDecodeTime(node)
+            out('%s, %s, %s, %s = hh2rt.decodeTimeUs(', node.hour, node.minute, node.second, node.msec)
+            genExpression(node.now)
+            out(')')
+        end
+
         local type = statement.type
 
         if type == 'compoundstmt' then
@@ -803,6 +809,8 @@ local function generate(ast, searchPaths, macros, out)
             genAsm(statement)
         elseif type == 'inherited' then
             genInherited(statement)
+        elseif type == 'decodetime' then
+            genDecodeTime(statement)
         elseif type == 'emptystmt' then
             -- nothing
         else

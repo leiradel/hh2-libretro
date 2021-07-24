@@ -26,7 +26,7 @@ local function tokenize(path, source)
             'of', 'record', 'implementation', 'begin', 'not',
             'if', 'then', 'else', 'for', 'to', 'downto', 'do', 'while', 'case', 'repeat', 'until', 'set', 'object', 'constructor',
             'destructor', 'private', 'protected', 'public', 'published', 'virtual', 'inherited', 'with',
-            'inc', 'dec'
+            'inc', 'dec', 'decodetime'
         },
 
         freeform = {{'asm', 'end;'}}
@@ -1387,6 +1387,35 @@ local function newParser(path, tokens)
             return access.const(list)
         end,
 
+        -- decodetime = 'decodetime' '(' expr ',' id ',' id ',' id ',' id ')'
+        parseDecodeTime = function(self)
+            self:match('decodetime')
+            self:match('(')
+            local now = self:parseExpression()
+            self:match(',')
+            local hour = self:lexeme()
+            self:match('<id>')
+            self:match(',')
+            local minute = self:lexeme()
+            self:match('<id>')
+            self:match(',')
+            local second = self:lexeme()
+            self:match('<id>')
+            self:match(',')
+            local msec = self:lexeme()
+            self:match('<id>')
+            self:match(')')
+
+            return access.const {
+                type = 'decodetime',
+                now = now,
+                hour = hour,
+                minute = minute,
+                second = second,
+                msec = msec
+            }
+        end,
+
         -- statement = compound_stmt | if_stmt | case_stmt | repeat_stmt | while_stmt | for_stmt | with_stmt
         --           | simple_statement | empty_stmt .
         parseStatement = function(self)
@@ -1430,6 +1459,8 @@ local function newParser(path, tokens)
 
                 self:match('<freeform>')
                 return stmt
+            elseif tk == 'decodetime' then
+                return self:parseDecodeTime()
             else
                 return access.const {
                     type = 'emptystmt',

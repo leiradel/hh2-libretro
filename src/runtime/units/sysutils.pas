@@ -9,7 +9,6 @@ function StrToInt(const S: String): Integer;
 function StrToIntDef(const S: String; Default: Integer): Integer;
 function IntToStr(Value: Integer): String;
 function Now: TDateTime;
-procedure DecodeTime(const DateTime: TDateTime; var Hour, Min, Sec, MSec: Word);
 procedure Beep;
 
 implementation
@@ -40,10 +39,9 @@ end;
 
 function Now: TDateTime;
 begin
-end;
-
-procedure DecodeTime(const DateTime: TDateTime; var Hour, Min, Sec, MSec: Word);
-begin
+    asm
+        return hh2rt.now()
+    end;
 end;
 
 procedure Beep;
