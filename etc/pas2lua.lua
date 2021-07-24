@@ -190,6 +190,53 @@ local function generate(ast, searchPaths, macros, out)
         end
     end
 
+    local function iterateDeclarations(declarations, callback)
+        for i = 1, #declarations do
+            local decl = declarations[i]
+
+            if decl.type == 'types' then
+                for i = 1, #decl.types do
+                    local type = decl.types[i]
+                    local subtype = type.subtype
+
+                    if subtype.type == 'enumerated' then
+                        callback('enumerated', type.id, subtype)
+                    elseif subtype.type == 'set' then
+                        callback('set', type.id, subtype)
+                    end
+                end
+            elseif decl.type == 'constants' then
+                for i = 1, #decl.constants do
+                    local const = decl.constants[i]
+                    callback('constant', const.id, const)
+                end
+            elseif decl.type == 'variables' then
+                for i = 1, #decl.variables do
+                    local variable = decl.variables[i]
+                    local subtype = variable.subtype
+
+                    for j = 1, #variable.ids do
+                        callback('variable', variable.ids[j], subtype)
+                    end
+
+                end
+            elseif decl.type == 'procdecl' then
+                callback('procdecl', decl.heading.qid.id, decl)
+            elseif decl.type == 'prochead' or decl.type == 'funchead' or decl.type == 'consthead' or decl.type == 'desthead' then
+                callback(decl.type, decl.qid.id, decl)
+            elseif decl.type == 'field' then
+                local subtype = decl.subtype
+
+                for i = 1, #decl.ids do
+                    callback('field', decl.ids[i], subtype)
+                end
+            else
+                dump(decl)
+                error(string.format('do not know how to push declaration %s', decl.type))
+            end
+        end
+    end
+
     local function pushDeclarations(declarations, declareFmt, accessFmt)
         local ids = push(declareFmt, accessFmt)
 
@@ -248,57 +295,7 @@ local function generate(ast, searchPaths, macros, out)
         end
     end
 
-    local genExpression
-
-    local function genDesignator(designator)
-        if designator.previous then
-            genDesignator(designator.previous)
-        end
-
-        if designator.type == 'variable' then
-            local acc = accessId(designator.qid.id[1])
-
-            if not acc then
-                fatal(designator.line, 'unknown identifier: %q', designator.qid.id[1])
-            end
-
-            out('%s', acc)
-
-            for i = 2, #designator.qid.id do
-                out('.%s', designator.qid.id[i]:lower())
-            end
-        elseif designator.type == 'accfield' then
-            out('.%s', designator.id:lower())
-        elseif designator.type == 'accindex' then
-            out('[')
-            genExpression(designator.indices[1])
-
-            for i = 2, #designator.indices do
-                out('][')
-                genExpression(designator.indices[i])
-            end
-
-            out(']')
-        elseif designator.type == 'call' then
-            out('(')
-
-            if designator.arguments then
-                local comma = ''
-
-                for i = 1, #designator.arguments do
-                    out(comma)
-                    comma = ', '
-
-                    genExpression(designator.arguments[i])
-                end
-            end
-
-            out(')')
-        else
-            dump(designator)
-            error(string.format('do not know how to generate designator %s', designator.type))
-        end
-    end
+    local genExpression, genDesignator
 
     local function genLiteral(literal)
         assert(type(literal) == 'userdata')
@@ -347,6 +344,121 @@ local function generate(ast, searchPaths, macros, out)
         else
             dump(literal)
             error(string.format('do not know how to generate literal %s', literal.subtype))
+        end
+    end
+
+    local function genDefaultValue(value)
+        while value.type == 'typeid' do
+            value = findId(value.id)
+        end
+
+        if value.type == 'enumerated' then
+            out('%s', accessId(value.elements[1].id))
+        elseif value.type == 'class' then
+            out('nil')
+            --out('%s.create()', accessId(subtype.id))
+        elseif value.type == 'proctype' then
+            out('function() end')
+        elseif value.type == 'ordident' or value.type == 'realtype' then
+            out('%s', defaultValues[value.subtype])
+        --elseif value.type == 'subrange' then
+        --    out('0')
+        elseif value.type == 'set' then
+            out('hh2rt.instantiateSet(%s)', accessId(value.id))
+        elseif value.type == 'stringtype' then
+            out('""')
+        else
+            dump(value)
+            error(string.format('do not know how to initialize field %s', value.type))
+        end
+    end
+
+    local function genConstValue(value)
+        local function genValue(v)
+            if type(v) ~= 'userdata' then
+                out('%s', tostring(v))
+            elseif #v ~= 0 then
+                out('{')
+                genValue(v[1])
+
+                for i = 2, #v do
+                    out(', ')
+                    genValue(v[i])
+                end
+
+                out('}')
+            elseif v.type == 'arrayconst' then
+                out('\n')
+                out:indent()
+                genValue(v.value)
+                out:unindent()
+            else
+                genLiteral(v)
+            end
+        end
+
+        if value.type == 'arrayconst' then
+            genValue(value.value)
+        else
+            genLiteral(value)
+        end
+    end
+
+    genDesignator = function(designator)
+        if designator.type == 'variable' then
+            local acc = accessId(designator.qid.id[1])
+
+            if not acc then
+                fatal(designator.line, 'unknown identifier: %q', designator.qid.id[1])
+            end
+
+            out('%s', acc)
+
+            for i = 2, #designator.qid.id do
+                out('.%s', designator.qid.id[i]:lower())
+            end
+
+            if not designator.next then
+                local t = findId(designator.qid.id[1])
+
+                if type(t) == 'userdata' and t.type == 'funchead' then
+                    out('()')
+                end
+            end
+        elseif designator.type == 'accfield' then
+            out('.%s', designator.id:lower())
+        elseif designator.type == 'accindex' then
+            out('[')
+            genExpression(designator.indices[1])
+
+            for i = 2, #designator.indices do
+                out('][')
+                genExpression(designator.indices[i])
+            end
+
+            out(']')
+        elseif designator.type == 'call' then
+            out('(')
+
+            if designator.arguments then
+                local comma = ''
+
+                for i = 1, #designator.arguments do
+                    out(comma)
+                    comma = ', '
+
+                    genExpression(designator.arguments[i])
+                end
+            end
+
+            out(')')
+        else
+            dump(designator)
+            error(string.format('do not know how to generate designator %s', designator.type))
+        end
+
+        if designator.next then
+            genDesignator(designator.next)
         end
     end
 
@@ -618,8 +730,25 @@ local function generate(ast, searchPaths, macros, out)
         local function genProcedureCall(call)
             genDesignator(call.designator)
 
-            if call.designator.type ~= 'call' then
-                out('()')
+            local designator = call.designator
+
+            while designator.next do
+                designator = designator.next
+            end
+
+            if designator.type ~= 'call' then
+                out('(')
+
+                local comma = ''
+
+                for i = 1, #call.arguments do
+                    out('%s', comma)
+                    comma = ', '
+
+                    genExpression(call.arguments[i])
+                end
+
+                out(')')
             end
 
             out('\n')
@@ -769,8 +898,8 @@ local function generate(ast, searchPaths, macros, out)
 
             out('hh2rt.callInherited(%q, self', node.designator.qid.id[1]:lower())
 
-            if node.designator.previous then
-                dump(node.designator.previous)
+            if node.designator.next then
+                dump(node.designator.next)
                 (nil)()
             end
 
@@ -821,7 +950,24 @@ local function generate(ast, searchPaths, macros, out)
 
     local function genBlock(block)
         local saved = scope
-        pushDeclarations(block.declarations, 'local %s', '%s')
+        local ids = push('local %s', '%s')
+
+        iterateDeclarations(block.declarations, function(what, id, type)
+            if what == 'variable' then
+                ids[id:lower()] = type
+                out('%s = ', declareId(id))
+                genDefaultValue(type)
+                out('\n')
+            elseif what == 'constant' then
+                ids[id:lower()] = type
+                out('%s = ', declareId(id))
+                genConstValue(type.value)
+                out('\n')
+            else
+                dump(type)
+                error(string.format('do not know how to generate declarition %s', what))
+            end
+        end)
 
         if block.declarations then
             out('\n')
@@ -930,11 +1076,10 @@ local function generate(ast, searchPaths, macros, out)
         out('end')
 
         if heading.type == 'consthead' then
-            out(')\n')
-        else
-            out('\n')
+            out(')')
         end
 
+        out('\n')
         scope = saved
     end
 

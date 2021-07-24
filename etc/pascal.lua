@@ -613,11 +613,12 @@ local function newParser(path, tokens)
         parseDesignator = function(self)
             local line = self:line()
 
-            local designator = access.const {
-                type = 'variable',
-                line = line,
-                qid = self:parseQualId(),
-                previous = false
+            local designators = {
+                {
+                    type = 'variable',
+                    line = line,
+                    qid = self:parseQualId()
+                }
             }
 
             local tk = self:token()
@@ -628,11 +629,10 @@ local function newParser(path, tokens)
                     local line = self:line()
                     self:match('.')
 
-                    designator = access.const {
+                    designators[#designators + 1] = {
                         type = 'accfield',
                         line = line,
-                        id = self:lexeme(),
-                        previous = designator
+                        id = self:lexeme()
                     }
 
                     self:match('<id>')
@@ -640,11 +640,10 @@ local function newParser(path, tokens)
                     local line = self:line()
                     self:match('[')
 
-                    designator = access.const {
+                    designators[#designators + 1] = {
                         type = 'accindex',
                         line = line,
-                        indices = self:parseExprList(),
-                        previous = designator
+                        indices = self:parseExprList()
                     }
 
                     self:match(']')
@@ -658,11 +657,10 @@ local function newParser(path, tokens)
                         arguments = self:parseExprList()
                     end
 
-                    designator = access.const {
+                    designators[#designators + 1] = {
                         type = 'call',
                         line = line,
-                        arguments = arguments,
-                        previous = designator
+                        arguments = arguments
                     }
 
                     self:match(')')
@@ -671,7 +669,17 @@ local function newParser(path, tokens)
                 tk = self:token()
             end
 
-            return designator
+            designators[#designators].next = false
+
+            for i = #designators, 1, -1 do
+                designators[i] = access.const(designators[i])
+
+                if i > 1 then
+                    designators[i - 1].next = designators[i]
+                end
+            end
+
+            return designators[1]
         end,
 
         -- expr_list = expression { ',' expression } .
