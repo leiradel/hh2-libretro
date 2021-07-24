@@ -26,6 +26,7 @@ static void* content;
 static hh2_Filesys filesys;
 static hh2_State state;
 static bool first_frame;
+static bool error;
 
 // The logger function to hh2_setLogger
 static void logger(hh2_LogLevel const level, char const* const format, va_list ap) {
@@ -128,6 +129,7 @@ bool retro_load_game(struct retro_game_info const* const info) {
     }
 
     first_frame = true;
+    error = false;
     return true;
 }
 
@@ -187,7 +189,7 @@ void retro_run() {
         environment_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
     }
 
-    // run game logic
+    error = error || !hh2_tick(&state);
 
     hh2_blitSprites(state.canvas);
     size_t const pitch = hh2_canvasPitch(state.canvas);
