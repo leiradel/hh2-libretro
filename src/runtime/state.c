@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 static int hh2_traceback(lua_State* const L) {
     luaL_traceback(L, L, lua_tostring(L, -1), 1);
@@ -56,7 +57,7 @@ static int hh2_bootstrap(lua_State* const L) {
     hh2_pushModule(L, state);
     lua_call(L, 1, 1);
 
-    // Get a reference to whatever the main function returns
+    // Get a reference to the tick function returned by the bootstrap main
     state->reference = luaL_ref(L, LUA_REGISTRYINDEX);
     return 0;
 }
@@ -72,7 +73,7 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
 
     state->reference = LUA_NOREF;
     state->filesys = filesys;
-    state->next_tick = 0;
+    state->now = 0;
     state->canvas = NULL;
     state->zoom_x0 = 0;
     state->zoom_y0 = 0;
@@ -113,6 +114,15 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
     }
 
     return true;
+}
+
+bool hh2_tick(hh2_State* const state) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    state->now = tv.tv_sec * UINT64_C(1000000) + tv.tv_usec;
+
+    lua_rawgeti(state->L, LUA_REGISTRYINDEX, state->reference);
+    return hh2_pcall(state->L, 0, 0);
 }
 
 void hh2_destroyState(hh2_State* const state) {
