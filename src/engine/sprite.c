@@ -79,6 +79,10 @@ void hh2_setLayer(hh2_Sprite const sprite, unsigned const layer) {
 }
 
 bool hh2_setImage(hh2_Sprite const sprite, hh2_Image const image) {
+    if (image == sprite->image) {
+        return true;
+    }
+
     hh2_RGB565* bg = NULL;
 
     if (image != NULL) {
