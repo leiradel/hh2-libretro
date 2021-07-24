@@ -7,6 +7,15 @@ uses
 
 type
     TImage = class(TControl)
+    public
+        constructor Create; virtual;
+
+    public
+        Stretch: Boolean;
+        AutoSize: Boolean;
+        Center: Boolean;
+        Transparent: Boolean;
+        Picture: TPicture;
     end;
 
     TTimer = class(TObject)
@@ -15,6 +24,7 @@ type
 
     public
         Interval: Longint;
+        Expiration: Longint;
         Enabled: Boolean;
         OnTimer: TNotifyEvent;
     end;
@@ -32,8 +42,20 @@ type
 
 implementation
 
+constructor TImage.Create;
+begin
+    Picture := TPicture.Create();
+
+    asm
+        hh2rt.images[self] = true
+    end;
+end;
+
 constructor TTimer.Create;
 begin
+    asm
+        hh2rt.timers[self] = true
+    end;
 end;
 
 end.

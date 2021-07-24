@@ -64,9 +64,6 @@ type
     TPicture = class(TObject)
     public
         procedure LoadFromFile(const Filename: String);
-
-    public
-        Bitmap: TBitmap;
     end;
 
     TFont = class(TObject)
@@ -149,6 +146,10 @@ end;
 
 procedure TPicture.LoadFromFile(const Filename: String);
 begin
+    asm
+        local pixelsrc = hh2rt.readPixelSource(filename)
+        self.__image = hh2rt.createImage(pixelsrc)
+    end;
 end;
 
 end.

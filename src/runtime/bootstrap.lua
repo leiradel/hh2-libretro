@@ -88,11 +88,10 @@ return function(hh2rt)
     do
         -- Augment the module for the Pascal runtime
         local runtime = require 'runtime'
-        runtime.extendHh2rt(hh2rt)
+        runtime(hh2rt)
 
-        -- Create the TImage class directly in Lua
-        local extctrls = require 'extctrls'
-        runtime.extendExtctrls(extctrls, hh2rt)
+        hh2rt.images = {}
+        hh2rt.timers = {}
     end
 
     -- Run boot.lua
