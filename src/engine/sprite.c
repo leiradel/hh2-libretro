@@ -56,8 +56,12 @@ hh2_Sprite hh2_createSprite(void) {
         hh2_sprites = new_entries;
     }
 
+    sprite->image = NULL;
+    sprite->bg = NULL;
+    sprite->x = sprite->y = 0;
+    sprite->flags = HH2_SPRITE_INVISIBLE;
+
     hh2_sprites[hh2_spriteCount++] = sprite;
-    memset(sprite, 0, sizeof(*sprite));
     return sprite;
 }
 
