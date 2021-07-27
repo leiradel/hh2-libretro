@@ -863,7 +863,7 @@ local function generate(ast, searchPaths, macros, out)
 
             id = table.concat(id, '.')
 
-            out('%s = %s + ', id, id)
+            out('%s = %s - ', id, id)
 
             if dec.amount then
                 genExpression(dec.amount)
