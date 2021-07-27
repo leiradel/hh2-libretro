@@ -78,12 +78,13 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
     state->zoom_y0 = 0;
     state->zoom_width = 0;
     state->zoom_height = 0;
+    state->is_zoomed = false;
     state->sprite_layer = 1023; // decreasing
 
     memset(state->button_state, 0, sizeof(state->button_state));
-    state->pointer_x = 0;
-    state->pointer_y = 0;
-    state->pointer_pressed = false;
+    state->mouse_x = 0;
+    state->mouse_y = 0;
+    state->mouse_pressed = false;
 
     static luaL_Reg const lualibs[] = {
         {"_G", luaopen_base},
@@ -113,6 +114,16 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
     }
 
     return true;
+}
+
+void hh2_setButton(hh2_State* state, unsigned port, hh2_Button button, bool pressed) {
+    state->button_state[port][button] = pressed;
+}
+
+void hh2_setMouse(hh2_State* state, int x, int y, bool pressed) {
+    state->mouse_x = x;
+    state->mouse_y = y;
+    state->mouse_pressed = pressed;
 }
 
 bool hh2_tick(hh2_State* const state, int64_t const now_us) {

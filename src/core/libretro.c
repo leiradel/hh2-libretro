@@ -23,6 +23,7 @@ static retro_video_refresh_t video_refresh_cb;
 static retro_audio_sample_batch_t audio_sample_batch_cb;
 
 // hh2 globals
+static bool use_bitmasks;
 static void* content;
 static hh2_Filesys filesys;
 static hh2_State state;
@@ -81,6 +82,8 @@ void retro_init() {
         HH2_LOG(HH2_LOG_ERROR, "Could not get the Libretro perf interface");
         get_time_usec_cb = NULL;
     }
+
+    use_bitmasks = environment_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL);
 }
 
 void retro_set_input_poll(retro_input_poll_t const cb) {
@@ -181,6 +184,25 @@ void* retro_get_memory_data(unsigned id) {
 }
 
 void retro_run() {
+    static struct {unsigned libretro; hh2_Button hh2;} const button_map[] = {
+        {RETRO_DEVICE_ID_JOYPAD_UP, HH2_BUTTON_UP},
+        {RETRO_DEVICE_ID_JOYPAD_DOWN, HH2_BUTTON_DOWN},
+        {RETRO_DEVICE_ID_JOYPAD_LEFT, HH2_BUTTON_LEFT},
+        {RETRO_DEVICE_ID_JOYPAD_RIGHT, HH2_BUTTON_RIGHT},
+        {RETRO_DEVICE_ID_JOYPAD_A, HH2_BUTTON_A},
+        {RETRO_DEVICE_ID_JOYPAD_B, HH2_BUTTON_B},
+        {RETRO_DEVICE_ID_JOYPAD_X, HH2_BUTTON_X},
+        {RETRO_DEVICE_ID_JOYPAD_Y, HH2_BUTTON_Y},
+        {RETRO_DEVICE_ID_JOYPAD_L, HH2_BUTTON_L1},
+        {RETRO_DEVICE_ID_JOYPAD_R, HH2_BUTTON_R1},
+        {RETRO_DEVICE_ID_JOYPAD_L2, HH2_BUTTON_L2},
+        {RETRO_DEVICE_ID_JOYPAD_R2, HH2_BUTTON_R2},
+        {RETRO_DEVICE_ID_JOYPAD_L3, HH2_BUTTON_L3},
+        {RETRO_DEVICE_ID_JOYPAD_R3, HH2_BUTTON_R3},
+        {RETRO_DEVICE_ID_JOYPAD_SELECT, HH2_BUTTON_SELECT},
+        {RETRO_DEVICE_ID_JOYPAD_START, HH2_BUTTON_START}
+    };
+
     hh2_RGB565 const* const framebuffer = hh2_canvasPixel(state.canvas, 0, 0);
 
     unsigned const width = hh2_canvasWidth(state.canvas);
@@ -204,6 +226,43 @@ void retro_run() {
 
         environment_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
     }
+
+    uint16_t input1 = 0, input2 = 0;
+
+    if (use_bitmasks) {
+        uint16_t const ret1 = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+        uint16_t const ret2 = input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+
+        for (size_t i = 0; i < sizeof(button_map) / sizeof(button_map[0]); i++) {
+            uint16_t const bit = 1 << button_map[i].libretro;
+            input1 |= ret1 & bit;
+            input2 |= ret2 & bit;
+        }
+    }
+    else {
+        for (size_t i = 0; i < sizeof(button_map) / sizeof(button_map[0]); i++) {
+            uint16_t const bit = 1 << button_map[i].libretro;
+
+            if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, button_map[i].libretro)) {
+                input1 |= bit;
+            }
+
+            if (input_state_cb(1, RETRO_DEVICE_JOYPAD, 0, button_map[i].libretro)) {
+                input2 |= bit;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(button_map) / sizeof(button_map[0]); i++) {
+        uint16_t const bit = 1 << button_map[i].libretro;
+        hh2_setButton(&state, 0, button_map[i].hh2, (input1 & bit) != 0);
+        hh2_setButton(&state, 1, button_map[i].hh2, (input2 & bit) != 0);
+    }
+
+    int16_t const mouse_x = input_state_cb(2, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X);
+    int16_t const mouse_y = input_state_cb(2, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y);
+    bool const mouse_pressed = input_state_cb(2, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED) != 0;
+    hh2_setMouse(&state, mouse_x, mouse_y, mouse_pressed);
 
     error = error || !hh2_tick(&state, get_time_usec_cb());
 

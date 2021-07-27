@@ -133,6 +133,52 @@ static int hh2_pokeLua(lua_State* const L) {
     return 0;
 }
 
+static int hh2_getInputLua(lua_State* const L) {
+    static char const* const button_names[] = {
+        "up", "down", "left", "right", "a",  "b",  "x",     "y",
+        "l1", "r1",   "l2",   "r2",    "l3", "r3", "start", "select"
+    };
+
+    hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
+
+    if (lua_type(L, 1) == LUA_TTABLE) {
+        lua_pushvalue( L, 1 );
+    }
+    else {
+        lua_createtable(L, 0, 37);
+    }
+
+    for (unsigned port = 0; port < 2; port++) {
+        for (size_t i = 0; i < sizeof(state->button_state[0]) / sizeof(state->button_state[0][0] ); i++) {
+            char name[32];
+            snprintf(name, sizeof(name), "%s%s", button_names[i], port == 0 ? "" : "/2");
+
+            lua_pushboolean(L, state->button_state[port][i]);
+            lua_setfield(L, -2, name);
+        }
+    }
+
+    if (state->is_zoomed) {
+        lua_pushinteger(L, state->zoom_x0 + (state->mouse_x + 32767) * state->zoom_width / 65534);
+        lua_setfield(L, -2, "mouse_x");
+
+        lua_pushinteger(L, state->zoom_y0 + (state->mouse_y + 32767) * state->zoom_height / 65534);
+        lua_setfield(L, -2, "mouse_y");
+    }
+    else {
+        lua_pushinteger(L, (state->mouse_x + 32767) * hh2_canvasWidth(state->canvas) / 65534);
+        lua_setfield(L, -2, "mouse_x");
+        
+        lua_pushinteger(L, (state->mouse_y + 32767) * hh2_canvasHeight(state->canvas) / 65534);
+        lua_setfield(L, -2, "mouse_y");
+    }
+
+    lua_pushboolean(L, state->mouse_pressed);
+    lua_setfield(L, -2, "mouse_pressed");
+
+    return 1;
+}
+
 static int hh2_pixelSourceWidthLua(lua_State* const L) {
     hh2_PixelSource const pixelsrc = *(hh2_PixelSource*)luaL_checkudata(L, 1, HH2_PIXELSOURCE_MT);
     lua_pushinteger(L, hh2_pixelSourceWidth(pixelsrc));
@@ -351,6 +397,7 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {"bsDecoder", hh2_bsDecoderLua},
         {"poke", hh2_pokeLua},
         {"nativeSearcher", hh2_searcher},
+        {"getInput", hh2_getInputLua},
         {"readPixelSource", hh2_readPixelSourceLua},
         {"createCanvas", hh2_createCanvasLua},
         {"createImage", hh2_createImageLua},

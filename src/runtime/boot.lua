@@ -14,6 +14,9 @@ return function()
     hh2rt.createCanvas(background:width(), background:height())
     image:stamp(0, 0)
 
+    local unit1 = require 'unit1'
+    local input, previous = {}, {}
+
     -- Return the tick function
     return function()
         local now, _ = hh2rt.now()
@@ -21,5 +24,21 @@ return function()
         for timer in pairs(hh2rt.timers) do
             timer['#tick'](now)
         end
+
+        input = hh2rt.getInput()
+
+        if input.left and not previous.left then
+            unit1.form1.btn_left_top.onmousedown()
+        elseif not input.left and previous.left then
+            unit1.form1.btn_left_top.onmouseup()
+        end
+
+        if input.start and not previous.start then
+            unit1.form1.btn_game_a_top.onmousedown()
+        elseif not input.start and previous.start then
+            unit1.form1.btn_game_a_top.onmouseup()
+        end
+
+        input, previous = previous, input
     end
 end

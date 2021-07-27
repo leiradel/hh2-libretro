@@ -61,16 +61,21 @@ typedef struct {
 
     hh2_Canvas canvas;
     unsigned zoom_x0, zoom_y0, zoom_width, zoom_height;
+    bool is_zoomed;
     uint16_t sprite_layer;
 
     bool button_state[2][HH2_NUM_BUTTONS];
-    int pointer_x, pointer_y;
-    bool pointer_pressed;
+    int mouse_x, mouse_y;
+    bool mouse_pressed;
 }
 hh2_State;
 
 bool hh2_initState(hh2_State* state, hh2_Filesys filesys);
+
+void hh2_setButton(hh2_State* state, unsigned port, hh2_Button button, bool pressed);
+void hh2_setMouse(hh2_State* state, int x, int y, bool pressed);
 bool hh2_tick(hh2_State* state, int64_t now_us);
+
 void hh2_destroyState(hh2_State* state);
 
 #endif // HH2_STATE_H__
