@@ -16,20 +16,10 @@ return function()
 
     -- Return the tick function
     return function()
-        local now = hh2rt.now()
-        hh2rt.debug('now is %d', now)
+        local now, _ = hh2rt.now()
 
         for timer in pairs(hh2rt.timers) do
-            hh2rt.debug('%s %s %s %s', timer.enabled, timer.ontimer, timer.interval, timer.expiration)
-            if timer.enabled and timer.ontimer and timer.interval ~= 0 and now >= timer.expiration then
-                timer.ontimer()
-            end
-        end
-
-        for image in pairs(hh2rt.images) do
-            image.sprite:setImage(image.picture.image)
-            image.sprite:setPosition(image.left, image.top)
-            image.sprite:setVisibility(iamge.visible)
+            timer['#tick'](now)
         end
     end
 end
