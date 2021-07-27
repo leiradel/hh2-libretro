@@ -129,7 +129,33 @@ static int hh2_bsDecoderLua(lua_State* const L) {
 }
 
 static int hh2_pokeLua(lua_State* const L) {
-    HH2_LOG(HH2_LOG_WARN, "poke not implemented");
+    hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
+    lua_Integer const address = luaL_checkinteger(L, 1);
+
+    if (address < 0 || address >= sizeof(state->sram.sram) / sizeof(state->sram.sram[0])) {
+        return luaL_error(L, "address out of bounds: %I", address);
+    }
+
+    uint32_t const value = luaL_checkinteger(L, 2);
+
+    union {
+        uint16_t u16;
+        uint8_t u8[2];
+    }
+    endian;
+
+    endian.u16 = 1;
+
+    if (endian.u8[0]) {
+        state->sram.sram[address] = value;
+    }
+    else {
+        state->sram.sram[address] = ((value >> 24) & 0x000000ff)
+                                  | ((value >>  8) & 0x0000ff00)
+                                  | ((value <<  8) & 0x00ff0000)
+                                  | ((value << 24) & 0xff000000);
+    }
+
     return 0;
 }
 
@@ -390,13 +416,13 @@ static int hh2_createSpriteLua(lua_State* const L) {
 
 void hh2_pushModule(lua_State* const L, hh2_State* const state) {
     static luaL_Reg const functions[] = {
+        {"nativeSearcher", hh2_searcher},
         {"log", hh2_logLua},
         {"now", hh2_nowLua},
         {"decodeTimeUs", hh2_decodeTimeUsLua},
         {"contentLoader", hh2_contentLoaderLua},
         {"bsDecoder", hh2_bsDecoderLua},
         {"poke", hh2_pokeLua},
-        {"nativeSearcher", hh2_searcher},
         {"getInput", hh2_getInputLua},
         {"readPixelSource", hh2_readPixelSourceLua},
         {"createCanvas", hh2_createCanvasLua},
