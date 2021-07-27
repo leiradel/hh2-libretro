@@ -57,7 +57,7 @@ typedef struct {
 
     hh2_Filesys filesys;
 
-    uint64_t now;
+    int64_t now_us;
 
     hh2_Canvas canvas;
     unsigned zoom_x0, zoom_y0, zoom_width, zoom_height;
@@ -70,7 +70,7 @@ typedef struct {
 hh2_State;
 
 bool hh2_initState(hh2_State* state, hh2_Filesys filesys);
-bool hh2_tick(hh2_State* state);
+bool hh2_tick(hh2_State* state, int64_t now_us);
 void hh2_destroyState(hh2_State* state);
 
 #endif // HH2_STATE_H__

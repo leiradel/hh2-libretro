@@ -16,6 +16,7 @@
 // Libretro callbacks
 static retro_environment_t environment_cb;
 static retro_log_printf_t log_printf_cb;
+static retro_perf_get_time_usec_t get_time_usec_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
 static retro_video_refresh_t video_refresh_cb;
@@ -70,6 +71,16 @@ unsigned retro_api_version() {
 
 void retro_init() {
     hh2_logVersions();
+
+    struct retro_perf_callback perf;
+
+    if (environment_cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf)) {
+        get_time_usec_cb = perf.get_time_usec;
+    }
+    else {
+        HH2_LOG(HH2_LOG_ERROR, "Could not get the Libretro perf interface");
+        get_time_usec_cb = NULL;
+    }
 }
 
 void retro_set_input_poll(retro_input_poll_t const cb) {
@@ -93,6 +104,11 @@ void retro_set_audio_sample_batch(retro_audio_sample_batch_t const cb) {
 }
 
 bool retro_load_game(struct retro_game_info const* const info) {
+    if (get_time_usec_cb == NULL) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "get_time_usec_cb is NULL");
+        return false;
+    }
+
     if (info == NULL) {
         HH2_LOG(HH2_LOG_ERROR, TAG "retro_game_info is NULL");
         return false;
@@ -189,7 +205,7 @@ void retro_run() {
         environment_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
     }
 
-    error = error || !hh2_tick(&state);
+    error = error || !hh2_tick(&state, get_time_usec_cb());
 
     hh2_blitSprites(state.canvas);
     size_t const pitch = hh2_canvasPitch(state.canvas);

@@ -9,7 +9,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <sys/time.h>
 
 static int hh2_traceback(lua_State* const L) {
     luaL_traceback(L, L, lua_tostring(L, -1), 1);
@@ -73,7 +72,7 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
 
     state->reference = LUA_NOREF;
     state->filesys = filesys;
-    state->now = 0;
+    state->now_us = 0;
     state->canvas = NULL;
     state->zoom_x0 = 0;
     state->zoom_y0 = 0;
@@ -116,10 +115,8 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
     return true;
 }
 
-bool hh2_tick(hh2_State* const state) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    state->now = tv.tv_sec * UINT64_C(1000000) + tv.tv_usec;
+bool hh2_tick(hh2_State* const state, int64_t const now_us) {
+    state->now_us = now_us;
 
     lua_rawgeti(state->L, LUA_REGISTRYINDEX, state->reference);
     return hh2_pcall(state->L, 0, 0);
