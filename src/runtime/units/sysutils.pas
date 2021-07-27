@@ -40,7 +40,8 @@ end;
 function Now: TDateTime;
 begin
     asm
-        return hh2rt.now()
+        local _, clock = hh2rt.now()
+        return clock
     end;
 end;
 

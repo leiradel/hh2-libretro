@@ -43,7 +43,6 @@ type
 
     TCanvas = class(TObject)
     public
-        constructor Create;
         procedure Rectangle(X1, Y1, X2, Y2: Integer);
 
     public
@@ -128,12 +127,6 @@ const
 
 implementation
 
-constructor TCanvas.Create;
-begin
-    asm
-    end;
-end;
-
 procedure TCanvas.Rectangle(X1, Y1, X2, Y2: Integer);
 begin
 end;
@@ -141,14 +134,6 @@ end;
 constructor TBitmap.Create;
 begin
     asm
-    end;
-end;
-
-procedure TPicture.LoadFromFile(const Filename: String);
-begin
-    asm
-        local pixelsrc = hh2rt.readPixelSource(filename)
-        self.__image = hh2rt.createImage(pixelsrc)
     end;
 end;
 

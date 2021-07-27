@@ -86,11 +86,14 @@ return function(hh2rt)
     searchers[4] = nil
 
     do
-        -- Augment the module for the Pascal runtime
+        -- Augment the module for the Pascal runtime, as well as some units
         local runtime = require 'runtime'
-        runtime(hh2rt)
+        runtime.augmentHh2(hh2rt)
 
-        hh2rt.images = {}
+        local graphics = require 'graphics'
+        local extctrls = require 'extctrls'
+        runtime.augmentUnits(hh2rt, graphics, extctrls)
+
         hh2rt.timers = {}
     end
 

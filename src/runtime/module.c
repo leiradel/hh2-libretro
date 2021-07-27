@@ -10,9 +10,13 @@
 #include "image.h"
 #include "sprite.h"
 
-#include <stdlib.h>
-
 #include <lauxlib.h>
+
+#include <stdlib.h>
+#include <sys/time.h>
+#include <time.h>
+#include <string.h>
+#include <errno.h>
 
 #define HH2_PIXELSOURCE_MT "hh2_PixelSource"
 #define HH2_IMAGE_MT "hh2_Image"
@@ -38,26 +42,35 @@ static int hh2_logLua(lua_State* const L) {
 
 static int hh2_nowLua(lua_State* const L) {
     hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
-    lua_pushinteger(L, state->now);
-    return 1;
+    lua_pushinteger(L, state->now_us);
+
+    time_t const timep = time(NULL);
+    
+    if (timep == (time_t)-1) {
+        return luaL_error(L, "error getting the current time: %s", strerror(errno));
+    }
+
+    struct tm* const tm = localtime(&timep);
+
+    if (tm == NULL) {
+        return luaL_error(L, "error getting the local time: %s", strerror(errno));
+    }
+
+    lua_pushinteger(L, tm->tm_hour * 3600 + tm->tm_min * 60 + tm->tm_sec);
+    return 2;
 }
 
 static int hh2_decodeTimeUsLua(lua_State* const L) {
     lua_Integer now = luaL_checkinteger(L, 1);
 
-    //lua_Integer const usecs = now % 1000;
-    now /= 1000;
-
-    lua_Integer const msecs = now % 1000;
-    now /= 1000;
-
+    lua_Integer const msecs = 0;
     lua_Integer const seconds = now % 60;
     now /= 60;
 
     lua_Integer const minutes = now % 60;
     now /= 60;
 
-    lua_Integer const hours = now;
+    lua_Integer const hours = now % 24;
 
     lua_pushinteger(L, hours);
     lua_pushinteger(L, minutes);
@@ -258,7 +271,7 @@ static int hh2_setPositionLua(lua_State* const L) {
 
 static int hh2_setImageLua(lua_State* const L) {
     hh2_SpriteUd* const ud = (hh2_SpriteUd*)luaL_checkudata(L, 1, HH2_SPRITE_MT);
-    hh2_Image const image = *(hh2_Image*)luaL_checkudata(L, 2, HH2_IMAGE_MT);
+    hh2_Image const image = lua_isnoneornil(L, 2) ? NULL : *(hh2_Image*)luaL_checkudata(L, 2, HH2_IMAGE_MT);
 
     if (ud->image_ref != LUA_NOREF) {
         luaL_unref(L, LUA_REGISTRYINDEX, ud->image_ref);
