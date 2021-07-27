@@ -146,6 +146,7 @@ return function(hh2rt)
                     for j = min, max do
                         array[j] = {}
                         init(array[j], dimensions, default, value[k], i + 1)
+                        k = k + 1
                     end
                 else
                     for j = min, max do
