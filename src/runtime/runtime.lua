@@ -246,11 +246,13 @@ local function augmentUnits(hh2rt, graphics, extctrls)
     extctrls.timage = {
         create = function()
             local instance = {}
+            local sprite = hh2rt.createSprite()
+            sprite:setVisibility(true)
 
             local props = {
                 left = 0,
                 top = 0,
-                visible = false,
+                visible = true,
                 picture = graphics.tpicture.create(),
 
                 width = 0,
@@ -259,7 +261,7 @@ local function augmentUnits(hh2rt, graphics, extctrls)
                 center = true,
                 anchors = 0,
 
-                ['#sprite'] = hh2rt.createSprite()
+                ['#sprite'] = sprite
             }
 
             meta[instance] = props
