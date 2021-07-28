@@ -354,8 +354,11 @@ static int hh2_setImageLua(lua_State* const L) {
         return luaL_error(L, "could not set image for sprite");
     }
 
-    lua_pushvalue(L, 2);
-    ud->image_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    if (image != NULL) {
+        lua_pushvalue(L, 2);
+        ud->image_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+
     return 0;
 }
 
