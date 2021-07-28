@@ -18,4 +18,8 @@ void hh2_unblit(hh2_Image image, hh2_Canvas canvas, int x0, int y0, hh2_RGB565 c
 
 void hh2_stamp(hh2_Image image, hh2_Canvas canvas, int x0, int y0);
 
+#ifdef HH2_DEBUG
+char const* hh2_getImagePath(hh2_Image image);
+#endif
+
 #endif // HH2_IMAGE_H__

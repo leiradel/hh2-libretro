@@ -21,4 +21,8 @@ unsigned hh2_pixelSourceWidth(hh2_PixelSource source);
 unsigned hh2_pixelSourceHeight(hh2_PixelSource source);
 hh2_ARGB8888 hh2_getPixel(hh2_PixelSource, unsigned x, unsigned y);
 
+#ifdef HH2_DEBUG
+    char const* hh2_getPixelSourcePath(hh2_PixelSource source);
+#endif
+
 #endif // HH2_PIXELSRC_H__

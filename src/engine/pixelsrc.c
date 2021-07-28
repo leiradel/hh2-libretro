@@ -17,6 +17,11 @@ struct hh2_PixelSource {
     unsigned height;
     size_t pitch;
     hh2_PixelSource parent;
+
+#ifdef HH2_DEBUG
+    char const* path;
+#endif
+
     hh2_ARGB8888* abgr;
     hh2_ARGB8888 data[1];
 };
@@ -286,6 +291,18 @@ hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const
 
     hh2_PixelSource const source = is_png ? hh2_readPng(file) : hh2_readJpeg(file);
     hh2_close(file);
+
+#ifdef HH2_DEBUG
+    if (source != NULL) {
+        char* const path_dup = (char*)malloc(path_len + 1);
+        source->path = path_dup;
+
+        if (path_dup != NULL) {
+            memcpy(path_dup, path, path_len + 1);
+        }
+    }
+#endif
+
     return source;
 }
 
@@ -315,10 +332,18 @@ hh2_PixelSource hh2_subPixelSource(hh2_PixelSource const parent, unsigned const 
     source->abgr = parent->abgr + y0 * parent->pitch + x0;
     source->parent = parent;
 
+#ifdef HH2_DEBUG
+    source->path = NULL;
+#endif
+
     return source;
 }
 
 void hh2_destroyPixelSource(hh2_PixelSource const source) {
+#ifdef HH2_DEBUG
+    free((void*)source->path);
+#endif
+
     free(source);
 }
 
@@ -337,3 +362,9 @@ hh2_ARGB8888 hh2_getPixel(hh2_PixelSource const source, unsigned const x, unsign
 
     return 0;
 }
+
+#ifdef HH2_DEBUG
+char const* hh2_getPixelSourcePath(hh2_PixelSource source) {
+    return source->path;
+}
+#endif

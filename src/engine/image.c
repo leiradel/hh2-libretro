@@ -23,6 +23,10 @@ struct hh2_Image {
     unsigned height;
     size_t pixels_used;
 
+#ifdef HH2_DEBUG
+    char const* path;
+#endif
+
     hh2_Rle const* rows[1];
 };
 
@@ -199,10 +203,27 @@ hh2_Image hh2_createImage(hh2_PixelSource const source) {
         rle += words;
     }
 
+#ifdef HH2_DEBUG
+    {
+        char const* const path = hh2_getPixelSourcePath(source);
+        size_t const path_len = strlen(path);
+        char* const path_dup = (char*)malloc(path_len + 1);
+        image->path = path_dup;
+
+        if (path_dup != NULL) {
+            memcpy(path_dup, path, path_len + 1);
+        }
+    }
+#endif
+
     return image;
 }
 
 void hh2_destroyImage(hh2_Image const image) {
+#ifdef HH2_DEBUG
+    free((void*)image->path);
+#endif
+
     free(image);
 }
 
@@ -483,3 +504,9 @@ void hh2_stamp(hh2_Image const image, hh2_Canvas const canvas, int const x0, int
         pixel = (hh2_RGB565*)((uint8_t*)saved_pixel + pitch);
     }
 }
+
+#ifdef HH2_DEBUG
+char const* hh2_getImagePath(hh2_Image image) {
+    return image->path;
+}
+#endif
