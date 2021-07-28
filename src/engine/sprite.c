@@ -169,18 +169,16 @@ void hh2_blitSprites(hh2_Canvas const canvas) {
 }
 
 void hh2_unblitSprites(hh2_Canvas const canvas) {
-    if (hh2_spriteCount == 0) {
+    if (hh2_visibleSpriteCount == 0) {
         return;
     }
 
     size_t i = hh2_visibleSpriteCount;
     hh2_Sprite sprite = hh2_sprites[i - 1];
 
-    if (i > 0) {
-        do {
-            hh2_unblit(sprite->image, canvas, sprite->x, sprite->y, sprite->bg);
-            sprite = hh2_sprites[--i - 1];
-        }
-        while (i > 0);
+    do {
+        hh2_unblit(sprite->image, canvas, sprite->x, sprite->y, sprite->bg);
+        sprite = hh2_sprites[--i - 1];
     }
+    while (i > 0);
 }
