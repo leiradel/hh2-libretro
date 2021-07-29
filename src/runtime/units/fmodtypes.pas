@@ -58,8 +58,7 @@ const
 
 type
     TFSoundOutputTypes = longint;
-    FSoundSample = longint;
-    PFSoundSample = longint;
+    PFSoundSample = TObject;
     PFSOUND_SAMPLE = PFSoundSample;
 
 implementation

@@ -27,7 +27,9 @@ end;
 
 function FSOUND_Sample_Load(Index: Integer; NameOrData: String; InputMode: Cardinal; Offset: Integer; Length: Integer): PFSOUND_SAMPLE;
 begin
-    FSOUND_Sample_Load := 0;
+    asm
+        return hh2rt.readPcm(nameordata:gsub('\\', '/'))
+    end;
 end;
 
 procedure FSOUND_Sample_Free(Sound: PFSOUND_SAMPLE);
@@ -40,10 +42,24 @@ end;
 
 procedure FSOUND_PlaySound(Channel: Integer; Sound: PFSOUND_SAMPLE);
 begin
+    asm
+        if channel ~= fmodtypes.fsound_free then
+            error('FSOUND_PlaySound can only play a sound in a free channel')
+        end
+
+        sound:play();
+    end;
 end;
 
 procedure FSOUND_StopSound(Channel: Integer);
 begin
+    asm
+        if channel ~= fmodtypes.fsound_all then
+            error('FSOUND_StopSound can only stop playing all sounds')
+        end
+
+        hh2rt.stopPcms()
+    end;
 end;
 
 end.
