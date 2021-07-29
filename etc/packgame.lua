@@ -194,8 +194,8 @@ local function genSettings(settings)
 
     out('local unit1 = require \'unit1\'\n\n')
     out('return {\n')
-    out('    core_version = "0.0.1",\n')
-    out('    unmapped_buttons = {\n')
+    out('    coreVersion = "0.0.1",\n')
+    out('    unmappedMuttons = {\n')
 
     for i = 1, settings.buttons.count do
         local button = settings.buttons[i]
@@ -204,8 +204,8 @@ local function genSettings(settings)
 
     out('    },\n')
 
-    out('    mapping_profile = %q,\n', settings.controls.profile)
-    out('    mapped_buttons = {\n')
+    out('    mappingProfile = %q,\n', settings.controls.profile)
+    out('    mappedButtons = {\n')
 
     for control, name in pairs(settings.controls) do
         if control ~= 'profile' then
@@ -220,7 +220,7 @@ local function genSettings(settings)
         out('    zoom = {%d, %d, %d, %d},\n', ga.x0, ga.y0, ga.x1, ga.y1)
     end
 
-    out('    background_image = %q\n', (settings.skindir .. '/'):gsub('\\', '/'):gsub('//', '/') .. settings.backgroundimage)
+    out('    backgroundImage = %q\n', (settings.skindir .. '/'):gsub('\\', '/'):gsub('//', '/') .. settings.backgroundimage)
     out('}\n')
 end
 

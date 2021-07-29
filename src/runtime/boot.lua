@@ -8,7 +8,7 @@ return function()
     -- Set the background image for the game
     local config = require 'hh2config'
 
-    local background = hh2rt.readPixelSource(config.background_image)
+    local background = hh2rt.readPixelSource(config.backgroundImage)
     local image = hh2rt.createImage(background)
 
     hh2rt.createCanvas(background:width(), background:height())
