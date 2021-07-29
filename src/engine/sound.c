@@ -226,6 +226,13 @@ bool hh2_playPcm(hh2_Pcm pcm) {
     return false;
 }
 
+void hh2_stopPcms(void) {
+    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+        hh2_voices[i].pcm = NULL;
+        hh2_voices[i].position = 0;
+    }
+}
+
 static void hh2_mixPcm(int32_t* const buffer, hh2_Voice* const voice) {
     size_t const buffer_free = HH2_SAMPLES_PER_VIDEO_FRAME;
     hh2_Pcm const pcm = voice->pcm;
