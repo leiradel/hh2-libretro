@@ -9,6 +9,7 @@
 #include "canvas.h"
 #include "image.h"
 #include "sprite.h"
+#include "sound.h"
 
 #include <lauxlib.h>
 
@@ -21,6 +22,7 @@
 #define HH2_PIXELSOURCE_MT "hh2_PixelSource"
 #define HH2_IMAGE_MT "hh2_Image"
 #define HH2_SPRITE_MT "hh2_Sprite"
+#define HH2_PCM_MT "hh2_Pcm"
 
 static int hh2_logLua(lua_State* const L) {
     char const* const level = luaL_checkstring(L, 1);
@@ -417,6 +419,54 @@ static int hh2_createSpriteLua(lua_State* const L) {
     return 1;
 }
 
+static int hh2_playLua(lua_State* const L) {
+    hh2_Pcm const pcm = *(hh2_Pcm*)luaL_checkudata(L, 1, HH2_PCM_MT);
+    
+    if (!hh2_playPcm(pcm)) {
+        return luaL_error(L, "not enough voices to play PCM");
+    }
+
+    return 0;
+}
+
+static int hh2_gcPcmLua(lua_State* const L) {
+    hh2_Pcm const pcm = *(hh2_Pcm*)lua_touserdata(L, 1);
+    hh2_destroyPcm(pcm);
+    return 0;
+}
+
+static int hh2_readPcmLua(lua_State* const L) {
+    hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
+    char const* const path = luaL_checkstring(L, 1);
+
+    hh2_Pcm const pcm = hh2_readPcm(state->filesys, path);
+
+    if (pcm == NULL) {
+        return luaL_error(L, "error reading PCM from \"%s\"", path);
+    }
+
+    hh2_Pcm* const self = lua_newuserdata(L, sizeof(hh2_Pcm));
+    *self = pcm;
+
+    if (luaL_newmetatable(L, HH2_PCM_MT) != 0) {
+        static luaL_Reg const methods[] = {
+            {"play", hh2_playLua},
+            {NULL, NULL}
+        };
+
+        lua_createtable(L, 0, sizeof(methods) / sizeof(methods[0]) - 1);
+        lua_pushlightuserdata(L, state);
+        luaL_setfuncs(L, methods, 1);
+        lua_setfield(L, -2, "__index");
+
+        lua_pushcfunction(L, hh2_gcPcmLua);
+        lua_setfield(L, -2, "__gc");
+    }
+
+    lua_setmetatable(L, -2);
+    return 1;
+}
+
 void hh2_pushModule(lua_State* const L, hh2_State* const state) {
     static luaL_Reg const functions[] = {
         {"nativeSearcher", hh2_searcher},
@@ -431,6 +481,7 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {"createCanvas", hh2_createCanvasLua},
         {"createImage", hh2_createImageLua},
         {"createSprite", hh2_createSpriteLua},
+        {"readPcm", hh2_readPcmLua},
         {NULL, NULL}
     };
 
