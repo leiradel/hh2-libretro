@@ -1,4 +1,5 @@
 local hh2rt = require 'hh2rt'
+local controls = require 'controls'
 
 return function()
     -- Initialize the game
@@ -31,10 +32,12 @@ return function()
 
         input = hh2rt.getInput()
 
-        if input.left and not previous.left then
-            unit1.form1.btn_left_top.onmousedown()
-        elseif not input.left and previous.left then
-            unit1.form1.btn_left_top.onmouseup()
+        for name, button in pairs(config.mappedButtons) do
+            if input[name] and not previous[name] then
+                button.onmousedown(nil, controls.mbleft, nil, input.mouseX, input.mouseY)
+            elseif not input[name] and previous[name] then
+                button.onmouseup(nil, controls.mbleft, nil, input.mouseX, input.mouseY)
+            end
         end
 
         if input.start and not previous.start then
