@@ -84,7 +84,7 @@ end;
 function Random(const ARange: Integer): Integer;
 begin
     asm
-        return math.random(0, arange - 1)
+        return math.random(arange) - 1
     end;
 end;
 
