@@ -14,6 +14,10 @@ return function()
     hh2rt.createCanvas(background:width(), background:height())
     image:stamp(0, 0)
 
+    if config.mappingProfile == 'leftright' then
+        config.mappedButtons.a = config.mappedButtons.right
+    end
+
     local unit1 = require 'unit1'
     local input, previous = {}, {}
 
