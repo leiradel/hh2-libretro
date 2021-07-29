@@ -10,6 +10,7 @@
 #define HH2_SAMPLE_RATE 44100
 #define HH2_SAMPLES_PER_VIDEO_FRAME (HH2_SAMPLE_RATE / 60)
 #define HH2_MAX_CHANNELS 8
+#define HH2_MAX_VOICES 16
 
 #define TAG "SND "
 
@@ -32,7 +33,7 @@ typedef struct {
 hh2_Voice;
 
 static int16_t hh2_audioFrames[HH2_SAMPLES_PER_VIDEO_FRAME * 2];
-static hh2_Voice hh2_voice = {NULL, 0};
+static hh2_Voice hh2_voices[HH2_MAX_VOICES] = {{NULL, 0}};
 
 static size_t hh2_wavRead(void* const userdata, void* const buffer, size_t const count) {
     hh2_File const file = (hh2_File)userdata;
@@ -203,17 +204,26 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
 }
 
 void hh2_destroyPcm(hh2_Pcm pcm) {
-    if (hh2_voice.pcm == pcm) {
-        hh2_voice.pcm = NULL;
-        hh2_voice.position = 0;
+    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+        if (hh2_voices[i].pcm == pcm) {
+            hh2_voices[i].pcm = NULL;
+            hh2_voices[i].position = 0;
+        }
     }
 
     free(pcm);
 }
 
-void hh2_playPcm(hh2_Pcm pcm) {
-    hh2_voice.pcm = pcm;
-    hh2_voice.position = 0;
+bool hh2_playPcm(hh2_Pcm pcm) {
+    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+        if (hh2_voices[i].pcm == NULL) {
+            hh2_voices[i].pcm = pcm;
+            hh2_voices[i].position = 0;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static void hh2_mixPcm(int32_t* const buffer, hh2_Voice* const voice) {
@@ -245,8 +255,10 @@ int16_t const* hh2_soundMix(size_t* const frames) {
 
     memset(buffer, 0, sizeof(buffer));
 
-    if (hh2_voice.pcm) {
-        hh2_mixPcm(buffer, &hh2_voice);
+    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+        if (hh2_voices[i].pcm) {
+            hh2_mixPcm(buffer, hh2_voices + i);
+        }
     }
 
     for (size_t i = 0, j = 0; i < HH2_SAMPLES_PER_VIDEO_FRAME; i++, j += 2) {
