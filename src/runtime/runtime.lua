@@ -206,7 +206,7 @@ local function augmentUnits(hh2rt, graphics, extctrls)
             meta[instance] = props
 
             props.loadfromfile = function(path)
-                local pixelsrc = hh2rt.readPixelSource(path)
+                local pixelsrc = hh2rt.readPixelSource(path:gsub('\\', '/'))
                 props['#image'] = hh2rt.createImage(pixelsrc)
 
                 if props['#onload'] then
