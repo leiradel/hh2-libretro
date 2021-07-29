@@ -130,7 +130,9 @@ bool hh2_tick(hh2_State* const state, int64_t const now_us) {
     state->now_us = now_us;
 
     lua_rawgeti(state->L, LUA_REGISTRYINDEX, state->reference);
-    return hh2_pcall(state->L, 0, 0);
+    bool const ok = hh2_pcall(state->L, 0, 0);
+    lua_gc(state->L, LUA_GCSTEP, 0);
+    return ok;
 }
 
 void hh2_destroyState(hh2_State* const state) {
