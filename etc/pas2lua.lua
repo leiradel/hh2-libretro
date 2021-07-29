@@ -295,7 +295,7 @@ local function generate(ast, searchPaths, macros, out)
         end
     end
 
-    local genExpression, genDesignator
+    local genExpression, genDesignator, genArray
 
     local function genLiteral(literal)
         assert(type(literal) == 'userdata')
@@ -961,7 +961,13 @@ local function generate(ast, searchPaths, macros, out)
             elseif what == 'constant' then
                 ids[id:lower()] = type
                 out('%s = ', declareId(id))
-                genConstValue(type.value)
+
+                if type.subtype.type == 'arraytype' then
+                    genArray(type.subtype, type.value)
+                else
+                    genConstValue(type.value)
+                end
+
                 out('\n')
             else
                 dump(type)
@@ -1083,6 +1089,76 @@ local function generate(ast, searchPaths, macros, out)
         scope = saved
     end
 
+    local function genRecord(record)
+        out('hh2rt.newRecord()')
+    end
+
+
+    genArray = function(array, value)
+        local subtype = array.subtype
+
+        out('hh2rt.newArray({')
+        local comma = ''
+
+        for i = 1, #array.limits do
+            local limit = array.limits[i]
+            out('%s{', comma)
+            comma = ', '
+
+            genExpression(limit.min)
+            out(', ')
+            genExpression(limit.max)
+            out('}')
+        end
+
+        out('}, ')
+
+        if subtype.type == 'typeid' then
+            out('nil --[[%s]]', subtype.id)
+        elseif subtype.type == 'ordident' or subtype.type == 'realtype' then
+            out('%s --[[%s]]', defaultValues[subtype.subtype], subtype.subtype)
+        elseif subtype.type == 'rectype' then
+            genRecord(subtype)
+        elseif subtype.type == 'stringtype' then
+            out('"" --[[%s]]', subtype.type)
+        else
+            dump(array)
+            dump(subtype)
+            error(string.format('do not know how to generate variable %s', subtype.type))
+        end
+
+        if value then
+            local function genValue(v)
+                if type(v) ~= 'userdata' then
+                    out('%s', tostring(v))
+                elseif #v ~= 0 then
+                    out('{')
+                    genValue(v[1])
+
+                    for i = 2, #v do
+                        out(', ')
+                        genValue(v[i])
+                    end
+
+                    out('}')
+                elseif v.type == 'arrayconst' then
+                    out('\n')
+                    out:indent()
+                    genValue(v.value)
+                    out:unindent()
+                else
+                    genLiteral(v)
+                end
+            end
+
+            out(', ')
+            genValue(value.value)
+            out(')\n\n')
+        else
+            out(', nil)')
+        end
+    end
+
     genDeclarations = function(declarations, interface)
         local function genClass(class, id)
             if class.super then
@@ -1146,10 +1222,6 @@ local function generate(ast, searchPaths, macros, out)
             out('end)\n\n')
         end
 
-        local function genRecord(record)
-            out('hh2rt.newRecord()')
-        end
-
         local function genEnumElements(enum)
             local last
 
@@ -1194,71 +1266,6 @@ local function generate(ast, searchPaths, macros, out)
             end
 
             out(')')
-        end
-
-        local function genArray(array, value)
-            local subtype = array.subtype
-
-            out('hh2rt.newArray({')
-            local comma = ''
-
-            for i = 1, #array.limits do
-                local limit = array.limits[i]
-                out('%s{', comma)
-                comma = ', '
-
-                genExpression(limit.min)
-                out(', ')
-                genExpression(limit.max)
-                out('}')
-            end
-
-            out('}, ')
-
-            if subtype.type == 'typeid' then
-                out('nil --[[%s]]', subtype.id)
-            elseif subtype.type == 'ordident' then
-                out('%s --[[%s]]', defaultValues[subtype.subtype], subtype.subtype)
-            elseif subtype.type == 'rectype' then
-                genRecord(subtype)
-            elseif subtype.type == 'stringtype' then
-                out('"" --[[%s]]', subtype.type)
-            else
-                dump(array)
-                dump(subtype)
-                error(string.format('do not know how to generate variable %s', subtype.type))
-            end
-
-            if value then
-                local function genValue(v)
-                    if type(v) ~= 'userdata' then
-                        out('%s', tostring(v))
-                    elseif #v ~= 0 then
-                        out('{')
-                        genValue(v[1])
-
-                        for i = 2, #v do
-                            out(', ')
-                            genValue(v[i])
-                        end
-
-                        out('}')
-                    elseif v.type == 'arrayconst' then
-                        out('\n')
-                        out:indent()
-                        genValue(v.value)
-                        out:unindent()
-                    else
-                        genLiteral(v)
-                    end
-                end
-
-                out(', ')
-                genValue(value.value)
-                out(')\n\n')
-            else
-                out(', nil)')
-            end
         end
 
         for i = 1, #declarations do
