@@ -186,21 +186,21 @@ static int hh2_getInputLua(lua_State* const L) {
 
     if (state->is_zoomed) {
         lua_pushinteger(L, state->zoom_x0 + (state->mouse_x + 32767) * state->zoom_width / 65534);
-        lua_setfield(L, -2, "mouse_x");
+        lua_setfield(L, -2, "mouseX");
 
         lua_pushinteger(L, state->zoom_y0 + (state->mouse_y + 32767) * state->zoom_height / 65534);
-        lua_setfield(L, -2, "mouse_y");
+        lua_setfield(L, -2, "mouseY");
     }
     else {
         lua_pushinteger(L, (state->mouse_x + 32767) * hh2_canvasWidth(state->canvas) / 65534);
-        lua_setfield(L, -2, "mouse_x");
+        lua_setfield(L, -2, "mouseX");
         
         lua_pushinteger(L, (state->mouse_y + 32767) * hh2_canvasHeight(state->canvas) / 65534);
-        lua_setfield(L, -2, "mouse_y");
+        lua_setfield(L, -2, "mouseY");
     }
 
     lua_pushboolean(L, state->mouse_pressed);
-    lua_setfield(L, -2, "mouse_pressed");
+    lua_setfield(L, -2, "mousePressed");
 
     return 1;
 }
