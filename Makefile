@@ -27,8 +27,8 @@ INCLUDES = \
 LIBS = -lm
 
 LUA ?= \
-	LUA_PATH="/home/leiradel/Develop/luamods/access/src/?.lua;/home/leiradel/Develop/luamods/inifile/src/?.lua;etc/?.lua" \
-	LUA_CPATH="/home/leiradel/Develop/luamods/proxyud/src/?.so;/home/leiradel/Develop/luamods/ddlt/?.so" \
+	LUA_PATH="$$LUAMODS/access/src/?.lua;$$LUAMODS/inifile/src/?.lua;etc/?.lua" \
+	LUA_CPATH="$$LUAMODS/proxyud/src/?.so;$$LUAMODS/ddlt/?.so" \
 	lua
 
 ifeq ($(DEBUG), 1)
