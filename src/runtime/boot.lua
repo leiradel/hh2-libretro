@@ -41,9 +41,9 @@ return function()
         end
 
         if input.start and not previous.start then
-            unit1.form1.btn_game_a_top.onmousedown()
+            unit1.form1.btn_game_a_top.onmousedown(nil, controls.mbleft, nil, input.mouseX, input.mouseY)
         elseif not input.start and previous.start then
-            unit1.form1.btn_game_a_top.onmouseup()
+            unit1.form1.btn_game_a_top.onmouseup(nil, controls.mbleft, nil, input.mouseX, input.mouseY)
         end
 
         input, previous = previous, input
