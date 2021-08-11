@@ -26,6 +26,27 @@ struct hh2_PixelSource {
     hh2_ARGB8888 data[1];
 };
 
+typedef struct {
+    hh2_File file;
+    void const* data;
+    size_t size;
+    size_t pos;
+}
+hh2_Reader;
+
+static size_t hh2_readFromReader(hh2_Reader* const reader, void* buffer, size_t size) {
+    if (reader->file != NULL) {
+        return hh2_read(reader->file, buffer, size);
+    }
+    else {
+        size_t const available = reader->size - reader->pos;
+        size_t const to_read = size < available ? size : available;
+        memcpy(buffer, (uint8_t const*)reader->data + reader->pos, to_read);
+        return to_read;
+    }
+}
+
+
 // ########  ##    ##  ######   
 // ##     ## ###   ## ##    ##  
 // ##     ## ####  ## ##        
@@ -45,11 +66,11 @@ static void hh2_pngWarn(png_structp const png, png_const_charp const error) {
 }
 
 static void hh2_pngRead(png_structp const png, png_bytep const buffer, size_t const count) {
-    hh2_File const file = png_get_io_ptr(png);
-    hh2_read(file, buffer, count);
+    hh2_Reader* const reader = png_get_io_ptr(png);
+    hh2_readFromReader(reader, buffer, count);
 }
 
-static hh2_PixelSource hh2_readPng(hh2_File const file) {
+static hh2_PixelSource hh2_readPng(hh2_Reader* const reader) {
     hh2_PixelSource source = NULL;
     png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, hh2_pngError, hh2_pngWarn);
 
@@ -73,7 +94,7 @@ static hh2_PixelSource hh2_readPng(hh2_File const file) {
         return NULL;
     }
 
-    png_set_read_fn(png, file, hh2_pngRead);
+    png_set_read_fn(png, reader, hh2_pngRead);
     png_read_info(png, info);
 
     png_uint_32 width, height;
@@ -153,7 +174,7 @@ static hh2_PixelSource hh2_readPng(hh2_File const file) {
 
 typedef struct {
     struct jpeg_source_mgr pub;
-    hh2_File file;
+    hh2_Reader* reader;
     uint8_t buffer[4096];
 }
 hh2_jpegReader;
@@ -168,7 +189,7 @@ static void hh2_jpegDummy(j_decompress_ptr cinfo) {}
 
 static boolean hh2_jpegFill(j_decompress_ptr cinfo) {
     hh2_jpegReader* reader = (hh2_jpegReader*)cinfo->src;
-    reader->pub.bytes_in_buffer = hh2_read(reader->file, reader->buffer, sizeof(reader->buffer));
+    reader->pub.bytes_in_buffer = hh2_readFromReader(reader->reader, reader->buffer, sizeof(reader->buffer));
     reader->pub.next_input_byte = reader->buffer;
     return TRUE;
 }
@@ -183,7 +204,7 @@ static void hh2_jpegSkip(j_decompress_ptr cinfo, long num_bytes) {
     }
 
     while (num_bytes >= sizeof(reader->buffer)) {
-        size_t const num_read = hh2_read(reader->file, reader->buffer, sizeof(reader->buffer));
+        size_t const num_read = hh2_readFromReader(reader->reader, reader->buffer, sizeof(reader->buffer));
         reader->pub.bytes_in_buffer = num_read;
 
         if (num_read == 0) {
@@ -213,7 +234,7 @@ static void hh2_jpegErr(j_common_ptr cinfo) {
     HH2_LOG(HH2_LOG_ERROR, TAG "error reading JPEG: %s", buffer);
 }
 
-static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
+static hh2_PixelSource hh2_readJpeg(hh2_Reader* const the_reader) {
     struct jpeg_decompress_struct cinfo;
     hh2_jpegError error;
 
@@ -227,7 +248,7 @@ static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
     }
 
     hh2_jpegReader reader;
-    reader.file = file;
+    reader.reader = the_reader;
     reader.pub.init_source = hh2_jpegDummy;
     reader.pub.fill_input_buffer = hh2_jpegFill;
     reader.pub.skip_input_data = hh2_jpegSkip;
@@ -276,6 +297,27 @@ static hh2_PixelSource hh2_readJpeg(hh2_File const file) {
     return source;
 }
 
+static bool hh2_isPng(void const* const header) {
+    static uint8_t const png_header[8] = {0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+    return memcmp(header, png_header, 8) == 0;
+}
+
+hh2_PixelSource hh2_initPixelSource(void const* data, size_t size) {
+
+    hh2_Reader reader;
+    reader.file = NULL;
+    reader.data = data;
+    reader.size = size;
+    reader.pos = 0;
+
+    if (hh2_isPng(data)) {
+        return hh2_readPng(&reader);
+    }
+    else {
+        return hh2_readJpeg(&reader);
+    }
+}
+
 hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const path) {
     hh2_File const file = hh2_openFile(filesys, path);
 
@@ -284,16 +326,28 @@ hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const
         return NULL;
     }
 
-    size_t const path_len = strlen(path);
+    uint8_t header[8];
 
-    bool const is_png = path_len >= 3 &&
-        path[path_len - 4] == '.' && path[path_len - 3] == 'p' && path[path_len - 2] == 'n' && path[path_len - 1] == 'g';
+    if (hh2_read(file, header, 8) != 8) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "error reading from image \"%s\"", path);
+        hh2_close(file);
+        return NULL;
+    }
 
-    hh2_PixelSource const source = is_png ? hh2_readPng(file) : hh2_readJpeg(file);
+    hh2_seek(file, 0, SEEK_SET);
+
+    hh2_Reader reader;
+    reader.file = file;
+    reader.data = NULL;
+    reader.size = 0;
+    reader.pos = 0;
+
+    hh2_PixelSource const source = hh2_isPng(header) ? hh2_readPng(&reader) : hh2_readJpeg(&reader);
     hh2_close(file);
 
 #ifdef HH2_DEBUG
     if (source != NULL) {
+        size_t const path_len = strlen(path);
         char* const path_dup = (char*)malloc(path_len + 1);
         source->path = path_dup;
 
