@@ -90,9 +90,14 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
+src/runtime/boxybold.png.h: src/runtime/boxy_bold_font.png
+	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+
+src/runtime/module.o: src/runtime/boxybold.png.h
 
 src/runtime/searcher.o: $(LUA_HEADERS)
+
+src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
 test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
@@ -104,7 +109,7 @@ test/test.hh2: FORCE
 
 clean: FORCE
 	rm -f hh2_libretro.so $(HH2_OBJS)
-	rm -f src/generated/version.h src/runtime/bootstrap.lua.h $(LUA_HEADERS)
+	rm -f src/generated/version.h src/runtime/bootstrap.lua.h src/runtime/boxybold.png.h $(LUA_HEADERS)
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
