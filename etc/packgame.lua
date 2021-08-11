@@ -76,24 +76,24 @@ local function parseIniFile(path, skindir, skinprefix)
                 end
 
                 settings.controls.profile = value
-            elseif key == 'backgroundimage' then
+            elseif key == 'backgroundimage' or key == 'author' then
                 if settings[key] then
-                    error('background image already set: ' .. value)
+                    error(string.format('%s already set: %s', key, value))
                 end
 
                 settings[key] = Value
-            elseif key == 'gamearea' then
-                if settings.gamearea then
-                    error('game area already set: ' .. value)
+            elseif key == 'gamescreen1' or key == 'gamescreen2' then
+                if settings[key] then
+                    error(string.format('%s already set: %s', key, value))
                 end
 
                 local x0, y0, x1, y1 = value:match('(%d+)%s*,%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)')
 
                 if not x0 then
-                    error('invalid gamearea: ' .. value)
+                    error(string.format('invalid %s: %s', key, value))
                 end
 
-                settings.gamearea = {
+                settings[key] = {
                     x0 = tonumber(x0),
                     y0 = tonumber(y0),
                     x1 = tonumber(x1),
@@ -161,8 +161,16 @@ local function parseIniFile(path, skindir, skinprefix)
         error('controller profile not set')
     end
 
+    if not settings.gamescreen1 then
+        error('gamescreen1 not set')
+    end
+
     if not settings.backgroundimage then
         error('background image not set')
+    end
+
+    if not settings.author then
+        settings.author = ''
     end
 
     for button in pairs(profiles[settings.controls.profile]) do
@@ -215,8 +223,8 @@ local function genSettings(settings)
 
     out('    },\n')
 
-    if settings.gamearea then
-        local ga = settings.gamearea
+    if not settings.gamescreen2 then
+        local ga = settings.gamescreen1
         out('    zoom = {%d, %d, %d, %d},\n', ga.x0, ga.y0, ga.x1, ga.y1)
     end
 
