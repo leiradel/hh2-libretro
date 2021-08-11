@@ -11,6 +11,8 @@
 #include "sprite.h"
 #include "sound.h"
 
+#include "boxybold.png.h"
+
 #include <lauxlib.h>
 
 #include <stdlib.h>
@@ -225,16 +227,8 @@ static int hh2_gcPixelSourceLua(lua_State* const L) {
     return 0;
 }
 
-static int hh2_readPixelSourceLua(lua_State* const L) {
+static int hh2_pushPixelSourceLua(lua_State* const L, hh2_PixelSource const pixelsrc) {
     hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
-    char const* const path = luaL_checkstring(L, 1);
-
-    hh2_PixelSource const pixelsrc = hh2_readPixelSource(state->filesys, path);
-
-    if (pixelsrc == NULL) {
-        return luaL_error(L, "error reading pixel source from \"%s\"", path);
-    }
-
     hh2_PixelSource* const self = lua_newuserdata(L, sizeof(hh2_PixelSource));
     *self = pixelsrc;
 
@@ -256,6 +250,19 @@ static int hh2_readPixelSourceLua(lua_State* const L) {
 
     lua_setmetatable(L, -2);
     return 1;
+}
+
+static int hh2_readPixelSourceLua(lua_State* const L) {
+    hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
+    char const* const path = luaL_checkstring(L, 1);
+
+    hh2_PixelSource const pixelsrc = hh2_readPixelSource(state->filesys, path);
+
+    if (pixelsrc == NULL) {
+        return luaL_error(L, "error reading pixel source from \"%s\"", path);
+    }
+
+    return hh2_pushPixelSourceLua(L, pixelsrc);
 }
 
 static int hh2_createCanvasLua(lua_State* const L) {
@@ -467,6 +474,16 @@ static int hh2_readPcmLua(lua_State* const L) {
     return 1;
 }
 
+static int hh2_getBoxyBoldLua(lua_State* const L) {
+    hh2_PixelSource const pixelsrc = hh2_initPixelSource(boxy_bold_font_png, sizeof(boxy_bold_font_png));
+
+    if (pixelsrc == NULL) {
+        return luaL_error(L, "error creating pixel source from boxy bold data");
+    }
+
+    return hh2_pushPixelSourceLua(L, pixelsrc);
+}
+
 void hh2_pushModule(lua_State* const L, hh2_State* const state) {
     static luaL_Reg const functions[] = {
         {"nativeSearcher", hh2_searcher},
@@ -482,6 +499,7 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {"createImage", hh2_createImageLua},
         {"createSprite", hh2_createSpriteLua},
         {"readPcm", hh2_readPcmLua},
+        {"getBoxyBold", hh2_getBoxyBoldLua},
         {NULL, NULL}
     };
 
