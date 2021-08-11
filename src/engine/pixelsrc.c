@@ -42,6 +42,7 @@ static size_t hh2_readFromReader(hh2_Reader* const reader, void* buffer, size_t 
         size_t const available = reader->size - reader->pos;
         size_t const to_read = size < available ? size : available;
         memcpy(buffer, (uint8_t const*)reader->data + reader->pos, to_read);
+        reader->pos += to_read;
         return to_read;
     }
 }
