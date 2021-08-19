@@ -1,5 +1,5 @@
-if #arg ~= 1 then
-    io.write(string.format('Usage: %s <compressor.lua> <decompressor.c>', arg[0]))
+if #arg > 1 then
+    io.write(string.format('Usage: %s [file]', arg[0]))
     os.exit(1)
 end
 
@@ -105,7 +105,7 @@ local dict = {
     ["`" ] = "000001010001111101", -- 1
 }
 
-local file = assert(io.open(arg[1], 'rb'))
+local file = #arg == 0 and io.stdin or assert(io.open(arg[1], 'rb'))
 local contents = rle(file:read('*a'))
 file:close()
 
