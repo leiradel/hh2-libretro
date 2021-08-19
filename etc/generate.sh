@@ -9,7 +9,7 @@ generate() {
 
     LUA_PATH="$LUAMODS/access/src/?.lua;$LUAMODS/inifile/src/?.lua;../etc/?.lua" \
     LUA_CPATH="$LUAMODS/proxyud/src/?.so;$LUAMODS/ddlt/?.so" \
-    lua $BASEDIR/dfm2pas.lua $1/unit1.txt > $1/hh2dfm.pas
+    lua $BASEDIR/dfm2pas.lua $1/unit1.dfm > $1/hh2dfm.pas
 
     LUA_PATH="$LUAMODS/access/src/?.lua;$LUAMODS/inifile/src/?.lua;../etc/?.lua" \
     LUA_CPATH="$LUAMODS/proxyud/src/?.so;$LUAMODS/ddlt/?.so" \
