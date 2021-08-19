@@ -296,12 +296,12 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
         end
     end
 
-    out('%%.lua: %%.pas\n\t$(LUA) ../etc/pas2lua.lua -I../src/runtime/units -DHH2 "$<" > "$@"\n\n')
-    out('%%.bs: %%.lua\n\t$(LUA) ../etc/bsencode.lua "$<" > "$@"\n\n')
+    out('%%.lua: %%.pas\n\t$(LUA) "$(PAS2LUA)" "-I$(UNITS)" -DHH2 "$<" > "$@"\n\n')
+    out('%%.bs: %%.lua\n\t$(LUA) "$(BSENCODE)" "$<" > "$@"\n\n')
 
     out('LUA ?= \\\n')
-    out('\tLUA_PATH="/home/leiradel/Develop/luamods/access/src/?.lua;/home/leiradel/Develop/luamods/inifile/src/?.lua;../etc/?.lua" \\\n')
-    out('\tLUA_CPATH="/home/leiradel/Develop/luamods/proxyud/src/?.so;/home/leiradel/Develop/luamods/ddlt/?.so" \\\n')
+    out('\tLUA_PATH="$(LUAMODS)/access/src/?.lua;$(LUAMODS)/inifile/src/?.lua;../etc/?.lua" \\\n')
+    out('\tLUA_CPATH="$(LUAMODS)/proxyud/src/?.so;$(LUAMODS)/ddlt/?.so" \\\n')
     out('\tlua\n\n')
 
     out('RIFF = $(LUA) ../../etc/riff.lua\n\n')
