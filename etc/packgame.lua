@@ -315,15 +315,15 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
     out('\tlua\n\n')
 
     out('BS_FILES = \\\n')
-    out('\thh2config.bs \\\n')
-    out('\thh2dfm.bs \\\n')
-    out('\thh2main.bs \\\n')
-    out('\tunit1.bs\n\n')
+    out('\t%s/hh2config.bs \\\n', gamepath)
+    out('\t%s/hh2dfm.bs \\\n', gamepath)
+    out('\t%s/hh2main.bs \\\n', gamepath)
+    out('\t%s/unit1.bs\n\n', gamepath)
 
     out('WAV_FILES = \\\n')
     outlist(soundpath, function(name)
         if name:match('.*%.wav$') then
-            return name:gsub(gamepath .. '/', '')
+            return name
         end
     end)
 
@@ -335,7 +335,7 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
     end
 
     for i, path in ipairs(images) do
-        out('\t%s', path:gsub(gamepath .. '/', ''))
+        out('\t%s', path)
 
         if i < #images then
             out(' \\\n')
@@ -350,11 +350,11 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
 
     out('%s.hh2: $(HH2_FILES)\n', gamepath)
     out('\t@echo "Packaging $@"\n')
-    out('\t@$(LUA) "$(ETC)/riff.lua" "$@" $(subst %s/,,$+)\n\n', gamepath, gamepath)
+    out('\t@cd %s && $(LUA) "../$(ETC)/riff.lua" "$@" $(subst %s/,,$+)\n\n', gamepath, gamepath)
 
     out('clean:\n')
     out('\t@echo "Cleaning up"\n')
-    out('\t@rm -f %s.hh2 $(BS_FILES)\n', gamepath)
+    out('\t@rm -f %s/%s.hh2 $(BS_FILES)\n', gamepath, gamepath)
 end
 
 if #arg ~= 2 then
