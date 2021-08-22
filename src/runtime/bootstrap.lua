@@ -57,21 +57,26 @@ return function(hh2rt)
             return module
         end
 
-        -- Try to load content from the hh2rt file
-        local ok, encoded = pcall(hh2rt.contentLoader, modname .. '.bs')
+        -- Try to load content from the hh2 file
+        local ok, encrypted = pcall(hh2rt.contentLoader, modname .. '.bs')
 
         if not ok then
-            return encoded
+            return encrypted
         end
 
-        local ok, decoded = pcall(hh2rt.bsDecoder, encoded)
+        local ok, decrypted = pcall(hh2rt.decrypt, encrypted)
 
         if not ok then
-            return decoded
+            return decrypted
         end
 
-        -- Pascal units can recursively require each other, implement a delayed load :/
-        local chunk, err = load(decoded, modname, 't')
+        local ok, uncompressed = pcall(hh2rt.uncompress, decrypted)
+
+        if not ok then
+            return uncompressed
+        end
+
+        local chunk, err = load(uncompressed, modname, 't')
 
         if not chunk then
             return err

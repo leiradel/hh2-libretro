@@ -1,4 +1,5 @@
 #include "searcher.h"
+#include "uncomp.h"
 #include "log.h"
 
 #include <lua.h>
@@ -36,8 +37,8 @@
 
 #define TAG "SRH "
 
-#define HH2_MODL(name, array) {name, {array}, array ## _size, sizeof(array)}
-#define HH2_MODC(name, openf) {name, {(uint8_t*)openf}, 0, 0}
+#define HH2_MODL(name, array) {name, {array}, sizeof(array)}
+#define HH2_MODC(name, openf) {name, {(uint8_t*)openf}, 0}
 
 typedef struct {
     char const* name;
@@ -48,7 +49,6 @@ typedef struct {
     }
     data;
 
-    size_t uncompressed_length;
     size_t compressed_length;
 }
 hh2_Module;
@@ -82,42 +82,6 @@ static const hh2_Module hh2_modules[] = {
 #undef HH2_MODL
 #undef HH2_MODC
 
-static int hh2_uncompress(hh2_Module const* const module, void** const uncompressed) {
-    // Mostly copied from zlib's uncompr.c
-    *uncompressed = (char*)malloc(module->uncompressed_length);
-
-    if (*uncompressed == NULL) {
-        return Z_MEM_ERROR;
-    }
-
-    z_stream stream;
-    memset(&stream, 0, sizeof(stream));
-
-    stream.next_in = (Bytef z_const*)module->data.compressed;
-    stream.avail_in = module->compressed_length;
-    stream.next_out = *uncompressed;
-    stream.avail_out = module->uncompressed_length;
-
-    int const zerr1 = inflateInit2(&stream, 16 + MAX_WBITS);
-
-    if (zerr1 != Z_OK) {
-        return zerr1;
-    }
-
-    int const zerr2 = inflate(&stream, Z_NO_FLUSH);
-    inflateEnd(&stream);
-
-    if (zerr2 == Z_STREAM_END) {
-        return Z_OK;
-    }
-    else if (zerr2 == Z_NEED_DICT) {
-        return Z_DATA_ERROR;
-    }
-    else {
-        return zerr2;
-    }
-}
-
 int hh2_searcher(lua_State* const L) {
     char const* const mod_name = lua_tostring(L, 1);
     HH2_LOG(HH2_LOG_INFO, TAG "searching for module \"%s\"", mod_name);
@@ -127,12 +91,13 @@ int hh2_searcher(lua_State* const L) {
         hh2_Module const* const module = hh2_modules + i;
 
         if (strcmp(mod_name, module->name) == 0) {
-            if (module->uncompressed_length != 0) {
+            if (module->compressed_length != 0) {
                 // It's a Lua module, return the chunk that defines the module
                 HH2_LOG(HH2_LOG_DEBUG, TAG "found a Lua module, decompressing");
 
                 void* uncompressed = NULL;
-                int const zres = hh2_uncompress(module, &uncompressed);
+                size_t uncomp_length = 0;
+                int const zres = hh2_uncompress(module->data.compressed, module->compressed_length, &uncompressed, &uncomp_length);
 
                 if (zres != Z_OK) {
                     switch (zres) {
@@ -146,7 +111,7 @@ int hh2_searcher(lua_State* const L) {
                     }
                 }
 
-                int const lres = luaL_loadbufferx(L, uncompressed, module->uncompressed_length, mod_name, "t");
+                int const lres = luaL_loadbufferx(L, uncompressed, uncomp_length, mod_name, "t");
                 free(uncompressed);
 
                 if (lres != LUA_OK) {

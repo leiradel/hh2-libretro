@@ -1,8 +1,8 @@
 #include "module.h"
-#include "bsdecode.h"
 #include "filesys.h"
 #include "log.h"
 #include "searcher.h"
+#include "uncomp.h"
 #include "state.h"
 #include "version.h"
 #include "pixelsrc.h"
@@ -14,6 +14,8 @@
 #include "boxybold.png.h"
 
 #include <lauxlib.h>
+#include <zlib.h>
+#include <aes.h>
 
 #include <stdlib.h>
 #include <sys/time.h>
@@ -117,18 +119,49 @@ static int hh2_contentLoaderLua(lua_State* const L) {
     return 1;
 }
 
-static int hh2_bsDecoderLua(lua_State* const L) {
-    char const* const encoded = luaL_checkstring(L, 1);
+static int hh2_decryptLua(lua_State* const L) {
+    static uint8_t const key[] = "r%!^g3rGEeSUtJKcUo%6rcrGTX3GoXv!";
+    static uint8_t const iv[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 
-    size_t size = 0;
-    char const* const decoded = hh2_bsDecode(encoded, &size);
+    size_t length = 0;
+    char const* const encoded = luaL_checklstring(L, 1, &length);
+
+    char* const decoded = (char*)malloc(length);
 
     if (decoded == NULL) {
         return luaL_error(L, "error decoding bs stream");
     }
 
-    lua_pushlstring(L, decoded, size);
+    uint32_t key_schedule[60];
+    aes_key_setup(key, key_schedule, 256);
+    aes_decrypt_ctr((uint8_t const*)encoded, length, (uint8_t*)decoded, key_schedule, 256, iv);
+
+    lua_pushlstring(L, decoded, length);
     free((void*)decoded);
+    return 1;
+}
+
+static int hh2_uncompressLua(lua_State* const L) {
+    size_t compressed_length = 0;
+    char const* const compressed = luaL_checklstring(L, 1, &compressed_length);
+
+    void* uncompressed = NULL;
+    size_t uncomp_length = 0;
+    int const zres = hh2_uncompress(compressed, compressed_length, &uncompressed, &uncomp_length);
+
+    if (zres != Z_OK) {
+        switch (zres) {
+            case Z_ERRNO: return luaL_error(L, "Z_ERRNO: %s", strerror(errno));
+            case Z_STREAM_ERROR: return luaL_error(L, "Z_STREAM_ERROR");
+            case Z_DATA_ERROR: return luaL_error(L, "Z_DATA_ERROR");
+            case Z_MEM_ERROR: return luaL_error(L, "Z_MEM_ERROR");
+            case Z_BUF_ERROR: return luaL_error(L, "Z_BUF_ERROR");
+            case Z_VERSION_ERROR: return luaL_error(L, "Z_VERSION_ERROR");
+            default: return luaL_error(L, "unknown zlib error");
+        }
+    }
+
+    lua_pushlstring(L, uncompressed, uncomp_length);
     return 1;
 }
 
@@ -491,7 +524,8 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {"now", hh2_nowLua},
         {"decodeTimeUs", hh2_decodeTimeUsLua},
         {"contentLoader", hh2_contentLoaderLua},
-        {"bsDecoder", hh2_bsDecoderLua},
+        {"decrypt", hh2_decryptLua},
+        {"uncompress", hh2_uncompressLua},
         {"poke", hh2_pokeLua},
         {"getInput", hh2_getInputLua},
         {"readPixelSource", hh2_readPixelSourceLua},

@@ -1,15 +1,24 @@
 %.o: %.c
-	$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
+	@echo "Compiling: $@"
+	@$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
 
 %.lua: %.pas
-	$(LUA) etc/pas2lua.lua -Isrc/runtime/units -DHH2 "$<" > "$@"
+	@echo "Transpiling to Lua: $@"
+	@$(LUA) etc/pas2lua.lua -Isrc/runtime/units -DHH2 "$<" > "$@"
 
 %.lua.h: %.lua
-	echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+	@echo "Creating header: $@"
+	@echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 %.luagz.h: %.lua
-	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | gzip -c9n | xxd -i`\n};\n" > "$@"
-	echo "static size_t const `basename "$<" | sed 's/\./_/'`_size = `wc -c "$<" | sed 's/ .*//'`;" >> "$@"
+	@echo "Creating compressed header: $@"
+	@echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {" > "$@"
+	@echo "  UINT32_C(`wc -c '$<' | sed 's/ .*//'`) & 0xff," >> "$@"
+	@echo "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 8) & 0xff," >> "$@"
+	@echo "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 16) & 0xff," >> "$@"
+	@echo "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 24) & 0xff," >> "$@"
+	@cat "$<" | gzip -c9n | xxd -i >> "$@"
+	@echo "};\n" >> "$@"
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
@@ -21,8 +30,8 @@ DEFINES = \
 	-DOUTSIDE_SPEEX -DRANDOM_PREFIX=speex -DEXPORT= -D_USE_SSE -D_USE_SSE2 -DFLOATING_POINT
 
 INCLUDES = \
-	-Isrc -Isrc/dr_libs -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/lua -Isrc/speex -Isrc/runtime \
-	-Isrc/zlib
+	-Isrc -Isrc/crypto-algorithms -Isrc/dr_libs -Isrc/engine -Isrc/generated -Isrc/libjpeg-turbo -Isrc/libpng -Isrc/lua \
+	-Isrc/speex -Isrc/runtime -Isrc/zlib
 
 LIBS = -lm
 
@@ -57,6 +66,9 @@ LUA_OBJS = \
     src/lua/lobject.o src/lua/lopcodes.o src/lua/lparser.o src/lua/lstate.o src/lua/lstring.o src/lua/lstrlib.o src/lua/ltable.o \
     src/lua/ltablib.o src/lua/ltm.o src/lua/lundump.o src/lua/lutf8lib.o src/lua/lvm.o src/lua/lzio.o
 
+AES_OBJS = \
+	src/crypto-algorithms/aes.o
+
 SPEEX_OBJS = \
 	src/speex/resample.o
 
@@ -75,23 +87,26 @@ LUA_HEADERS = \
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
-	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/bsdecode.o src/runtime/module.o \
-	src/runtime/searcher.o src/runtime/state.o src/version.o
+	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/module.o src/runtime/searcher.o src/runtime/state.o \
+	src/runtime/uncomp.o src/version.o
 
 all: src/generated/version.h hh2_libretro.so
 
-hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
-	$(CC) -shared -o $@ $+ $(LIBS)
+hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
+	@echo "Linking: $@"
+	@$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
-	cat etc/version.templ.h \
+	@echo "Creating version header: $@"
+	@cat etc/version.templ.h \
 		| sed s/\&HASH/`git rev-parse HEAD | tr -d "\n"`/g \
 		| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
 src/runtime/boxybold.png.h: src/runtime/boxy_bold_font.png
-	echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+	@echo "Creating header: $@"
+	@echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 src/runtime/module.o: src/runtime/boxybold.png.h
 
@@ -99,7 +114,7 @@ src/runtime/searcher.o: $(LUA_HEADERS)
 
 src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
-test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
+test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	$(CC) -o $@ $+ $(LIBS)
 
 test/main.o: src/generated/version.h
@@ -113,6 +128,6 @@ clean: FORCE
 	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
+	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 .PHONY: FORCE
