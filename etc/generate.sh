@@ -13,11 +13,12 @@ generate() {
 
     LUA_PATH="$LUAMODS/access/src/?.lua;$LUAMODS/inifile/src/?.lua;../etc/?.lua" \
     LUA_CPATH="$LUAMODS/proxyud/src/?.so;$LUAMODS/ddlt/?.so" \
-    lua $BASEDIR/packgame.lua --makefile $1 > Makefile.$1
+    lua $BASEDIR/packgame.lua --makefile $1 > $1/Makefile
 
     LUA_PATH="$LUAMODS/access/src/?.lua;$LUAMODS/inifile/src/?.lua;../etc/?.lua" \
     LUA_CPATH="$LUAMODS/proxyud/src/?.so;$LUAMODS/ddlt/?.so" \
     lua $BASEDIR/packgame.lua --gfxinit $1 > gfxinit.$1.pas
 }
 
-generate popeye
+generate PopeyeW
+generate DKong2

@@ -296,26 +296,34 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
         end
     end
 
-    out('%%.lua: %%.pas\n\t$(LUA) "$(PAS2LUA)" "-I$(UNITS)" -DHH2 "$<" > "$@"\n\n')
-    out('%%.bs: %%.lua\n\t$(LUA) "$(BSENCODE)" "$<" > "$@"\n\n')
+    out('%%.lua: %%.pas\n')
+    out('\t@echo "Transpiling to Lua: $@"\n')
+    out('\t@$(LUA) "$(ETC)/pas2lua.lua" "-I$(UNITS)" -I. -DHH2 "$<" > "$@"\n\n')
+
+    out('%%.bs: %%.lua.gz\n')
+    out('\t@echo "Encrypting $@"\n')
+    out('\t@$(ETC)/aesenc "r%%!^g3rGEeSUtJKcUo%%6rcrGTX3GoXv!" "$<" "$@"\n\n')
+
+    out('%%.lua.gz: %%.lua\n')
+    out('\t@echo "Compressing $@"\n')
+    out('\t@$(LUA) -e "local s=`wc -c \'$<\' | sed \'s/ .*//\'` io.write(string.char(s&255,(s>>8)&255,(s>>16)&255,(s>>24)&255))" > "$@"\n')
+    out('\t@cat "$<" | gzip -c9n >> "$@"\n\n')
 
     out('LUA ?= \\\n')
-    out('\tLUA_PATH="$(LUAMODS)/access/src/?.lua;$(LUAMODS)/inifile/src/?.lua;../etc/?.lua" \\\n')
+    out('\tLUA_PATH="$(LUAMODS)/access/src/?.lua;$(LUAMODS)/inifile/src/?.lua;$(ETC)/?.lua" \\\n')
     out('\tLUA_CPATH="$(LUAMODS)/proxyud/src/?.so;$(LUAMODS)/ddlt/?.so" \\\n')
     out('\tlua\n\n')
 
-    out('RIFF = $(LUA) ../../etc/riff.lua\n\n')
-
     out('BS_FILES = \\\n')
-    out('\t%s/hh2config.bs \\\n', gamepath)
-    out('\t%s/hh2dfm.bs \\\n', gamepath)
-    out('\t%s/hh2main.bs \\\n', gamepath)
-    out('\t%s/unit1.bs\n\n', gamepath)
+    out('\thh2config.bs \\\n')
+    out('\thh2dfm.bs \\\n')
+    out('\thh2main.bs \\\n')
+    out('\tunit1.bs\n\n')
 
     out('WAV_FILES = \\\n')
     outlist(soundpath, function(name)
         if name:match('.*%.wav$') then
-            return name
+            return name:gsub(gamepath .. '/', '')
         end
     end)
 
@@ -327,7 +335,7 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
     end
 
     for i, path in ipairs(images) do
-        out('\t%s', path)
+        out('\t%s', path:gsub(gamepath .. '/', ''))
 
         if i < #images then
             out(' \\\n')
@@ -337,9 +345,16 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
     out('\n\n')
 
     out('HH2_FILES = $(BS_FILES) $(WAV_FILES) $(IMG_FILES)\n\n')
+
     out('all: %s.hh2\n\n', gamepath)
-    out('%s.hh2: $(HH2_FILES)\n\tcd %s && $(RIFF) "../$@" $(subst %s/,,$+)\n\n', gamepath, gamepath, gamepath)
-    out('clean:\n\trm -f %s.hh2 $(BS_FILES)\n', gamepath)
+
+    out('%s.hh2: $(HH2_FILES)\n', gamepath)
+    out('\t@echo "Packaging $@"\n')
+    out('\t@$(LUA) "$(ETC)/riff.lua" "$@" $(subst %s/,,$+)\n\n', gamepath, gamepath)
+
+    out('clean:\n')
+    out('\t@echo "Cleaning up"\n')
+    out('\t@rm -f %s.hh2 $(BS_FILES)\n', gamepath)
 end
 
 if #arg ~= 2 then
