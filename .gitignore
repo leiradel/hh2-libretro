@@ -1,7 +1,9 @@
 .vscode/
+etc/aesenc
 src/generated/version.h
 *.lua.h
 *.luagz.h
+*.png.h
 games/
 test/test
 test/test.hh2
