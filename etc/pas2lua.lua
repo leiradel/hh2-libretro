@@ -914,7 +914,7 @@ local function generate(ast, searchPaths, macros, out)
 
         local function genRepeat(node)
             out('\n')
-            out('repeat')
+            out('repeat\n')
             out:indent()
             genStatement(node.body)
             out:unindent()
