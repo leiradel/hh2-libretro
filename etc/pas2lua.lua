@@ -1039,10 +1039,14 @@ local function generate(ast, searchPaths, macros, out)
             out('function(')
         end
 
-        out('%s', ismethod and 'self' or '')
-
         local saved = scope
         local ids = push(nil, '%s')
+
+        if ismethod then
+            out('self')
+            ids.self = 'self'
+        end
+
         local params = procedure.heading.parameters
 
         if params then
