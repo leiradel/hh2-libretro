@@ -40,7 +40,7 @@ static size_t hh2_readFromReader(hh2_Reader* const reader, void* buffer, size_t 
     }
     else {
         size_t const available = reader->size - reader->pos;
-        size_t const to_read = size < available ? size : available;
+        size_t const to_read = size <= available ? size : available;
         memcpy(buffer, (uint8_t const*)reader->data + reader->pos, to_read);
         reader->pos += to_read;
         return to_read;
@@ -204,9 +204,13 @@ static void hh2_jpegSkip(j_decompress_ptr cinfo, long num_bytes) {
         return;
     }
 
-    while (num_bytes >= sizeof(reader->buffer)) {
-        size_t const num_read = hh2_readFromReader(reader->reader, reader->buffer, sizeof(reader->buffer));
+    num_bytes -= reader->pub.bytes_in_buffer;
+
+    while (num_bytes != 0) {
+        size_t const to_read = num_bytes <= sizeof(reader->buffer) ? num_bytes : sizeof(reader->buffer);
+        size_t const num_read = hh2_readFromReader(reader->reader, reader->buffer, to_read);
         reader->pub.bytes_in_buffer = num_read;
+        reader->pub.next_input_byte = reader->buffer;
 
         if (num_read == 0) {
             // EOF reached
@@ -216,10 +220,9 @@ static void hh2_jpegSkip(j_decompress_ptr cinfo, long num_bytes) {
         }
 
         num_bytes -= num_read;
+        reader->pub.bytes_in_buffer -= num_read;
+        reader->pub.next_input_byte += num_read;
     }
-
-    reader->pub.bytes_in_buffer -= num_bytes;
-    reader->pub.next_input_byte += num_bytes;
 }
 
 static void hh2_jpegExit(j_common_ptr cinfo) {
@@ -237,7 +240,10 @@ static void hh2_jpegErr(j_common_ptr cinfo) {
 
 static hh2_PixelSource hh2_readJpeg(hh2_Reader* const the_reader) {
     struct jpeg_decompress_struct cinfo;
+    memset(&cinfo, 0, sizeof(cinfo));
+
     hh2_jpegError error;
+    memset(&error, 0, sizeof(error));
 
     cinfo.err = jpeg_std_error(&error.pub);
     error.pub.error_exit = hh2_jpegExit;
@@ -249,6 +255,8 @@ static hh2_PixelSource hh2_readJpeg(hh2_Reader* const the_reader) {
     }
 
     hh2_jpegReader reader;
+    memset(&reader, 0, sizeof(reader));
+
     reader.reader = the_reader;
     reader.pub.init_source = hh2_jpegDummy;
     reader.pub.fill_input_buffer = hh2_jpegFill;
