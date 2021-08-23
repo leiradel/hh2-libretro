@@ -24,7 +24,7 @@ type
     public
         constructor Create; virtual;
 
-    public:
+    public
         Visible: Boolean;
     end;
 
