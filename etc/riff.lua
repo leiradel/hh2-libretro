@@ -69,7 +69,7 @@ local function main(args)
     local assets = {}
 
     for i = 2, #args do
-        local path = args[i]
+        local path = args[i]:gsub('\\', '/'):gsub('/+', '/')
         local entry
 
         if path:find('=', 1, true) then
