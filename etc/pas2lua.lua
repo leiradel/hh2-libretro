@@ -912,6 +912,17 @@ local function generate(ast, searchPaths, macros, out)
             out(')')
         end
 
+        local function genRepeat(node)
+            out('\n')
+            out('repeat')
+            out:indent()
+            genStatement(node.body)
+            out:unindent()
+            out('until ')
+            genExpression(node.condition)
+            out('\n\n')
+        end
+
         local type = statement.type
 
         if type == 'compoundstmt' then
@@ -940,6 +951,8 @@ local function generate(ast, searchPaths, macros, out)
             genInherited(statement)
         elseif type == 'decodetime' then
             genDecodeTime(statement)
+        elseif type == 'repeat' then
+            genRepeat(statement)
         elseif type == 'emptystmt' then
             -- nothing
         else
