@@ -20,6 +20,14 @@ type
 
     TCloseEvent = procedure(Sender: TObject; var Action: TCloseAction) of object;
 
+    TControlScrollBar = class
+    public
+        constructor Create; virtual;
+
+    public:
+        Visible: Boolean;
+    end;
+
     TCustomForm = class(TControl) {HACK not really true but enough to get us going without mimicking the entire inheritance tree}
     public
         constructor Create; virtual;
@@ -49,6 +57,8 @@ type
         Position: TPosition;
         DoubleBuffered: Boolean;
         TextHeight: Integer;
+        HorzScrollBar: TControlScrollBar;
+        VertScrollBar: TControlScrollBar;
     end;
 
     TApplication = class(TComponent)
