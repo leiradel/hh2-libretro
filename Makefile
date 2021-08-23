@@ -104,7 +104,7 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-src/runtime/boxybold.png.h: src/runtime/boxy_bold_font.png
+src/runtime/boxybold.png.h: etc/boxy_bold_font_4.png
 	@echo "Creating header: $@"
 	@echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
