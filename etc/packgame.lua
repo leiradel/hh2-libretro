@@ -314,7 +314,7 @@ local function genMakefile(settings, gamepath, soundpath, skinpath)
 
     out('%%.bs: %%.lua.gz\n')
     out('\t@echo "Encrypting $@"\n')
-    out('\t@$(ETC)/aesenc "r%%!^g3rGEeSUtJKcUo%%6rcrGTX3GoXv!" "$<" "$@"\n\n')
+    out('\t@$(ETC)/aesenc "ljLvET5KkIYM0ghV4Bvd3MTmJ0QnNpbN" "$<" "$@"\n\n')
 
     out('%%.lua.gz: %%.lua\n')
     out('\t@echo "Compressing $@"\n')
