@@ -7,6 +7,8 @@
 #define DR_WAV_IMPLEMENTATION
 #include <dr_wav.h>
 
+#include <inttypes.h>
+
 #define HH2_SAMPLE_RATE 44100
 #define HH2_SAMPLES_PER_VIDEO_FRAME (HH2_SAMPLE_RATE / 60)
 #define HH2_MAX_CHANNELS 8
@@ -110,7 +112,10 @@ static bool hh2_resample(
     spx_int16_t const* const in_data, spx_uint32_t in_samples,
     spx_int16_t* const out_data, spx_uint32_t out_samples) {
 
-    HH2_LOG(HH2_LOG_INFO, TAG "resampling from %u Hz to %d", in_rate, HH2_SAMPLE_RATE);
+    HH2_LOG(
+        HH2_LOG_INFO, TAG "resampling from %u Hz to %d (%" PRIu32 " samples in, %" PRIu32 " samples out",
+        in_rate, HH2_SAMPLE_RATE, in_samples, out_samples
+    );
 
     int error;
     SpeexResamplerState* const resampler = speex_resampler_init(
@@ -155,7 +160,7 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
         return NULL;
     }
 
-    size_t const sample_count = wav.totalPCMFrameCount * wav.sampleRate / HH2_SAMPLE_RATE;
+    size_t const sample_count = wav.totalPCMFrameCount * HH2_SAMPLE_RATE / wav.sampleRate;
     hh2_Pcm pcm = (hh2_Pcm)malloc(sizeof(*pcm) + (sample_count - 1) * sizeof(hh2_Sample));
 
     if (pcm == NULL) {
@@ -172,7 +177,7 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
         samples = (hh2_Sample*)malloc(wav.totalPCMFrameCount * sizeof(hh2_Sample));
     }
 
-    for (size_t i = 0; i < sample_count; i++) {
+    for (size_t i = 0; i < wav.totalPCMFrameCount; i++) {
         drwav_int16 frame[HH2_MAX_CHANNELS];
         drwav_uint64 const num_read = drwav_read_pcm_frames_s16(&wav, 1, frame);
 
