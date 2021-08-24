@@ -123,11 +123,13 @@ test/test.hh2: FORCE
 	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg test/tick.wav test/bsenc.bs
 
 clean: FORCE
-	rm -f hh2_libretro.so $(HH2_OBJS)
-	rm -f src/generated/version.h src/runtime/bootstrap.lua.h src/runtime/boxybold.png.h $(LUA_HEADERS)
-	rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
+	@echo "Cleaning up"
+	@rm -f hh2_libretro.so $(HH2_OBJS)
+	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h src/runtime/boxybold.png.h $(LUA_HEADERS)
+	@rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-	rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
+	@echo "Cleaning up (including 3rd party libraries)"
+	@rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 .PHONY: FORCE
