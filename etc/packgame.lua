@@ -259,23 +259,23 @@ local function genGfxInit(settings, skinpath)
 
     for _, asset in ipairs(assets) do
         if asset.entry then
-            out('    Form1.aImages[%d].Picture.LoadFromFile(\'%s\');\n', asset.index, asset.entry)
+            out('    aImages[%d].Picture.LoadFromFile(\'%s\');\n', asset.index, asset.entry)
         end
 
         if asset.top then
-            out('    Form1.aImages[%d].Top := %s;\n', asset.index, asset.top);
+            out('    aImages[%d].Top := %s;\n', asset.index, asset.top);
         end
 
         if asset.left then
-            out('    Form1.aImages[%d].Left := %s;\n', asset.index, asset.left);
+            out('    aImages[%d].Left := %s;\n', asset.index, asset.left);
         end
         
         if asset.width then
-            out('    Form1.aImages[%d].Width := %s;\n', asset.index, asset.width);
+            out('    aImages[%d].Width := %s;\n', asset.index, asset.width);
         end
 
         if asset.height then
-            out('    Form1.aImages[%d].Height := %s;\n', asset.index, asset.height);
+            out('    aImages[%d].Height := %s;\n', asset.index, asset.height);
         end
     end
 end
