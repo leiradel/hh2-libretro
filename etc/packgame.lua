@@ -215,9 +215,19 @@ local function genSettings(settings)
     out('    mappingProfile = %q,\n', settings.controls.profile)
     out('    mappedButtons = {\n')
 
-    for control, name in pairs(settings.controls) do
-        if control ~= 'profile' then
-            out('        [%q] = %s,\n', control, name)
+    do
+        local ordered = {}
+
+        for control, name in pairs(settings.controls) do
+            if control ~= 'profile' then
+                ordered[#ordered + 1] = {control = control, name = name}
+            end
+        end
+
+        table.sort(ordered, function(a, b) return a.control < b.control end)
+
+        for _, rec in ipairs(ordered) do
+            out('        [%q] = %s,\n', rec.control, rec.name)
         end
     end
 
