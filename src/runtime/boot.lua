@@ -15,14 +15,17 @@ return function()
     hh2rt.createCanvas(background:width(), background:height())
     image:stamp(0, 0)
 
+    -- Configure the buttons depending on the profile
     if config.mappingProfile == 'leftright' then
         config.mappedButtons.a = config.mappedButtons.right
+    elseif config.mappingProfile == 'dpadaction' then
+        config.mappedButtons.b = config.mappedButtons.action
     end
 
+    -- Return the tick function
     local unit1 = require 'unit1'
     local input, previous = {}, {}
 
-    -- Return the tick function
     return function()
         local now, _ = hh2rt.now()
 
