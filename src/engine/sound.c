@@ -178,6 +178,11 @@ hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
 
         if (num_read != 1) {
             HH2_LOG(HH2_LOG_ERROR, TAG "error reading samples: %s", hh2_wavError(drwav_uninit(&wav)));
+
+            if (wav.sampleRate != HH2_SAMPLE_RATE) {
+                free(samples);
+            }
+
             free(pcm);
             hh2_close(file);
             return NULL;
