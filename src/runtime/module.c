@@ -507,6 +507,11 @@ static int hh2_readPcmLua(lua_State* const L) {
     return 1;
 }
 
+static int hh2_stopPcmsLua(lua_State* const L) {
+    hh2_stopPcms();
+    return 0;
+}
+
 static int hh2_getBoxyBoldLua(lua_State* const L) {
     hh2_PixelSource const pixelsrc = hh2_initPixelSource(boxy_bold_font_4_png, sizeof(boxy_bold_font_4_png));
 
@@ -533,6 +538,7 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {"createImage", hh2_createImageLua},
         {"createSprite", hh2_createSpriteLua},
         {"readPcm", hh2_readPcmLua},
+        {"stopPcms", hh2_stopPcmsLua},
         {"getBoxyBold", hh2_getBoxyBoldLua},
         {NULL, NULL}
     };
