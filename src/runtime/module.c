@@ -242,6 +242,24 @@ static int hh2_getInputLua(lua_State* const L) {
     return 1;
 }
 
+static int hh2_pushPixelSourceLua(lua_State* const L, hh2_PixelSource const pixelsrc);
+
+static int hh2_subPixelSourceLua(lua_State* const L) {
+    hh2_PixelSource const pixelsrc = *(hh2_PixelSource*)luaL_checkudata(L, 1, HH2_PIXELSOURCE_MT);
+    lua_Integer const x0 = luaL_checkinteger(L, 2);
+    lua_Integer const y0 = luaL_checkinteger(L, 3);
+    lua_Integer const width = luaL_checkinteger(L, 4);
+    lua_Integer const height = luaL_checkinteger(L, 5);
+
+    hh2_PixelSource const sub = hh2_subPixelSource(pixelsrc, x0, y0, width, height);
+
+    if (sub == NULL) {
+        return luaL_error(L, "error creating sub pixel source");
+    }
+
+    return hh2_pushPixelSourceLua(L, sub);
+}
+
 static int hh2_pixelSourceWidthLua(lua_State* const L) {
     hh2_PixelSource const pixelsrc = *(hh2_PixelSource*)luaL_checkudata(L, 1, HH2_PIXELSOURCE_MT);
     lua_pushinteger(L, hh2_pixelSourceWidth(pixelsrc));
@@ -267,6 +285,7 @@ static int hh2_pushPixelSourceLua(lua_State* const L, hh2_PixelSource const pixe
 
     if (luaL_newmetatable(L, HH2_PIXELSOURCE_MT) != 0) {
         static luaL_Reg const methods[] = {
+            {"sub", hh2_subPixelSourceLua},
             {"width", hh2_pixelSourceWidthLua},
             {"height", hh2_pixelSourceHeightLua},
             {NULL, NULL}
