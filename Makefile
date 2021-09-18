@@ -1,3 +1,17 @@
+ifeq ($(shell uname -s),)
+    SOEXT=dll
+else ifneq ($(findstring MINGW,$(shell uname -a)),)
+    SOEXT=dll
+else ifneq ($(findstring MSYS,$(shell uname -a)),)
+    SOEXT=dll
+else ifneq ($(findstring win,$(shell uname -a)),)
+    SOEXT=dll
+else ifneq ($(findstring Darwin,$(shell uname -a)),)
+    SOEXT=dylib
+else
+    SOEXT=so
+endif
+
 %.o: %.c
 	@echo "Compiling: $@"
 	@$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
@@ -37,7 +51,7 @@ LIBS = -lm
 
 LUA ?= \
 	LUA_PATH="$$LUAMODS/access/src/?.lua;$$LUAMODS/inifile/src/?.lua;etc/?.lua" \
-	LUA_CPATH="$$LUAMODS/proxyud/src/?.so;$$LUAMODS/ddlt/?.so" \
+	LUA_CPATH="$$LUAMODS/proxyud/src/?.$(SOEXT);$$LUAMODS/ddlt/?.$(SOEXT)" \
 	lua
 
 ifeq ($(DEBUG), 1)
@@ -90,10 +104,10 @@ HH2_OBJS = \
 	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/module.o src/runtime/searcher.o src/runtime/state.o \
 	src/runtime/uncomp.o src/version.o
 
-all: src/generated/version.h hh2_libretro.so
+all: src/generated/version.h hh2_libretro.$(SOEXT)
 
-hh2_libretro.so: $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	@echo "Linking: $@"
+hh2_libretro.$(SOEXT): $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	@$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
@@ -124,7 +138,7 @@ test/test.hh2: FORCE
 
 clean: FORCE
 	@echo "Cleaning up"
-	@rm -f hh2_libretro.so $(HH2_OBJS)
+	@rm -f hh2_libretro.$(SOEXT) $(HH2_OBJS)
 	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h src/runtime/boxybold.png.h $(LUA_HEADERS)
 	@rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
