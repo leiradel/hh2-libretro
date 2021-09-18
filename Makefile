@@ -134,19 +134,10 @@ src/runtime/searcher.o: $(LUA_HEADERS)
 
 src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
-test/test: test/main.o $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
-	$(CC) -o $@ $+ $(LIBS)
-
-test/main.o: src/generated/version.h
-
-test/test.hh2: FORCE
-	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg test/tick.wav test/bsenc.bs
-
 clean: FORCE
 	@$(ECHO) "Cleaning up"
 	@rm -f hh2_libretro.$(SOEXT) $(HH2_OBJS)
 	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h src/runtime/boxybold.png.h $(LUA_HEADERS)
-	@rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
 	@$(ECHO) "Cleaning up (including 3rd party libraries)"
