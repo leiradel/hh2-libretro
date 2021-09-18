@@ -13,26 +13,26 @@ else
 endif
 
 %.o: %.c
-	@echo "Compiling: $@"
+	@echo -e "Compiling: $@"
 	@$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
 
 %.lua: %.pas
-	@echo "Transpiling to Lua: $@"
+	@echo -e "Transpiling to Lua: $@"
 	@$(LUA) etc/pas2lua.lua -Isrc/runtime/units -DHH2 "$<" > "$@"
 
 %.lua.h: %.lua
-	@echo "Creating header: $@"
-	@echo "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+	@echo -e "Creating header: $@"
+	@echo -e "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 %.luagz.h: %.lua
-	@echo "Creating compressed header: $@"
-	@echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {" > "$@"
-	@echo "  UINT32_C(`wc -c '$<' | sed 's/ .*//'`) & 0xff," >> "$@"
-	@echo "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 8) & 0xff," >> "$@"
-	@echo "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 16) & 0xff," >> "$@"
-	@echo "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 24) & 0xff," >> "$@"
+	@echo -e "Creating compressed header: $@"
+	@echo -e "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {" > "$@"
+	@echo -e "  UINT32_C(`wc -c '$<' | sed 's/ .*//'`) & 0xff," >> "$@"
+	@echo -e "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 8) & 0xff," >> "$@"
+	@echo -e "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 16) & 0xff," >> "$@"
+	@echo -e "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 24) & 0xff," >> "$@"
 	@cat "$<" | gzip -c9n | xxd -i >> "$@"
-	@echo "};\n" >> "$@"
+	@echo -e "};\n" >> "$@"
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
@@ -106,12 +106,12 @@ HH2_OBJS = \
 
 all: src/generated/version.h hh2_libretro.$(SOEXT)
 
-	@echo "Linking: $@"
 hh2_libretro.$(SOEXT): $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
+	@echo -e "Linking: $@"
 	@$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
-	@echo "Creating version header: $@"
+	@echo -e "Creating version header: $@"
 	@cat etc/version.templ.h \
 		| sed s/\&HASH/`git rev-parse HEAD | tr -d "\n"`/g \
 		| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
@@ -119,8 +119,8 @@ src/generated/version.h: FORCE
 		> $@
 
 src/runtime/boxybold.png.h: etc/boxy_bold_font_4.png
-	@echo "Creating header: $@"
-	@echo "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+	@echo -e "Creating header: $@"
+	@echo -e "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 src/runtime/module.o: src/runtime/boxybold.png.h
 
@@ -137,13 +137,13 @@ test/test.hh2: FORCE
 	lua etc/riff.lua $@ Makefile test/cryptopunk32.png test/cryptopunk32.jpg test/tick.wav test/bsenc.bs
 
 clean: FORCE
-	@echo "Cleaning up"
+	@echo -e "Cleaning up"
 	@rm -f hh2_libretro.$(SOEXT) $(HH2_OBJS)
 	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h src/runtime/boxybold.png.h $(LUA_HEADERS)
 	@rm -f test/test test/main.o test/test.hh2 test/cryptopunk32.data
 
 distclean: clean
-	@echo "Cleaning up (including 3rd party libraries)"
+	@echo -e "Cleaning up (including 3rd party libraries)"
 	@rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 .PHONY: FORCE
