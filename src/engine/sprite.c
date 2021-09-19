@@ -8,9 +8,6 @@
 
 #define HH2_MIN_SPRITES 64
 
-// The actual return value for createSprite is an uint16_t index into the sprites array, make sure we can store it in a pointer
-typedef char hh2_staticAssertSpeexSampleMustBeHh2Sample[sizeof(uint16_t) <= sizeof(hh2_Sprite) ? 1 : -1];
-
 typedef enum {
     HH2_SPRITE_INVISIBLE = 0x4000U,
     HH2_SPRITE_DESTROY = 0x8000U,
