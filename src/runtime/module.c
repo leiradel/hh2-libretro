@@ -553,7 +553,7 @@ static int hh2_stopPcmsLua(lua_State* const L) {
 }
 
 static int hh2_getBoxyBoldLua(lua_State* const L) {
-    hh2_PixelSource const pixelsrc = hh2_initPixelSource(boxy_bold_font_4_png, sizeof(boxy_bold_font_4_png));
+    hh2_PixelSource const pixelsrc = hh2_initPixelSource(boxy_bold_font_4x2_png, sizeof(boxy_bold_font_4x2_png));
 
     if (pixelsrc == NULL) {
         return luaL_error(L, "error creating pixel source from boxy bold data");
