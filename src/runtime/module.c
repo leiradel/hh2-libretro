@@ -338,6 +338,18 @@ static int hh2_createCanvasLua(lua_State* const L) {
     return 0;
 }
 
+static int hh2_imageWidthLua(lua_State* const L) {
+    hh2_Image const image = *(hh2_Image*)luaL_checkudata(L, 1, HH2_IMAGE_MT);
+    lua_pushinteger(L, hh2_imageWidth(image));
+    return 1;
+}
+
+static int hh2_imageHeightLua(lua_State* const L) {
+    hh2_Image const image = *(hh2_Image*)luaL_checkudata(L, 1, HH2_IMAGE_MT);
+    lua_pushinteger(L, hh2_imageHeight(image));
+    return 1;
+}
+
 static int hh2_stampLua(lua_State* const L) {
     hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
     hh2_Image const image = *(hh2_Image*)luaL_checkudata(L, 1, HH2_IMAGE_MT);
@@ -370,6 +382,8 @@ static int hh2_createImageLua(lua_State* const L) {
 
     if (luaL_newmetatable(L, HH2_IMAGE_MT) != 0) {
         static luaL_Reg const methods[] = {
+            {"width", hh2_imageWidthLua},
+            {"height", hh2_imageHeightLua},
             {"stamp", hh2_stampLua},
             {NULL, NULL}
         };
