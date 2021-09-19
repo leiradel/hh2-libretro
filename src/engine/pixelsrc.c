@@ -372,14 +372,17 @@ hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const
 
 hh2_PixelSource hh2_subPixelSource(hh2_PixelSource const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height) {
     if ((x0 + width) > parent->width) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "empty sub pixel source");
         return NULL;
     }
 
     if ((y0 + height) > parent->height) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "empty sub pixel source");
         return NULL;
     }
 
     if (width == 0 || height == 0) {
+        HH2_LOG(HH2_LOG_ERROR, TAG "empty sub pixel source");
         return NULL;
     }
 
