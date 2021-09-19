@@ -459,8 +459,6 @@ static int hh2_createSpriteLua(lua_State* const L) {
         return luaL_error(L, "error creating sprite");
     }
 
-    hh2_setLayer(sprite, state->sprite_layer--);
-
     hh2_SpriteUd* const self = lua_newuserdata(L, sizeof(hh2_SpriteUd));
     self->sprite = sprite;
     self->image_ref = LUA_NOREF;

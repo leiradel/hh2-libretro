@@ -79,7 +79,6 @@ bool hh2_initState(hh2_State* const state, hh2_Filesys const filesys) {
     state->zoom_width = 0;
     state->zoom_height = 0;
     state->is_zoomed = false;
-    state->sprite_layer = 1023; // decreasing
 
     memset(state->button_state, 0, sizeof(state->button_state));
     state->mouse_x = 0;

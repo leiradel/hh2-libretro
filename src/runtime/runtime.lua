@@ -243,11 +243,15 @@ local function augmentUnits(hh2rt, graphics, extctrls)
         end
     }
 
+    local spriteLayer = 1023
+
     extctrls.timage = {
         create = function()
             local instance = {}
             local sprite = hh2rt.createSprite()
             sprite:setVisibility(true)
+            sprite:setLayer(spriteLayer)
+            spriteLayer = spriteLayer - 1
 
             local props = {
                 left = 0,

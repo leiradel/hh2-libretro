@@ -62,7 +62,6 @@ typedef struct {
     hh2_Canvas canvas;
     unsigned zoom_x0, zoom_y0, zoom_width, zoom_height;
     bool is_zoomed;
-    uint16_t sprite_layer;
 
     bool button_state[2][HH2_NUM_BUTTONS];
     int mouse_x, mouse_y;
