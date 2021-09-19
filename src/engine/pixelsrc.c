@@ -319,12 +319,13 @@ hh2_PixelSource hh2_initPixelSource(void const* data, size_t size) {
     reader.size = size;
     reader.pos = 0;
 
-    if (hh2_isPng(data)) {
-        return hh2_readPng(&reader);
-    }
-    else {
-        return hh2_readJpeg(&reader);
-    }
+    hh2_PixelSource const source = hh2_isPng(data) ? hh2_readPng(&reader) : hh2_readJpeg(&reader);
+
+#ifdef HH2_DEBUG
+    source->path = NULL;
+#endif
+
+    return source;
 }
 
 hh2_PixelSource hh2_readPixelSource(hh2_Filesys const filesys, char const* const path) {
@@ -396,7 +397,16 @@ hh2_PixelSource hh2_subPixelSource(hh2_PixelSource const parent, unsigned const 
     source->parent = parent;
 
 #ifdef HH2_DEBUG
-    source->path = NULL;
+    char path[64];
+    snprintf(path, sizeof(path), "Child of %p", (void*)parent);
+
+    size_t const path_len = strlen(path);
+    char* const path_dup = (char*)malloc(path_len + 1);
+    source->path = path_dup;
+
+    if (path_dup != NULL) {
+        memcpy(path_dup, path, path_len + 1);
+    }
 #endif
 
     return source;
