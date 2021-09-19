@@ -402,6 +402,14 @@ static int hh2_setPositionLua(lua_State* const L) {
     return 0;
 }
 
+static int hh2_setLayerLua(lua_State* const L) {
+    hh2_SpriteUd* const ud = (hh2_SpriteUd*)luaL_checkudata(L, 1, HH2_SPRITE_MT);
+    lua_Integer const layer = luaL_checkinteger(L, 2);
+
+    hh2_setLayer(ud->sprite, layer);
+    return 0;
+}
+
 static int hh2_setImageLua(lua_State* const L) {
     hh2_SpriteUd* const ud = (hh2_SpriteUd*)luaL_checkudata(L, 1, HH2_SPRITE_MT);
     hh2_Image const image = lua_isnoneornil(L, 2) ? NULL : *(hh2_Image*)luaL_checkudata(L, 2, HH2_IMAGE_MT);
@@ -460,6 +468,7 @@ static int hh2_createSpriteLua(lua_State* const L) {
     if (luaL_newmetatable(L, HH2_SPRITE_MT) != 0) {
         static luaL_Reg const methods[] = {
             {"setPosition", hh2_setPositionLua},
+            {"setLayer", hh2_setLayerLua},
             {"setImage", hh2_setImageLua},
             {"setVisibility", hh2_setVisibilityLua},
             {NULL, NULL}
