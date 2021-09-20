@@ -128,9 +128,9 @@ src/runtime/boxybold.png.h: etc/boxy_bold_font_4x2.png
 	@$(ECHO) "Creating header: $@"
 	@$(ECHO) "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
-src/runtime/module.o: src/runtime/boxybold.png.h
+src/runtime/module.o: src/runtime/module.c src/runtime/boxybold.png.h
 
-src/runtime/searcher.o: $(LUA_HEADERS)
+src/runtime/searcher.o: src/runtime/searcher.c $(LUA_HEADERS)
 
 src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
