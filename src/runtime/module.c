@@ -552,11 +552,19 @@ static int hh2_stopPcmsLua(lua_State* const L) {
     return 0;
 }
 
-static int hh2_getBoxyBoldLua(lua_State* const L) {
-    hh2_PixelSource const pixelsrc = hh2_initPixelSource(boxybold_png, sizeof(boxybold_png));
+static int hh2_getPixelSourceLua(lua_State* const L) {
+    char const* const name = luaL_checkstring(L, 1);
+    hh2_PixelSource pixelsrc = NULL;
+
+    if (strcmp(name, "boxybold") == 0) {
+        pixelsrc = hh2_initPixelSource(boxybold_png, sizeof(boxybold_png));
+    }
+    else {
+        return luaL_error(L, "unknown embedded image: \"%s\"", name);
+    }
 
     if (pixelsrc == NULL) {
-        return luaL_error(L, "error creating pixel source from boxy bold data");
+        return luaL_error(L, "error creating pixel source for \"%s\"", name);
     }
 
     return hh2_pushPixelSourceLua(L, pixelsrc);
@@ -579,7 +587,7 @@ void hh2_pushModule(lua_State* const L, hh2_State* const state) {
         {"createSprite", hh2_createSpriteLua},
         {"readPcm", hh2_readPcmLua},
         {"stopPcms", hh2_stopPcmsLua},
-        {"getBoxyBold", hh2_getBoxyBoldLua},
+        {"getPixelSource", hh2_getPixelSourceLua},
         {NULL, NULL}
     };
 

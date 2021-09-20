@@ -182,7 +182,7 @@ local function augmentHh2(hh2rt)
     local boxybold = {}
 
     do
-        local font = hh2rt.getBoxyBold()
+        local font = hh2rt.getPixelSource('boxybold')
 
         boxybold['!'] = font:sub(2, 0, 8, 16)
         boxybold['"'] = font:sub(12, 0, 14, 10)
