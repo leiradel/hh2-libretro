@@ -40,6 +40,10 @@ endif
 	@cat "$<" | gzip -c9n | xxd -i >> "$@"
 	@$(ECHO) "};\n" >> "$@"
 
+%.png.h: %.png
+	@$(ECHO) "Creating header: $@"
+	@$(ECHO) "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 
@@ -123,10 +127,6 @@ src/generated/version.h: FORCE
 		| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
-
-src/runtime/boxybold.png.h: etc/boxy_bold_font_4x2.png
-	@$(ECHO) "Creating header: $@"
-	@$(ECHO) "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 src/runtime/module.o: src/runtime/module.c src/runtime/boxybold.png.h
 
