@@ -173,7 +173,7 @@ static int hh2_compareEntries(void const* ptr1, void const* ptr2) {
     char const* path1 = entry1->path;
     char const* path2 = entry2->path;
 
-    // TODO(leiradel): remove strcmp and use a NIH implementation
+    // TODO leiradel: remove strcmp and use a NIH implementation
     return strcmp(path1, path2);
 }
 
@@ -182,7 +182,7 @@ static hh2_Entry* hh2_fileFind(hh2_Filesys filesys, char const* path) {
     key.path = path;
     key.hash = hh2_djb2(path);
 
-    // TODO(leiradel): remove bsearch and use a NIH implementation
+    // TODO leiradel: remove bsearch and use a NIH implementation
     hh2_Entry* found = bsearch(&key, filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), hh2_compareEntries);
 
     if (found == NULL) {
@@ -268,7 +268,7 @@ hh2_Filesys hh2_createFilesystem(void const* const buffer, size_t const size) {
 
     hh2_collectEntries(filesys);
 
-    // TODO(leiradel): remove qsort and use a NIH implementation
+    // TODO leiradel: remove qsort and use a NIH implementation
     qsort(filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), hh2_compareEntries);
     HH2_LOG(HH2_LOG_DEBUG, TAG "created file system %p", filesys);
     return filesys;
