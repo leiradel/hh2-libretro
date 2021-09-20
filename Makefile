@@ -128,7 +128,7 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-src/runtime/module.o: src/runtime/module.c src/runtime/boxybold.png.h
+src/runtime/module.o: src/runtime/module.c src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h
 
 src/runtime/searcher.o: src/runtime/searcher.c $(LUA_HEADERS)
 
@@ -137,7 +137,8 @@ src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 clean: FORCE
 	@$(ECHO) "Cleaning up"
 	@rm -f hh2_libretro.$(SOEXT) $(HH2_OBJS)
-	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h src/runtime/boxybold.png.h $(LUA_HEADERS)
+	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h  $(LUA_HEADERS)
+	@rm -f src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h
 
 distclean: clean
 	@$(ECHO) "Cleaning up (including 3rd party libraries)"
