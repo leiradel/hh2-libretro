@@ -206,12 +206,18 @@ hh2_Image hh2_createImage(hh2_PixelSource const source) {
 #ifdef HH2_DEBUG
     {
         char const* const path = hh2_getPixelSourcePath(source);
-        size_t const path_len = strlen(path);
-        char* const path_dup = (char*)malloc(path_len + 1);
-        image->path = path_dup;
 
-        if (path_dup != NULL) {
-            memcpy(path_dup, path, path_len + 1);
+        if (path != NULL) {
+            size_t const path_len = strlen(path);
+            char* const path_dup = (char*)malloc(path_len + 1);
+            image->path = path_dup;
+
+            if (path_dup != NULL) {
+                memcpy(path_dup, path, path_len + 1);
+            }
+        }
+        else {
+            image->path = NULL;
         }
     }
 #endif
