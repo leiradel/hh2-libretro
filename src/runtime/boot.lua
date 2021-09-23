@@ -20,6 +20,8 @@ return function()
         config.mappedButtons.a = config.mappedButtons.right
     elseif config.mappingProfile == 'dpadaction' then
         config.mappedButtons.b = config.mappedButtons.action
+    else
+        hh2rt.warn('unknown mapping profile: %s', config.mappingProfile)
     end
 
     -- Return the tick function
