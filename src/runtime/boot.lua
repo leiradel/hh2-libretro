@@ -9,11 +9,9 @@ return function()
     -- Set the background image for the game
     local config = require 'hh2config'
 
-    local background = hh2rt.readPixelSource(config.backgroundImage)
-    local image = hh2rt.createImage(background)
-
+    local background = hh2rt.createImage(hh2rt.readPixelSource(config.backgroundImage))
     hh2rt.createCanvas(background:width(), background:height())
-    image:stamp(0, 0)
+    background:stamp(0, 0)
 
     -- Configure the buttons depending on the profile
     if config.mappingProfile == 'leftright' then
