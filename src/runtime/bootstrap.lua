@@ -92,12 +92,15 @@ return function(hh2rt)
 
     do
         -- Augment the module for the Pascal runtime, as well as some units
-        local runtime = require 'runtime'
-        runtime.augmentHh2(hh2rt)
+        hh2rt.info('augmenting the hh2rt module')
+        local module = require 'module'
+        module(hh2rt)
 
+        hh2rt.info('augmenting the graphics and extctrls units')
+        local runtime = require 'runtime'
         local graphics = require 'graphics'
         local extctrls = require 'extctrls'
-        runtime.augmentUnits(hh2rt, graphics, extctrls)
+        runtime(hh2rt, graphics, extctrls)
 
         hh2rt.timers = {}
     end
