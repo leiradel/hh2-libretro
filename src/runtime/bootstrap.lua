@@ -96,11 +96,9 @@ return function(hh2rt)
         local module = require 'module'
         module(hh2rt)
 
-        hh2rt.info('augmenting the graphics and extctrls units')
+        hh2rt.info('augmenting units')
         local runtime = require 'runtime'
-        local graphics = require 'graphics'
-        local extctrls = require 'extctrls'
-        runtime(hh2rt, graphics, extctrls)
+        runtime(hh2rt)
 
         hh2rt.timers = {}
     end
