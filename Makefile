@@ -1,48 +1,36 @@
-ifeq ($(shell uname -s),)
-    SOEXT=dll
-    ECHO="echo -e"
-else ifneq ($(findstring MINGW,$(shell uname -a)),)
-    SOEXT=dll
-    ECHO="echo -e"
-else ifneq ($(findstring MSYS,$(shell uname -a)),)
-    SOEXT=dll
-    ECHO="echo -e"
-else ifneq ($(findstring win,$(shell uname -a)),)
-    SOEXT=dll
-    ECHO="echo -e"
+ifneq ($(findstring Linux,$(shell uname -a)),)
+    SOEXT=so
 else ifneq ($(findstring Darwin,$(shell uname -a)),)
     SOEXT=dylib
-    ECHO="echo"
 else
-    SOEXT=so
-    ECHO="echo"
+    SOEXT=dll
 endif
 
 %.o: %.c
-	@$(ECHO) "Compiling: $@"
+	@echo -e "Compiling: $@"
 	@$(CC) $(INCLUDES) $(CFLAGS) -c "$<" -o "$@"
 
 %.lua: %.pas
-	@$(ECHO) "Transpiling to Lua: $@"
+	@echo -e "Transpiling to Lua: $@"
 	@$(LUA) etc/pas2lua.lua -Isrc/runtime/units -DHH2 "$<" > "$@"
 
 %.lua.h: %.lua
-	@$(ECHO) "Creating header: $@"
-	@$(ECHO) "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+	@echo -e "Creating header: $@"
+	@echo -e "static char const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 %.luagz.h: %.lua
-	@$(ECHO) "Creating compressed header: $@"
-	@$(ECHO) "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {" > "$@"
-	@$(ECHO) "  UINT32_C(`wc -c '$<' | sed 's/ .*//'`) & 0xff," >> "$@"
-	@$(ECHO) "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 8) & 0xff," >> "$@"
-	@$(ECHO) "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 16) & 0xff," >> "$@"
-	@$(ECHO) "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 24) & 0xff," >> "$@"
+	@echo -e "Creating compressed header: $@"
+	@echo -e "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {" > "$@"
+	@echo -e "  UINT32_C(`wc -c '$<' | sed 's/ .*//'`) & 0xff," >> "$@"
+	@echo -e "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 8) & 0xff," >> "$@"
+	@echo -e "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 16) & 0xff," >> "$@"
+	@echo -e "  (UINT32_C(`wc -c '$<' | sed 's/ .*//'`) >> 24) & 0xff," >> "$@"
 	@cat "$<" | gzip -c9n | xxd -i >> "$@"
-	@$(ECHO) "};\n" >> "$@"
+	@echo -e "};\n" >> "$@"
 
 %.png.h: %.png
-	@$(ECHO) "Creating header: $@"
-	@$(ECHO) "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
+	@echo -e "Creating header: $@"
+	@echo -e "static uint8_t const `basename "$<" | sed 's/\./_/'`[] = {\n`cat "$<" | xxd -i`\n};" > "$@"
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
@@ -118,11 +106,11 @@ HH2_OBJS = \
 all: src/generated/version.h hh2_libretro.$(SOEXT)
 
 hh2_libretro.$(SOEXT): $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
-	@$(ECHO) "Linking: $@"
+	@echo -e "Linking: $@"
 	@$(CC) -shared -o $@ $+ $(LIBS)
 
 src/generated/version.h: FORCE
-	@$(ECHO) "Creating version header: $@"
+	@echo -e "Creating version header: $@"
 	@cat etc/version.templ.h \
 		| sed s/\&HASH/`git rev-parse HEAD | tr -d "\n"`/g \
 		| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
@@ -136,13 +124,13 @@ src/runtime/searcher.o: src/runtime/searcher.c $(LUA_HEADERS)
 src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 
 clean: FORCE
-	@$(ECHO) "Cleaning up"
+	@echo -e "Cleaning up"
 	@rm -f hh2_libretro.$(SOEXT) $(HH2_OBJS)
 	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h  $(LUA_HEADERS)
 	@rm -f src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h
 
 distclean: clean
-	@$(ECHO) "Cleaning up (including 3rd party libraries)"
+	@echo -e "Cleaning up (including 3rd party libraries)"
 	@rm -f $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 .PHONY: FORCE
