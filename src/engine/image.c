@@ -143,13 +143,14 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
 
             while (length != 0) {
                 unsigned const count = length < 256 ? length : 256;
-                *rle++ = hh2_rle(HH2_RLE_COMPOSE, count, 32 - (((uint16_t)alpha + 4) >> 3));
+                uint8_t const inv_alpha = 32 - (((uint16_t)alpha + 4) / 8);
+                *rle++ = hh2_rle(HH2_RLE_COMPOSE, count, inv_alpha);
 
                 for (unsigned i = 0; i < count; i++) {
                     hh2_ARGB8888 const pixel2 = hh2_getPixel(source, x + i, y);
-                    uint8_t const r = HH2_ARGB8888_R(pixel2);
-                    uint8_t const g = HH2_ARGB8888_G(pixel2);
-                    uint8_t const b = HH2_ARGB8888_B(pixel2);
+                    uint8_t const r = HH2_ARGB8888_R(pixel2) * alpha / 255;
+                    uint8_t const g = HH2_ARGB8888_G(pixel2) * alpha / 255;
+                    uint8_t const b = HH2_ARGB8888_B(pixel2) * alpha / 255;
                     *rle++ = HH2_COLOR_RGB565(r, g, b);
                 }
 
