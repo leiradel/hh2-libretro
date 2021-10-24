@@ -109,7 +109,7 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
 
         unsigned length = xx - x;
 
-        if (alpha == 0) {
+        if (alpha <= 3) {
             words += (length + 16383) / 16384;
 
             while (length != 0) {
@@ -118,7 +118,7 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
                 length -= count;
             }
         }
-        else if (alpha == 255) {
+        else if (alpha >= 252) {
             words += (length + 16383) / 16384;
             words += length;
 
