@@ -167,7 +167,7 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
 static hh2_RGB565 hh2_compose(hh2_RGB565 const src, hh2_RGB565 const dst, uint8_t const inv_alpha) {
     uint32_t const src32 = (src & 0xf81fU) | (uint32_t)(src & 0x07e0U) << 16;
     uint32_t const dst32 = (dst & 0xf81fU) | (uint32_t)(dst & 0x07e0U) << 16;
-    uint32_t const composed = (src32 + dst32 * inv_alpha) / 32;
+    uint32_t const composed = src32 + (dst32 * inv_alpha) / 32;
     return (composed & 0xf81fU) | ((composed >> 16) & 0x07e0U);
 }
 
