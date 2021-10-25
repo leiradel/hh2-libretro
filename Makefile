@@ -120,8 +120,8 @@ src/generated/version.h: FORCE
 		> $@
 
 src/runtime/module.o: src/runtime/module.c src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h
-src/core/libretro.o: src/core/libretro.c src/generated/version.h
 
+src/core/libretro.o: src/core/libretro.c src/generated/version.h
 
 src/runtime/searcher.o: src/runtime/searcher.c $(LUA_HEADERS)
 
