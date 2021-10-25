@@ -105,7 +105,7 @@ HH2_OBJS = \
 	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/module.o src/runtime/searcher.o src/runtime/state.o \
 	src/runtime/uncomp.o src/version.o
 
-all: src/generated/version.h hh2_libretro.$(SOEXT)
+all: hh2_libretro.$(SOEXT)
 
 hh2_libretro.$(SOEXT): $(LIBJPEG_OBJS) $(LIBPNG_OBJS) $(LUA_OBJS) $(AES_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS) $(HH2_OBJS)
 	@echo $(ECHOOPTS) "Linking: $@"
@@ -120,6 +120,8 @@ src/generated/version.h: FORCE
 		> $@
 
 src/runtime/module.o: src/runtime/module.c src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h
+src/core/libretro.o: src/core/libretro.c src/generated/version.h
+
 
 src/runtime/searcher.o: src/runtime/searcher.c $(LUA_HEADERS)
 
