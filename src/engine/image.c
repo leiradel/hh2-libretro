@@ -55,23 +55,25 @@ static size_t hh2_rleRowDryRun(size_t* const pixels_used, hh2_PixelSource const 
     for (unsigned x = 0; x < width;) {
         hh2_ARGB8888 const pixel = hh2_getPixel(source, x, y);
         uint8_t const alpha = HH2_ARGB8888_A(pixel);
+        uint8_t const real_alpha = ((uint16_t)alpha + 4) / 8;
         unsigned xx = x + 1;
 
         for (; xx < width; xx++) {
             hh2_ARGB8888 const pixel2 = hh2_getPixel(source, xx, y);
             uint8_t const alpha2 = HH2_ARGB8888_A(pixel2);
+            uint8_t const real_alpha2 = ((uint16_t)alpha2 + 4) / 8;
 
-            if (alpha2 != alpha) {
+            if (real_alpha2 != real_alpha) {
                 break;
             }
         }
 
         unsigned const length = xx - x;
 
-        if (alpha == 0) {
+        if (real_alpha == 0) {
             words += (length + 16383) / 16384;
         }
-        else if (alpha == 255) {
+        else if (real_alpha == 32) {
             words += (length + 16383) / 16384;
             words += length;
             *pixels_used += length;
@@ -96,20 +98,22 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
     for (unsigned x = 0; x < width;) {
         hh2_ARGB8888 const pixel = hh2_getPixel(source, x, y);
         uint8_t const alpha = HH2_ARGB8888_A(pixel);
+        uint8_t const real_alpha = ((uint16_t)alpha + 4) / 8;
         unsigned xx = x + 1;
 
         for (; xx < width; xx++) {
             hh2_ARGB8888 const pixel2 = hh2_getPixel(source, xx, y);
             uint8_t const alpha2 = HH2_ARGB8888_A(pixel2);
+            uint8_t const real_alpha2 = ((uint16_t)alpha2 + 4) / 8;
 
-            if (alpha2 != alpha) {
+            if (real_alpha2 != real_alpha) {
                 break;
             }
         }
 
         unsigned length = xx - x;
 
-        if (alpha <= 3) {
+        if (real_alpha == 0) {
             words += (length + 16383) / 16384;
 
             while (length != 0) {
@@ -118,7 +122,7 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
                 length -= count;
             }
         }
-        else if (alpha >= 252) {
+        else if (real_alpha == 32) {
             words += (length + 16383) / 16384;
             words += length;
 
@@ -138,12 +142,12 @@ static size_t hh2_rleRow(hh2_Rle* rle, hh2_PixelSource const source, int const y
             }
         }
         else {
+            uint8_t const inv_alpha = 32 - real_alpha;
             words += (length + 255) / 256;
             words += length;
 
             while (length != 0) {
                 unsigned const count = length < 256 ? length : 256;
-                uint8_t const inv_alpha = 32 - (((uint16_t)alpha + 4) / 8);
                 *rle++ = hh2_rle(HH2_RLE_COMPOSE, count, inv_alpha);
 
                 for (unsigned i = 0; i < count; i++) {
