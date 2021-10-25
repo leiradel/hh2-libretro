@@ -14,6 +14,7 @@
 #include "boxybold.png.h"
 #include "joypad.png.h"
 #include "mobile.png.h"
+#include "white75.png.h"
 
 #include <lauxlib.h>
 #include <zlib.h>
@@ -566,6 +567,9 @@ static int hh2_getPixelSourceLua(lua_State* const L) {
     }
     else if (strcmp(name, "mobile") == 0) {
         pixelsrc = hh2_initPixelSource(mobile_png, sizeof(mobile_png));
+    }
+    else if (strcmp(name, "white75") == 0) {
+        pixelsrc = hh2_initPixelSource(white75_png, sizeof(white75_png));
     }
     else {
         return luaL_error(L, "unknown embedded image: \"%s\"", name);

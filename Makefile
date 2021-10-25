@@ -100,6 +100,9 @@ LUA_HEADERS = \
 	src/runtime/units/shellapi.luagz.h src/runtime/units/stdctrls.luagz.h src/runtime/units/system.luagz.h \
 	src/runtime/units/sysutils.luagz.h src/runtime/units/windows.luagz.h
 
+PNG_HEADERS = \
+	src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h src/runtime/white75.png.h
+
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
 	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o src/runtime/module.o src/runtime/searcher.o src/runtime/state.o \
@@ -119,7 +122,7 @@ src/generated/version.h: FORCE
 		| sed s/\&DATE/`date -Iseconds`/g \
 		> $@
 
-src/runtime/module.o: src/runtime/module.c src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h
+src/runtime/module.o: src/runtime/module.c $(PNG_HEADERS)
 
 src/core/libretro.o: src/core/libretro.c src/generated/version.h
 
@@ -130,8 +133,7 @@ src/runtime/state.o: src/runtime/state.c src/runtime/bootstrap.lua.h
 clean: FORCE
 	@echo $(ECHOOPTS) "Cleaning up"
 	@rm -f hh2_libretro.$(SOEXT) $(HH2_OBJS)
-	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h  $(LUA_HEADERS)
-	@rm -f src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h
+	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h $(PNG_HEADERS) $(LUA_HEADERS)
 
 distclean: clean
 	@echo $(ECHOOPTS) "Cleaning up (including 3rd party libraries)"
