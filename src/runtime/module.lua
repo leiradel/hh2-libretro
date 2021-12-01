@@ -143,9 +143,9 @@ return function(hh2rt)
         end
 
         local sprites = {
-            hide = function(self)
+            setVisibility = function(self, visibility)
                 for i = 1, #self do
-                    self[i]:setVisibility(false)
+                    self[i]:setVisibility(visibility)
                 end
             end
         }
