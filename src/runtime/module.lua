@@ -191,11 +191,16 @@ return function(hh2rt)
     }
 
     local joypadFunctions = {
-        leftright = {
-            left = 'Left',
-            right = 'Right',
-            a = 'Right'
-        }
+        dpadaction          = {up = 'Up', down = 'Down', left = 'Left', right = 'Right', b = 'Action'},
+        dpadtwoactions      = {up = 'Up', down = 'Down', left = 'Left', right = 'Right', b = 'Action 1', a = 'Action 2'},
+        leftright           = {left = 'Left', right = 'Right', a = 'Right'},
+        leftrightaction     = {left = 'Left', right = 'Right', a = 'Right', b = 'Action'},
+        updownaction        = {up = 'Up', down = 'Down', b = 'Action'},
+        fourdiagonals       = {up = 'North West', down = 'South West', x = 'North East', b = 'South East'},
+        threehorizontal     = {},
+        updownleftright     = {up = 'Up', down = 'Down', y = 'Left', a = 'Right'},
+        leftrightaction2p   = {left = 'Left', right = 'Right', a = 'Right', b = 'Action'},
+        leftrighttwoactions = {left = 'Left', right = 'Right', y = 'Action Left', a = 'Action Right'}
     }
 
     hh2rt.joypadHelp = function(width, height)
