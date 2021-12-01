@@ -171,4 +171,71 @@ return function(hh2rt)
 
         return sprites
     end
+
+    local white75 = hh2rt.createImage(hh2rt.getPixelSource('white75'))
+    local joypad = hh2rt.createImage(hh2rt.getPixelSource('joypad'))
+
+    local joypadPoints = {
+        up = {ox = 84, oy = 59, anchor = 'center-center'},
+        down = {ox = 84, oy = 114, anchor = 'center-center'},
+        left = {ox = 55, oy = 87, anchor = 'center-right'},
+        right = {ox = 112, oy = 87, anchor = 'center-left'},
+        a = {ox = 345, oy = 88, anchor = 'center-left'},
+        b = {ox = 314, oy = 117, anchor = 'center-center'},
+        x = {ox = 314, oy = 59, anchor = 'center-center'},
+        y = {ox = 284, oy = 88, anchor = 'center-right'},
+        l1 = {ox = 84, oy = 11, anchor = 'center-left'},
+        r1 = {ox = 316, oy = 11, anchor = 'center-left'},
+        select = {ox = 170, oy = 87, anchor = 'center-right'},
+        start = {ox = 230, oy = 87, anchor = 'center-left'}
+    }
+
+    local joypadFunctions = {
+        leftright = {
+            left = 'Left',
+            right = 'Right',
+            a = 'Right'
+        }
+    }
+
+    hh2rt.joypadHelp = function(width, height)
+        local config = require 'hh2config'
+
+        local sprites = {
+            setVisibility = function(self, visibility)
+                for i = 1, #self do
+                    self[i]:setVisibility(visibility)
+                end
+            end
+        }
+
+        for y = 0, height, white75:height() do
+            for x = 0, width, white75:width() do
+                local sprite = hh2rt.createSprite()
+                sprite:setPosition(x, y)
+                sprite:setLayer(2048)
+                sprite:setImage(white75)
+                sprite:setVisibility(true)
+
+                sprites[#sprites + 1] = sprite
+            end
+        end
+
+        local x0, y0 = (width - joypad:width()) // 2, (height - joypad:height()) // 2
+        local sprite = hh2rt.createSprite()
+        sprite:setPosition(x0, y0)
+        sprite:setLayer(2049)
+        sprite:setImage(joypad)
+        sprite:setVisibility(true)
+        sprites[#sprites + 1] = sprite
+
+        for id, _ in pairs(config.mappedButtons) do
+            local functions = joypadFunctions[config.mappingProfile]
+            local point = joypadPoints[id]
+            local sprite = hh2rt.text(x0 + point.ox, y0 + point.oy, point.anchor, functions[id])
+            sprites[#sprites + 1] = sprite
+        end
+
+        return sprites
+    end
 end
