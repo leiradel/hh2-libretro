@@ -234,8 +234,9 @@ return function(hh2rt)
         sprite:setVisibility(true)
         sprites[#sprites + 1] = sprite
 
+        local functions = joypadFunctions[config.mappingProfile]
+
         for id, _ in pairs(config.mappedButtons) do
-            local functions = joypadFunctions[config.mappingProfile]
             local point = joypadPoints[id]
             local sprite = hh2rt.text(x0 + point.ox, y0 + point.oy, point.anchor, functions[id])
             sprites[#sprites + 1] = sprite
