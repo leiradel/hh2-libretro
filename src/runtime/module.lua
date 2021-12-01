@@ -186,8 +186,8 @@ return function(hh2rt)
         y = {ox = 284, oy = 88, anchor = 'center-right'},
         l1 = {ox = 84, oy = 11, anchor = 'center-left'},
         r1 = {ox = 316, oy = 11, anchor = 'center-left'},
-        select = {ox = 170, oy = 87, anchor = 'center-right'},
-        start = {ox = 230, oy = 87, anchor = 'center-left'}
+        select = {ox = 170, oy = 56, anchor = 'center-right'},
+        start = {ox = 230, oy = 56, anchor = 'center-left'}
     }
 
     local joypadFunctions = {
