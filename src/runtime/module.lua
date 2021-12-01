@@ -158,7 +158,7 @@ return function(hh2rt)
                 local sprite = hh2rt.createSprite()
 
                 sprite:setVisibility(true)
-                sprite:setLayer(2048)
+                sprite:setLayer(2050)
                 sprite:setImage(image)
                 sprite:setPosition(x, y)
                 x = x + image:width()
