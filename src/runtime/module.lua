@@ -244,4 +244,96 @@ return function(hh2rt)
 
         return sprites
     end
+
+    local mobile = hh2rt.createImage(hh2rt.getPixelSource('mobile'))
+    local hbar50 = hh2rt.createImage(hh2rt.getPixelSource('hbar50'))
+    local hbar100 = hh2rt.createImage(hh2rt.getPixelSource('hbar100'))
+    local vbar50 = hh2rt.createImage(hh2rt.getPixelSource('vbar50'))
+    local vbar100 = hh2rt.createImage(hh2rt.getPixelSource('vbar100'))
+    local mobileScreen = {x0 = 26, y0 = 5, x1 = 328, y1 = 195}
+
+    local mobileAreas = {
+        leftright       = {left = {0, 0, 50, 100}, right = {51, 0, 100, 100}},
+        leftrightaction = {action = {0, 0, 100, 50}, left = {0, 51, 50, 100}, right = {51, 51, 100, 100}},
+        fourdiagonals   = {up = {0, 0, 50, 50}, x = {51, 0, 100, 50}, down = {0, 51, 50, 100}, b = {51, 51, 100, 100}},
+        threehorizontal = {_left = {0, 0, 33, 100}, _center = {34, 0, 67, 100}, _right = {68, 0, 100, 100}},
+        updownaction    = {action = {0, 0, 50, 100}, up = {51, 0, 100, 50}, down = {51, 51, 100, 100}}
+    }
+
+    local mobileBars = {
+        leftright       = {{50, 0, vbar100}},
+        leftrightaction = {{0, 50, hbar100}, {50, 50, vbar50}},
+        fourdiagonals   = {{50, 0, vbar100}, {0, 50, hbar100}},
+        threehorizontal = {{33, 0, vbar100}, {67, 0, vbar100}},
+        updownaction    = {{50, 0, vbar100}, {50, 50, hbar50}}
+    }
+
+    hh2rt.mobileHelp = function(width, height)
+        local config = require 'hh2config'
+
+        local sprites = {
+            setVisibility = function(self, visibility)
+                for i = 1, #self do
+                    self[i]:setVisibility(visibility)
+                end
+            end
+        }
+
+        for y = 0, height, white75:height() do
+            for x = 0, width, white75:width() do
+                local sprite = hh2rt.createSprite()
+                sprite:setPosition(x, y)
+                sprite:setLayer(2048)
+                sprite:setImage(white75)
+                sprite:setVisibility(true)
+
+                sprites[#sprites + 1] = sprite
+            end
+        end
+
+        local x0, y0 = (width - mobile:width()) // 2, (height - mobile:height()) // 2
+        local sprite = hh2rt.createSprite()
+        sprite:setPosition(x0, y0)
+        sprite:setLayer(2049)
+        sprite:setImage(mobile)
+        sprite:setVisibility(true)
+        sprites[#sprites + 1] = sprite
+
+        local findX = function(percent)
+            return mobileScreen.x0 + (mobileScreen.x1 - mobileScreen.x0) * percent / 100
+        end
+
+        local findY = function(percent)
+            return mobileScreen.y0 + (mobileScreen.y1 - mobileScreen.y0) * percent / 100
+        end
+
+        local area = mobileAreas[config.mappingProfile]
+        local functions = joypadFunctions[config.mappingProfile]
+
+        for id, _ in pairs(config.mappedButtons) do
+            local rect = area[id]
+
+            if rect then
+                local x = findX(rect[1] + (rect[3] - rect[1]) / 2) // 1
+                local y = findY(rect[2] + (rect[4] - rect[2]) / 2) // 1
+                local sprite = hh2rt.text(x0 + x, y0 + y, 'center-center', functions[id])
+                sprites[#sprites + 1] = sprite
+            end
+        end
+
+        local bars = mobileBars[config.mappingProfile]
+
+        for _, bar in ipairs(bars) do
+            local x = findX(bar[1]) // 1
+            local y = findY(bar[2]) // 1
+            local sprite = hh2rt.createSprite()
+            sprite:setPosition(x0 + x, y0 + y)
+            sprite:setLayer(2049)
+            sprite:setImage(bar[3])
+            sprite:setVisibility(true)
+            sprites[#sprites + 1] = sprite
+        end
+
+        return sprites
+    end
 end
