@@ -15,6 +15,10 @@
 #include "joypad.png.h"
 #include "mobile.png.h"
 #include "white75.png.h"
+#include "hbar50.png.h"
+#include "hbar100.png.h"
+#include "vbar50.png.h"
+#include "vbar100.png.h"
 
 #include <lauxlib.h>
 #include <zlib.h>
@@ -564,6 +568,18 @@ static int hh2_getPixelSourceLua(lua_State* const L) {
     }
     else if (strcmp(name, "white75") == 0) {
         pixelsrc = hh2_initPixelSource(white75_png, sizeof(white75_png));
+    }
+    else if (strcmp(name, "hbar50") == 0) {
+        pixelsrc = hh2_initPixelSource(hbar50_png, sizeof(hbar50_png));
+    }
+    else if (strcmp(name, "hbar100") == 0) {
+        pixelsrc = hh2_initPixelSource(hbar100_png, sizeof(hbar100_png));
+    }
+    else if (strcmp(name, "vbar50") == 0) {
+        pixelsrc = hh2_initPixelSource(vbar50_png, sizeof(vbar50_png));
+    }
+    else if (strcmp(name, "vbar100") == 0) {
+        pixelsrc = hh2_initPixelSource(vbar100_png, sizeof(vbar100_png));
     }
     else {
         return luaL_error(L, "unknown embedded image: \"%s\"", name);

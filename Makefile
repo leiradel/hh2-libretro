@@ -101,7 +101,8 @@ LUA_HEADERS = \
 	src/runtime/units/sysutils.luagz.h src/runtime/units/windows.luagz.h
 
 PNG_HEADERS = \
-	src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h src/runtime/white75.png.h
+	src/runtime/boxybold.png.h src/runtime/joypad.png.h src/runtime/mobile.png.h src/runtime/white75.png.h \
+	src/runtime/hbar50.png.h src/runtime/hbar100.png.h src/runtime/vbar50.png.h src/runtime/vbar100.png.h
 
 HH2_OBJS = \
 	src/core/libretro.o src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o \
