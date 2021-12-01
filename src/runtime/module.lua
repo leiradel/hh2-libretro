@@ -176,18 +176,18 @@ return function(hh2rt)
     local joypad = hh2rt.createImage(hh2rt.getPixelSource('joypad'))
 
     local joypadPoints = {
-        up = {ox = 84, oy = 59, anchor = 'center-center'},
-        down = {ox = 84, oy = 114, anchor = 'center-center'},
-        left = {ox = 55, oy = 87, anchor = 'center-right'},
-        right = {ox = 112, oy = 87, anchor = 'center-left'},
-        a = {ox = 345, oy = 88, anchor = 'center-left'},
-        b = {ox = 314, oy = 117, anchor = 'center-center'},
-        x = {ox = 314, oy = 59, anchor = 'center-center'},
-        y = {ox = 284, oy = 88, anchor = 'center-right'},
-        l1 = {ox = 84, oy = 11, anchor = 'center-left'},
-        r1 = {ox = 316, oy = 11, anchor = 'center-left'},
-        select = {ox = 170, oy = 56, anchor = 'center-right'},
-        start = {ox = 230, oy = 56, anchor = 'center-left'}
+        up     = {ox =  84, oy =  59, anchor = 'center-center'},
+        down   = {ox =  84, oy = 114, anchor = 'center-center'},
+        left   = {ox =  55, oy =  87, anchor = 'center-right'},
+        right  = {ox = 112, oy =  87, anchor = 'center-left'},
+        a      = {ox = 345, oy =  88, anchor = 'center-left'},
+        b      = {ox = 314, oy = 117, anchor = 'center-center'},
+        x      = {ox = 314, oy =  59, anchor = 'center-center'},
+        y      = {ox = 284, oy =  88, anchor = 'center-right'},
+        l1     = {ox =  84, oy =  11, anchor = 'center-left'},
+        r1     = {ox = 316, oy =  11, anchor = 'center-left'},
+        select = {ox = 170, oy =  56, anchor = 'center-right'},
+        start  = {ox = 230, oy =  56, anchor = 'center-left'}
     }
 
     local joypadFunctions = {
