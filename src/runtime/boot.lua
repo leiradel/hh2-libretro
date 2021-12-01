@@ -33,7 +33,7 @@ return function()
             timer['#tick'](now)
         end
 
-        input = hh2rt.getInput()
+        hh2rt.getInput(input)
 
         for name, button in pairs(config.mappedButtons) do
             if input[name] and not previous[name] then

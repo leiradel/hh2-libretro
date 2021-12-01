@@ -206,13 +206,7 @@ static int hh2_getInputLua(lua_State* const L) {
     };
 
     hh2_State* const state = (hh2_State*)lua_touserdata(L, lua_upvalueindex(1));
-
-    if (lua_type(L, 1) == LUA_TTABLE) {
-        lua_pushvalue( L, 1 );
-    }
-    else {
-        lua_createtable(L, 0, 37);
-    }
+    luaL_argexpected(L, lua_type(L, 1) == LUA_TTABLE, 1, "table");
 
     for (unsigned port = 0; port < 2; port++) {
         for (size_t i = 0; i < sizeof(state->button_state[0]) / sizeof(state->button_state[0][0] ); i++) {
@@ -220,29 +214,29 @@ static int hh2_getInputLua(lua_State* const L) {
             snprintf(name, sizeof(name), "%s%s", button_names[i], port == 0 ? "" : "/2");
 
             lua_pushboolean(L, state->button_state[port][i]);
-            lua_setfield(L, -2, name);
+            lua_setfield(L, 1, name);
         }
     }
 
     if (state->is_zoomed) {
         lua_pushinteger(L, state->zoom_x0 + (state->mouse_x + 32767) * state->zoom_width / 65534);
-        lua_setfield(L, -2, "mouseX");
+        lua_setfield(L, 1, "mouseX");
 
         lua_pushinteger(L, state->zoom_y0 + (state->mouse_y + 32767) * state->zoom_height / 65534);
-        lua_setfield(L, -2, "mouseY");
+        lua_setfield(L, 1, "mouseY");
     }
     else {
         lua_pushinteger(L, (state->mouse_x + 32767) * hh2_canvasWidth(state->canvas) / 65534);
-        lua_setfield(L, -2, "mouseX");
+        lua_setfield(L, 1, "mouseX");
         
         lua_pushinteger(L, (state->mouse_y + 32767) * hh2_canvasHeight(state->canvas) / 65534);
-        lua_setfield(L, -2, "mouseY");
+        lua_setfield(L, 1, "mouseY");
     }
 
     lua_pushboolean(L, state->mouse_pressed);
-    lua_setfield(L, -2, "mousePressed");
+    lua_setfield(L, 1, "mousePressed");
 
-    return 1;
+    return 0;
 }
 
 static int hh2_pushPixelSourceLua(lua_State* const L, hh2_PixelSource const pixelsrc);
