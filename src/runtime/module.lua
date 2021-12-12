@@ -336,4 +336,65 @@ return function(hh2rt)
 
         return sprites
     end
+
+    hh2rt.infoPage = function(width, height)
+        local sprites = {
+            setVisibility = function(self, visibility)
+                for i = 1, #self do
+                    self[i]:setVisibility(visibility)
+                end
+            end
+        }
+
+        local console = hh2rt.createImage(hh2rt.getPixelSource('console'))
+        local x0, y0 = (width - console:width()), (height - console:height())
+
+        for y = y0, height, white75:height() do
+            local x = x0
+
+            repeat
+                x = x - white75:width()
+                local sprite = hh2rt.createSprite()
+                sprite:setPosition(x, y)
+                sprite:setLayer(2048)
+                sprite:setImage(white75)
+                sprite:setVisibility(true)
+
+                sprites[#sprites + 1] = sprite
+            until x <= 0
+        end
+
+        for x = 0, width, white75:width() do
+            local y = y0
+
+            repeat
+                y = y - white75:height()
+                local sprite = hh2rt.createSprite()
+                sprite:setPosition(x, y)
+                sprite:setLayer(2048)
+                sprite:setImage(white75)
+                sprite:setVisibility(true)
+
+                sprites[#sprites + 1] = sprite
+            until y <= 0
+        end
+
+        local sprite = hh2rt.createSprite()
+        sprite:setPosition(x0, y0)
+        sprite:setLayer(2049)
+        sprite:setImage(console)
+        sprite:setVisibility(true)
+        sprites[#sprites + 1] = sprite
+
+        local x0, y0 = 8, 24
+
+        sprites[#sprites + 1] = hh2rt.text(x0, y0 + 0, 'bottom-left', 'Donkey Kong II (Nintendo, Game & Watch Multi Screen)')
+        sprites[#sprites + 1] = hh2rt.text(x0, y0 + 40, 'bottom-left', '2017-12-04')
+        sprites[#sprites + 1] = hh2rt.text(x0, y0 + 60, 'bottom-left', '5.00')
+        sprites[#sprites + 1] = hh2rt.text(x0, y0 + 100, 'bottom-left', 'Luca "MADrigal" Antignano')
+        sprites[#sprites + 1] = hh2rt.text(x0, y0 + 120, 'bottom-left', 'lucantignano@gmail.com')
+        sprites[#sprites + 1] = hh2rt.text(x0, y0 + 140, 'bottom-left', 'www.madrigaldesign.it/sim')
+
+        return sprites
+    end
 end
